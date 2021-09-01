@@ -89,6 +89,21 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 		return nil
 	}
 
+	if activation.Method == "heartbeat_request" {
+		activation.Method = "heartbeat_response"
+		activation.Status = "success"
+		dataToSend, err := json.Marshal(activation)
+		if err != nil {
+			log.Error("unable to marshal activationResponse to JSON")
+			return nil
+		}
+		err = amt.Send(dataToSend)
+		if err != nil {
+			log.Error("Heartbeat send failure")
+		}
+		return []byte("heartbeat")
+	}
+
 	if activation.Method == "success" {
 		statusMessage := MPSStatusMessage{}
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)

@@ -81,11 +81,14 @@ func main() {
 	for {
 		select {
 		case dataFromMPS := <-mpsDataChannel:
-			lms.Connect()
+
 			msgPayload := amtactivationserver.ProcessMessage(dataFromMPS)
 			if msgPayload == nil {
 				return
+			} else if string(msgPayload) == "heartbeat" {
+				break
 			}
+			lms.Connect()
 			lms.Send(msgPayload)
 			go lms.Listen(lmsDataChannel, lmsErrorChannel)
 			for {
