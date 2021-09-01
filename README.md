@@ -5,16 +5,23 @@
 ## Prerequisites 
 
 1) Install GO https://golang.org/
-2) Install TDM-GCC (https://jmeubank.github.io/tdm-gcc/)
 
 ## Build
 
-Windows
+### Windows
+
+Install TDM-GCC (https://jmeubank.github.io/tdm-gcc/)
+
 ```
 go build -o rpc.exe ./cmd
 ```
 
-Linux
+### Linux
+
+```
+sudo apt install build-essential
+```
+
 ```
 go build -o rpc ./cmd
 ```
