@@ -8,19 +8,98 @@
 package heci
 
 import (
+	"bytes"
+	"encoding/binary"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHeciInit(t *testing.T) {
-	h := Heci{}
-	err := h.HeciInit()
-	assert.Error(t, err)
+type Version struct {
+	MajorNumber uint8
+	MinorNumber uint8
+}
+type CommandFormat struct {
+	val    uint32
+	fields [3]uint32
+}
+type MessageHeader struct {
+	Version  Version
+	Reserved uint16
+	Command  CommandFormat
+	Length   uint32
+}
+type GetUUIDRequest struct {
+	Header MessageHeader
 }
 
-// func TestHeciRead(t *testing.T) {
-// 	h := Heci{}
-// 	err := h.SendMessage()
-// 	assert.Error(t, err)
-// }
+func TestHeciInit(t *testing.T) {
+	h := Heci{}
+	err := h.Init()
+	assert.NoError(t, err)
+	assert.Equal(t, h.bufferSize, uint32(5120))
+}
+func TestGetBufferSize(t *testing.T) {
+	h := Heci{}
+	h.bufferSize = uint32(10)
+	result := h.GetBufferSize()
+	assert.Equal(t, result, uint32(10))
+}
+
+func TestSendMessage(t *testing.T) {
+	h := Heci{}
+	err := h.Init()
+	assert.NoError(t, err)
+	commandSize := (uint32)(12) //(uint32)(unsafe.Sizeof(GetUUIDRequest{}))
+	command := GetUUIDRequest{
+		Header: MessageHeader{
+			Version: Version{
+				MajorNumber: 1,
+				MinorNumber: 1,
+			},
+			Reserved: 0,
+			Command: CommandFormat{
+				val: 0x400005c,
+			},
+			Length: 0,
+		},
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	size, err := h.SendMessage(bin_buf.Bytes(), nil)
+	assert.Greater(t, size, commandSize)
+	assert.NoError(t, err)
+}
+func TestReceiveMessage(t *testing.T) {
+	h := Heci{}
+	err := h.Init()
+	assert.NoError(t, err)
+	// send a message so we can receieve it
+	commandSize := (uint32)(12) //(uint32)(unsafe.Sizeof(GetUUIDRequest{}))
+	command := GetUUIDRequest{
+		Header: MessageHeader{
+			Version: Version{
+				MajorNumber: 1,
+				MinorNumber: 1,
+			},
+			Reserved: 0,
+			Command: CommandFormat{
+				val: 0x400005c,
+			},
+			Length: 0,
+		},
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	size, err := h.SendMessage(bin_buf.Bytes(), nil)
+	assert.Greater(t, size, commandSize)
+	assert.NoError(t, err)
+
+	bufferSize := uint32(5120)
+	readBuffer := make([]byte, bufferSize)
+	bytesRead, _, err := h.ReceiveMessage(readBuffer, &bufferSize)
+
+	assert.Error(t, err)
+	assert.Positive(t, bytesRead)
+
+}
