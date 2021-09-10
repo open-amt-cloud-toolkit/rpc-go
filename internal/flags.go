@@ -7,7 +7,6 @@ package rpc
 import (
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"rpc/pkg/utils"
 	"strconv"
@@ -30,15 +29,13 @@ func ParseFlags() (Flags, error) {
 	f := Flags{}
 
 	//required
-	urlPtr := flag.String("url", "", "websocker server address")
-	cmdPtr := flag.String("cmd", "", "server command")
-
+	urlPtr := flag.String("u", "", "websocker server address")
+	cmdPtr := flag.String("c", "", "server command")
 	//optional
-	proxyPtr := flag.String("proxy", "", "proxy address and port")
-	dnsPtr := flag.String("dns", "", "dns suffix override")
-	verbosePtr := flag.Bool("verbose", false, "verbose output")
-	skipCertPtr := flag.Bool("nocertcheck", false, "skip websocket server certificate verification")
-
+	proxyPtr := flag.String("p", "", "proxy address and port")
+	dnsPtr := flag.String("d", "", "dns suffix override")
+	verbosePtr := flag.Bool("v", false, "verbose output")
+	skipCertPtr := flag.Bool("n", false, "skip websocket server certificate verification")
 	//informational
 	versionPtr := flag.Bool("version", false, "version of rpc")
 
@@ -140,27 +137,10 @@ func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
 			}
 			if *amtInfoDNSPtr {
-				lanResult, _ := GetLANInterfaceSettings(false)
 				result, _ := GetDNSSuffix()
 				println("DNS Suffix		: " + string(result))
-				ifaces, _ := net.Interfaces()
-				for _, v := range ifaces {
-					if v.HardwareAddr.String() == lanResult.MACAddress {
-						addrs, _ := v.Addrs()
-						for _, a := range addrs {
-							networkIp, ok := a.(*net.IPNet)
-							if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
-								ip := networkIp.IP.String()
-								suffix, _ := net.LookupAddr(ip)
-								fmt.Print("DNS Suffix (OS)		: ")
-								if len(suffix) > 0 {
-									fmt.Println(suffix[0])
-								}
-							}
-						}
-					}
-				}
-
+				result, _ = GetOSDNSSuffix()
+				fmt.Println("DNS Suffix (OS)		: " + result)
 			}
 			if *amtInfoHostnamePtr {
 				result, _ := os.Hostname()
