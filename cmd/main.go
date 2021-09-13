@@ -8,7 +8,11 @@ import (
 	"encoding/json"
 	"os"
 	"os/signal"
-	rpc "rpc/internal"
+	"rpc/internal/amt"
+	"rpc/internal/lms"
+	"rpc/internal/mps"
+	"rpc/internal/rpc"
+	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -17,7 +21,8 @@ import (
 func main() {
 
 	//process flags
-	f, _ := rpc.ParseFlags()
+	flags := rpc.Flags{}
+	f, _ := flags.ParseFlags()
 
 	if f.Verbose {
 		log.SetLevel(log.TraceLevel)
@@ -26,18 +31,20 @@ func main() {
 	}
 
 	//create activation request
-	activationRequest, err := rpc.CreateActivationRequest(f.Command, f.DNS)
+	payload := mps.Payload{}
+	activationRequest, err := payload.CreateActivationRequest(f.Command, f.DNS)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//try to connect to an existing LMS instance
 	log.Trace("Seeing if existing LMS is already running....")
-	lms := rpc.LMSConnection{}
+	lms := lms.LMSConnection{}
 	err = lms.Connect()
+	amt := amt.Command{}
 	if err != nil {
 		log.Trace("nope!\n")
-		go rpc.InitiateLMS()
+		go amt.InitiateLMS()
 	} else {
 		log.Trace("yes!\n")
 	}
@@ -49,7 +56,7 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	log.Trace("done\n")
-	amtactivationserver := rpc.AMTActivationServer{
+	amtactivationserver := mps.AMTActivationServer{
 		URL: f.URL,
 	}
 
@@ -62,12 +69,14 @@ func main() {
 
 	log.Debug("listening to MPS...")
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, os.Kill)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	mpsDataChannel := amtactivationserver.Listen()
 
 	log.Debug("sending activation request to MPS")
 	data, err := json.Marshal(activationRequest)
-
+	if err != nil {
+		log.Println(err.Error())
+	}
 	err = amtactivationserver.Send(data)
 	if err != nil {
 		log.Println(err.Error())
@@ -95,8 +104,8 @@ func main() {
 				select {
 				case dataFromLMS := <-lmsDataChannel:
 					if len(dataFromLMS) > 0 {
-						log.Debug("recieved data from LMS")
-						activationResponse, err := rpc.CreateActivationResponse(dataFromLMS)
+						log.Debug("received data from LMS")
+						activationResponse, err := payload.CreateActivationResponse(dataFromLMS)
 						log.Trace(string(dataFromLMS))
 						if err != nil {
 							log.Error("error creating activation response")

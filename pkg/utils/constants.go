@@ -2,19 +2,19 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package utils
 
 const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
-	// ProjectVer is the full version of this executable
-	ProjectVer = "1.0.0"
-	// ProjectVerMajor is the major version value
-	ProjectVerMajor = "1"
-	// ProjectVerMinor is the minor value version
-	ProjectVerMinor = "0"
-	// ProjectVerPatch is the patch version
-	ProjectVerPatch = "0"
+	// ProjectVersion is the full version of this executable
+	ProjectVersion = "1.0.0"
+	// ProjectVersionMajor is the major version value
+	ProjectVersionMajor = "1"
+	// ProjectVersionMinor is the minor value version
+	ProjectVersionMinor = "0"
+	// ProjectVersionPatch is the patch version
+	ProjectVersionPatch = "0"
 	// ProtocolVersion is the version used for messages between AMT activation server and RPC
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable

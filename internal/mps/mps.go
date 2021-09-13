@@ -2,7 +2,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package mps
 
 import (
 	"crypto/tls"
@@ -25,7 +25,7 @@ func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	var err error
 	dialer := websocket.Dialer{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skipCertCheck, //TODO: leverage flag for this
+			InsecureSkipVerify: skipCertCheck,
 		},
 	}
 	amt.Conn, _, err = dialer.Dial(amt.URL, nil)
@@ -37,9 +37,9 @@ func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	return nil
 }
 
-// Close closes the connection to lms
+// Close closes the connection to mps
 func (amt *AMTActivationServer) Close() error {
-	log.Info("closed lms connection")
+	log.Info("closed mps connection")
 	err := amt.Conn.Close()
 	if err != nil {
 		return err
@@ -90,22 +90,12 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	}
 
 	if activation.Method == "heartbeat_request" {
-		activation.Method = "heartbeat_response"
-		activation.Status = "success"
-		dataToSend, err := json.Marshal(activation)
-		if err != nil {
-			log.Error("unable to marshal activationResponse to JSON")
-			return nil
-		}
-		err = amt.Send(dataToSend)
-		if err != nil {
-			log.Error("Heartbeat send failure")
-		}
-		return []byte("heartbeat")
+		heartbeat, _ := amt.GenerateHeartbeatResponse(activation)
+		return heartbeat
 	}
 
 	if activation.Method == "success" {
-		statusMessage := MPSStatusMessage{}
+		statusMessage := StatusMessage{}
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
 		if err != nil {
 			log.Error(err)
@@ -130,4 +120,20 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	log.Trace("PAYLOAD:" + string(msgPayload))
 	return msgPayload
 
+}
+
+func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation Activation) ([]byte, error) {
+	activation.Method = "heartbeat_response"
+	activation.Status = "success"
+	dataToSend, err := json.Marshal(activation)
+	if err != nil {
+		log.Error("unable to marshal activationResponse to JSON")
+		return nil, err
+	}
+	err = amt.Send(dataToSend)
+	if err != nil {
+		log.Error("Heartbeat send failure")
+		return nil, err
+	}
+	return []byte("heartbeat"), nil
 }

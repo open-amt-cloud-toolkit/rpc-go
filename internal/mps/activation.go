@@ -2,13 +2,19 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package mps
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"rpc/internal/amt"
+	"rpc/pkg/utils"
 )
+
+type Payload struct {
+	amt amt.AMT
+}
 
 // Activation is used for tranferring messages between MPS and RPC
 type Activation struct {
@@ -21,52 +27,54 @@ type Activation struct {
 	Fqdn            string `json:"fqdn"`
 	Payload         string `json:"payload"`
 }
-type MPSStatusMessage struct {
+
+// Status Message is used for displaying and parsing status messages from MPS
+type StatusMessage struct {
 	Status         string
 	Network        string
 	CIRAConnection string
 }
 
-// ActivationPayload struct is used for the intial request to MPS to activate a device
+// ActivationPayload struct is used for the initial request to MPS to activate a device
 type ActivationPayload struct {
-	Ver         string   `json:"ver"`
-	Build       string   `json:"build"`
-	Sku         string   `json:"sku"`
-	UUID        string   `json:"uuid"`
-	Username    string   `json:"username"`
-	Password    string   `json:"password"`
-	CurrentMode int      `json:"currentMode"`
-	Hostname    string   `json:"hostname"`
-	Fqdn        string   `json:"fqdn"`
-	Client      string   `json:"client"`
-	CertHashes  []string `json:"certHashes"`
+	Version           string   `json:"ver"`
+	Build             string   `json:"build"`
+	SKU               string   `json:"sku"`
+	UUID              string   `json:"uuid"`
+	Username          string   `json:"username"`
+	Password          string   `json:"password"`
+	CurrentMode       int      `json:"currentMode"`
+	Hostname          string   `json:"hostname"`
+	FQDN              string   `json:"fqdn"`
+	Client            string   `json:"client"`
+	CertificateHashes []string `json:"certHashes"`
 }
 
 // createPayload gathers data from ME to assemble required information for sending to the server
-func createPayload(dnsSuffix string) (ActivationPayload, error) {
+func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 	payload := ActivationPayload{}
 	var err error
-	payload.Ver, err = GetVersionDataFromME("AMT")
+	payload.Version, err = p.amt.GetVersionDataFromME("AMT")
 	if err != nil {
 		return payload, err
 	}
-	payload.Build, err = GetVersionDataFromME("Build Number")
+	payload.Build, err = p.amt.GetVersionDataFromME("Build Number")
 	if err != nil {
 		return payload, err
 	}
-	payload.Sku, err = GetVersionDataFromME("Sku")
+	payload.SKU, err = p.amt.GetVersionDataFromME("Sku")
 	if err != nil {
 		return payload, err
 	}
-	payload.UUID, err = GetUUID()
+	payload.UUID, err = p.amt.GetUUID()
 	if err != nil {
 		return payload, err
 	}
-	payload.CurrentMode, err = GetControlMode()
+	payload.CurrentMode, err = p.amt.GetControlMode()
 	if err != nil {
 		return payload, err
 	}
-	lsa, err := GetLocalSystemAccount()
+	lsa, err := p.amt.GetLocalSystemAccount()
 	if err != nil {
 		return payload, err
 	}
@@ -74,11 +82,11 @@ func createPayload(dnsSuffix string) (ActivationPayload, error) {
 	payload.Password = lsa.Password
 
 	if dnsSuffix != "" {
-		payload.Fqdn = dnsSuffix
+		payload.FQDN = dnsSuffix
 	} else {
-		payload.Fqdn, err = GetDNSSuffix()
-		if payload.Fqdn == "" {
-			payload.Fqdn, _ = GetOSDNSSuffix()
+		payload.FQDN, err = p.amt.GetDNSSuffix()
+		if payload.FQDN == "" {
+			payload.FQDN, _ = p.amt.GetOSDNSSuffix()
 		}
 		if err != nil {
 			return payload, err
@@ -89,29 +97,29 @@ func createPayload(dnsSuffix string) (ActivationPayload, error) {
 	if err != nil {
 		return payload, err
 	}
-	payload.Client = ClientName
-	hashes, err := GetCertificateHashes()
+	payload.Client = utils.ClientName
+	hashes, err := p.amt.GetCertificateHashes()
 	if err != nil {
 		return payload, err
 	}
 	for _, v := range hashes {
-		payload.CertHashes = append(payload.CertHashes, v.Hash)
+		payload.CertificateHashes = append(payload.CertificateHashes, v.Hash)
 	}
 	return payload, nil
 
 }
 
 // CreateActivationRequest is used for assembling the message to request activation of a device
-func CreateActivationRequest(command string, dnsSuffix string) (Activation, error) {
+func (p Payload) CreateActivationRequest(command string, dnsSuffix string) (Activation, error) {
 	activation := Activation{
 		Method:          command,
 		APIKey:          "key",
-		AppVersion:      ProjectVer,
-		ProtocolVersion: ProtocolVersion,
+		AppVersion:      utils.ProjectVersion,
+		ProtocolVersion: utils.ProtocolVersion,
 		Status:          "ok",
 		Message:         "ok",
 	}
-	payload, err := createPayload(dnsSuffix)
+	payload, err := p.createPayload(dnsSuffix)
 	if err != nil {
 		return activation, err
 	}
@@ -127,12 +135,12 @@ func CreateActivationRequest(command string, dnsSuffix string) (Activation, erro
 }
 
 // CreateActivationResponse is used for creating a response to the server
-func CreateActivationResponse(payload []byte) (Activation, error) {
+func (p Payload) CreateActivationResponse(payload []byte) (Activation, error) {
 	activation := Activation{
 		Method:          "response",
 		APIKey:          "key",
-		AppVersion:      ProjectVer,
-		ProtocolVersion: ProtocolVersion,
+		AppVersion:      utils.ProjectVersion,
+		ProtocolVersion: utils.ProtocolVersion,
 		Status:          "ok",
 		Message:         "ok",
 		Payload:         base64.StdEncoding.EncodeToString(payload),

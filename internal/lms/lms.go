@@ -2,12 +2,13 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package lms
 
 import (
 	"errors"
 	"io"
 	"net"
+	"rpc/pkg/utils"
 	"strings"
 	"time"
 
@@ -22,7 +23,7 @@ type LMSConnection struct {
 // Connect initializes TCP connection to LMS
 func (lms *LMSConnection) Connect() error {
 	log.Debug("connecting to lms")
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", LMSAddress+":"+LMSPort)
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", utils.LMSAddress+":"+utils.LMSPort)
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
