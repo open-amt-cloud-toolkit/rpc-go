@@ -13,7 +13,7 @@ import (
 )
 
 type Payload struct {
-	amt amt.AMT
+	AMT amt.AMT
 }
 
 // Activation is used for tranferring messages between MPS and RPC
@@ -54,27 +54,27 @@ type ActivationPayload struct {
 func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 	payload := ActivationPayload{}
 	var err error
-	payload.Version, err = p.amt.GetVersionDataFromME("AMT")
+	payload.Version, err = p.AMT.GetVersionDataFromME("AMT")
 	if err != nil {
 		return payload, err
 	}
-	payload.Build, err = p.amt.GetVersionDataFromME("Build Number")
+	payload.Build, err = p.AMT.GetVersionDataFromME("Build Number")
 	if err != nil {
 		return payload, err
 	}
-	payload.SKU, err = p.amt.GetVersionDataFromME("Sku")
+	payload.SKU, err = p.AMT.GetVersionDataFromME("Sku")
 	if err != nil {
 		return payload, err
 	}
-	payload.UUID, err = p.amt.GetUUID()
+	payload.UUID, err = p.AMT.GetUUID()
 	if err != nil {
 		return payload, err
 	}
-	payload.CurrentMode, err = p.amt.GetControlMode()
+	payload.CurrentMode, err = p.AMT.GetControlMode()
 	if err != nil {
 		return payload, err
 	}
-	lsa, err := p.amt.GetLocalSystemAccount()
+	lsa, err := p.AMT.GetLocalSystemAccount()
 	if err != nil {
 		return payload, err
 	}
@@ -84,9 +84,9 @@ func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 	if dnsSuffix != "" {
 		payload.FQDN = dnsSuffix
 	} else {
-		payload.FQDN, err = p.amt.GetDNSSuffix()
+		payload.FQDN, err = p.AMT.GetDNSSuffix()
 		if payload.FQDN == "" {
-			payload.FQDN, _ = p.amt.GetOSDNSSuffix()
+			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
 		}
 		if err != nil {
 			return payload, err
@@ -98,7 +98,7 @@ func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 		return payload, err
 	}
 	payload.Client = utils.ClientName
-	hashes, err := p.amt.GetCertificateHashes()
+	hashes, err := p.AMT.GetCertificateHashes()
 	if err != nil {
 		return payload, err
 	}

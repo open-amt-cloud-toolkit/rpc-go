@@ -32,7 +32,9 @@ func main() {
 	}
 
 	//create activation request
-	payload := mps.Payload{}
+	payload := mps.Payload{
+		AMT: amt.Command{},
+	}
 	activationRequest, err := payload.CreateActivationRequest(f.Command, f.DNS)
 	if err != nil {
 		log.Fatal(err)
@@ -98,8 +100,16 @@ func main() {
 			} else if string(msgPayload) == "heartbeat" {
 				break
 			}
-			lms.Connect()
-			lms.Send(msgPayload)
+			err = lms.Connect(utils.LMSAddress, utils.LMSPort)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			err = lms.Send(msgPayload)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 			go lms.Listen(lmsDataChannel, lmsErrorChannel)
 			for {
 				select {

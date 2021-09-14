@@ -1,3 +1,4 @@
 realthing
 rpc
 *.exe
+!/internal/rpc

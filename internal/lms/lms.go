@@ -24,7 +24,7 @@ func (lms *LMSConnection) Connect(address string, port string) error {
 	log.Debug("connecting to lms")
 	var err error
 	if lms.Connection == nil {
-		lms.Connection, err = net.Dial("tcp", address+":"+port)
+		lms.Connection, err = net.Dial("tcp4", address+":"+port)
 		if err != nil {
 			// handle error
 			return err
@@ -51,7 +51,10 @@ func (lms *LMSConnection) Close() error {
 	if lms.Connection == nil {
 		return errors.New("no connection to close")
 	}
-	return lms.Connection.Close()
+
+	err := lms.Connection.Close()
+	lms.Connection = nil
+	return err
 }
 
 // Listen reads data from the LMS socket connection
