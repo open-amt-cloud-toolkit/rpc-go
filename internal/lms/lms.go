@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"rpc/pkg/utils"
 	"strings"
 	"time"
 
@@ -17,20 +16,20 @@ import (
 
 // LMSConnection is struct for managing connection to LMS
 type LMSConnection struct {
-	Connection *net.TCPConn
+	Connection net.Conn
 }
 
 // Connect initializes TCP connection to LMS
-func (lms *LMSConnection) Connect() error {
+func (lms *LMSConnection) Connect(address string, port string) error {
 	log.Debug("connecting to lms")
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", utils.LMSAddress+":"+utils.LMSPort)
-
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	if err != nil {
-		// handle error
-		return err
+	var err error
+	if lms.Connection == nil {
+		lms.Connection, err = net.Dial("tcp", address+":"+port)
+		if err != nil {
+			// handle error
+			return err
+		}
 	}
-	lms.Connection = conn
 	log.Debug("connected to lms")
 	return nil
 }
@@ -58,7 +57,7 @@ func (lms *LMSConnection) Close() error {
 // Listen reads data from the LMS socket connection
 func (lms *LMSConnection) Listen(ch chan []byte, eCh chan error) {
 	log.Debug("listening for lms messages...")
-	lms.Connection.SetLinger(1)
+	//lms.Connection.SetLinger(1)
 	duration, _ := time.ParseDuration("1s")
 	lms.Connection.SetDeadline(time.Now().Add(duration))
 

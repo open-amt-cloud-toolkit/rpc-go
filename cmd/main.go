@@ -12,6 +12,7 @@ import (
 	"rpc/internal/lms"
 	"rpc/internal/mps"
 	"rpc/internal/rpc"
+	"rpc/pkg/utils"
 	"syscall"
 	"time"
 
@@ -40,7 +41,7 @@ func main() {
 	//try to connect to an existing LMS instance
 	log.Trace("Seeing if existing LMS is already running....")
 	lms := lms.LMSConnection{}
-	err = lms.Connect()
+	err = lms.Connect(utils.LMSAddress, utils.LMSAddress)
 	amt := amt.Command{}
 	if err != nil {
 		log.Trace("nope!\n")
