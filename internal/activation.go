@@ -77,6 +77,9 @@ func createPayload(dnsSuffix string) (ActivationPayload, error) {
 		payload.Fqdn = dnsSuffix
 	} else {
 		payload.Fqdn, err = GetDNSSuffix()
+		if payload.Fqdn == "" {
+			payload.Fqdn, _ = GetOSDNSSuffix()
+		}
 		if err != nil {
 			return payload, err
 		}

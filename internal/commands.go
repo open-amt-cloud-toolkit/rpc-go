@@ -23,6 +23,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
 	"strconv"
@@ -216,6 +218,33 @@ func GetControlModeV2() (int, error) {
 }
 
 // GetDNSSuffix ...
+func GetOSDNSSuffix() (string, error) {
+	lanResult, _ := GetLANInterfaceSettings(false)
+	ifaces, _ := net.Interfaces()
+	for _, v := range ifaces {
+		if v.HardwareAddr.String() == lanResult.MACAddress {
+			addrs, _ := v.Addrs()
+			for _, a := range addrs {
+				networkIp, ok := a.(*net.IPNet)
+				if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
+					ip := networkIp.IP.String()
+					suffix, _ := net.LookupAddr(ip)
+					if len(suffix) > 0 {
+						hostname, _ := os.Hostname()
+						dnsSuffix := strings.Trim(suffix[0], hostname)
+						dnsSuffix = strings.TrimLeft(dnsSuffix, ".")
+						dnsSuffix = strings.TrimRight(dnsSuffix, ".")
+						return dnsSuffix, nil
+					}
+					return "", nil
+				}
+			}
+		}
+	}
+	return "", nil
+}
+
+// GetDNSSuffix ...
 func GetDNSSuffix() (string, error) {
 	_, err := Initialize()
 	if err != nil {
@@ -233,7 +262,7 @@ func GetDNSSuffix() (string, error) {
 		binary.Read(buf, binary.LittleEndian, &dnsSuffix.Buffer)
 		cStrings := (*[1 << 28]*C.char)(unsafe.Pointer(&dnsSuffix.Buffer))[:int(dnsSuffix.Length):int(dnsSuffix.Length)]
 		if len(cStrings) > 0 {
-			return strings.Trim(C.GoString(cStrings[0]), "\xab"), nil
+			return C.GoString(cStrings[0])[:int(dnsSuffix.Length)], nil
 		}
 		return "", nil
 	}
@@ -269,7 +298,7 @@ func GetCertificateHashes() ([]CertHashEntry, error) {
 			ccerthash := CCertHashEntry{}
 			hashSize := 0
 			if status2 == 0 {
-				cdata := C.GoBytes(unsafe.Pointer(&packedCertHashEntry), C.sizeof_struct__CERTHASH_ENTRY*253)
+				cdata := C.GoBytes(unsafe.Pointer(&packedCertHashEntry), C.sizeof_struct__CERTHASH_ENTRY+(1024))
 				buf := bytes.NewBuffer(cdata)
 
 				binary.Read(buf, binary.LittleEndian, &ccerthash.IsDefault)
@@ -281,8 +310,10 @@ func GetCertificateHashes() ([]CertHashEntry, error) {
 				hashSize, tmp.Algorithm = utils.InterpretHashAlgorithm(int(ccerthash.HashAlgorithm))
 				if ccerthash.IsActive == 1 {
 					cStrings := (*[1 << 28]*C.char)(unsafe.Pointer(&ccerthash.Name.Buffer))[:int(ccerthash.Name.Length):int(ccerthash.Name.Length)]
+					if len(cStrings) > 0 {
 
-					tmp.Name = C.GoString(cStrings[0])
+						tmp.Name = strings.Trim(C.GoString(cStrings[0])[:int(ccerthash.Name.Length)], "\xab")
+					}
 					tmp.IsDefault = ccerthash.IsDefault == 1
 					tmp.IsActive = ccerthash.IsActive == 1
 
