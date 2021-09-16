@@ -19,7 +19,6 @@ func TestGetGUID(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result)
-
 }
 
 func TestGetDNSSuffixV2(t *testing.T) {

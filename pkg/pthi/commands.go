@@ -34,7 +34,7 @@ func (pthi *PTHICommand) Call(command []byte, commandSize uint32) (result []byte
 	if err != nil {
 		return nil, err
 	}
-	if bytesWritten != commandSize {
+	if bytesWritten != uint32(len(command)) {
 		return nil, errors.New("amt internal error")
 	}
 	readBuffer := make([]byte, size)
@@ -42,6 +42,7 @@ func (pthi *PTHICommand) Call(command []byte, commandSize uint32) (result []byte
 	if err != nil {
 		return nil, err
 	}
+
 	if bytesRead == 0 {
 		return nil, errors.New("empty response from AMT")
 	}
@@ -63,7 +64,7 @@ func CreateRequestHeader(command uint32) MessageHeader {
 func (pthi *PTHICommand) GetUUID() (uuid string, err error) {
 	commandSize := (uint32)(12) //(uint32)(unsafe.Sizeof(GetUUIDRequest{}))
 	command := GetUUIDRequest{
-		Header: CreateRequestHeader(0x400005c),
+		Header: CreateRequestHeader(GET_UUID_REQUEST),
 	}
 	var bin_buf bytes.Buffer
 	binary.Write(&bin_buf, binary.LittleEndian, command)
@@ -103,7 +104,6 @@ func (pthi *PTHICommand) GetControlMode() (state int, err error) {
 }
 
 func readHeaderResponse(header *bytes.Buffer) ResponseMessageHeader {
-
 	response := ResponseMessageHeader{}
 
 	binary.Read(header, binary.LittleEndian, &response.Header.Version.MajorNumber)
@@ -113,6 +113,7 @@ func readHeaderResponse(header *bytes.Buffer) ResponseMessageHeader {
 	// binary.Read(header, binary.LittleEndian, &response.Header.Header.Command.fields)
 	binary.Read(header, binary.LittleEndian, &response.Header.Length)
 	binary.Read(header, binary.LittleEndian, &response.Status)
+
 	return response
 }
 
