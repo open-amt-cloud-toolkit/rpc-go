@@ -138,6 +138,21 @@ type ResponseMessageHeader struct {
 	Header MessageHeader
 	Status uint32
 }
+type GetCodeVersionsResponse struct {
+	Header      MessageHeader
+	CodeVersion Version
+}
+type GetPKIFQDNSuffixRequest struct {
+	Header MessageHeader
+}
+type GetPKIFQDNSuffixResponse struct {
+	Header ResponseMessageHeader
+	Suffix AMTANSIString
+}
+type AMTANSIString struct {
+	Length uint16
+	Buffer [1000]uint8
+}
 type GetUUIDRequest struct {
 	Header MessageHeader
 }

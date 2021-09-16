@@ -21,3 +21,9 @@ func TestGetControlmode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, -1, result)
 }
+
+func TestGetDNSSuffix(t *testing.T) {
+	result, err := GetDNSSuffixV2()
+	assert.NoError(t, err)
+	assert.NotEqual(t, -1, result)
+}

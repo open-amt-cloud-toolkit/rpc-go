@@ -51,12 +51,6 @@ type CodeVersions struct {
 	Versions      [50]AMTVersionType //[VERSIONS_NUMBER]
 }
 
-// AMTANSIString ...
-type AMTANSIString struct {
-	Length uint16
-	Buffer [1000]C.char
-}
-
 // InterfaceSettings ...
 type InterfaceSettings struct {
 	IsEnabled   bool
@@ -81,7 +75,7 @@ type CCertHashEntry struct {
 	HashAlgorithm   uint8
 	IsActive        uint32
 	IsDefault       uint32
-	Name            AMTANSIString
+	Name            pthi.AMTANSIString
 }
 
 // CertHashEntry is the GO struct for holding Cert Hash Entries
@@ -227,7 +221,7 @@ func GetDNSSuffix() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dnsSuffix := AMTANSIString{}
+	dnsSuffix := pthi.AMTANSIString{}
 	packedDNSSuffix := C.struct__AMT_ANSI_STRING{}
 	status := C.pthi_GetDnsSuffix(&packedDNSSuffix)
 	if status == 0 {
@@ -244,6 +238,17 @@ func GetDNSSuffix() (string, error) {
 		return "", nil
 	}
 	return "", errors.New("unable to retrieve DNS suffix")
+}
+
+func GetDNSSuffixV2() (string, error) {
+	pthi := pthi.NewPTHICommand()
+	defer pthi.Close()
+	result, err := pthi.GetDNSSuffix()
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
 
 // GetCertificateHashes ...
@@ -307,7 +312,7 @@ func GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
 	if err != nil {
 		return remoteAccessStatus, err
 	}
-	mpsHostname := AMTANSIString{}
+	mpsHostname := pthi.AMTANSIString{}
 	packedRAS := C.struct__REMOTE_ACCESS_STATUS{}
 	status := C.pthi_GetRemoteAccessConnectionStatus(&packedRAS)
 	if status == 0 {

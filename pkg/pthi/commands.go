@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"rpc/pkg/heci"
 )
 
@@ -83,7 +84,7 @@ func (pthi *PTHICommand) GetUUID() (uuid string, err error) {
 func (pthi *PTHICommand) GetControlMode() (state int, err error) {
 	commandSize := (uint32)(12)
 	command := GetControlModeRequest{
-		Header: CreateRequestHeader(0x400006b),
+		Header: CreateRequestHeader(GET_CONTROL_MODE_REQUEST), //make request
 	}
 	var bin_buf bytes.Buffer
 	binary.Write(&bin_buf, binary.LittleEndian, command)
@@ -113,4 +114,28 @@ func readHeaderResponse(header *bytes.Buffer) ResponseMessageHeader {
 	binary.Read(header, binary.LittleEndian, &response.Header.Length)
 	binary.Read(header, binary.LittleEndian, &response.Status)
 	return response
+}
+
+func (pthi *PTHICommand) GetDNSSuffix() (suffix string, err error) {
+	commandSize := (uint32)(12)
+	command := GetPKIFQDNSuffixRequest{
+		Header: CreateRequestHeader(GET_PKI_FQDN_SUFFIX_REQUEST), //make request
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+	if err != nil {
+		return "", err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response := GetPKIFQDNSuffixResponse{
+		Header: readHeaderResponse(buf2),
+	}
+
+	binary.Read(buf2, binary.LittleEndian, &response.Suffix.Length)
+	binary.Read(buf2, binary.LittleEndian, &response.Suffix.Buffer)
+
+	fmt.Println(response)
+
+	return "", nil
 }

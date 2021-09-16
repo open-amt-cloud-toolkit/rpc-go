@@ -21,3 +21,15 @@ func TestGetGUID(t *testing.T) {
 	assert.NotEmpty(t, result)
 
 }
+
+func TestGetDNSSuffixV2(t *testing.T) {
+	pthi := PTHICommand{}
+	err := pthi.heci.Init()
+	defer pthi.Close()
+	assert.NoError(t, err)
+	result, err := pthi.GetDNSSuffix()
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result)
+
+}
