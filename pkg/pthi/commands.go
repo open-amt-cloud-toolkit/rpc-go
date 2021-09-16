@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"rpc/pkg/heci"
 )
 
@@ -136,7 +135,9 @@ func (pthi *PTHICommand) GetDNSSuffix() (suffix string, err error) {
 	binary.Read(buf2, binary.LittleEndian, &response.Suffix.Length)
 	binary.Read(buf2, binary.LittleEndian, &response.Suffix.Buffer)
 
-	fmt.Println(response)
+	if int(response.Suffix.Length) > 0 {
+		return string(response.Suffix.Buffer[:response.Suffix.Length]), nil
+	}
 
 	return "", nil
 }
