@@ -2,21 +2,21 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package amt
 
 // #cgo linux CFLAGS: -g -Wno-error -Wformat -Wformat-security -D_POSIX -DBUILD_LIBRARY -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 // #cgo windows CFLAGS: -g -w -DMICROSTACK_NO_STDAFX -DWIN32 -DWIN64 -DNDEBUG -D_CONSOLE -DMICROSTACK_NO_STDAFX -DWINSOCK2 -DMICROSTACK_NOTLS -D_UNICODE -D_WINDOWS -D_WIN32_WINNT=0x0A00 -DBUILD_LIBRARY
 // #cgo windows LDFLAGS: -lDbgHelp -lIphlpapi -lSetupapi -lws2_32 -lPsapi -lCrypt32 -lWintrust -lVersion -lWtsapi32 -lGdiplus -lUserenv -lgdi32 -lucrtbase
-// #include "../microlms/MicroLMS/main.c"
-// #include "../microlms/core/utils.c"
-// #include "../microlms/heci/HECIWin.c"
-// #include "../microlms/heci/HECILinux.c"
-// #include "../microlms/heci/LMEConnection.c"
-// #include "../microlms/heci/PTHICommand.c"
-// #include "../microlms/microstack/ILibAsyncServerSocket.c"
-// #include "../microlms/microstack/ILibAsyncSocket.c"
-// #include "../microlms/microstack/ILibLMS.c"
-// #include "../microlms/microstack/ILibParsers.c"
+// #include "../../microlms/MicroLMS/main.c"
+// #include "../../microlms/core/utils.c"
+// #include "../../microlms/heci/HECIWin.c"
+// #include "../../microlms/heci/HECILinux.c"
+// #include "../../microlms/heci/LMEConnection.c"
+// #include "../../microlms/heci/PTHICommand.c"
+// #include "../../microlms/microstack/ILibAsyncServerSocket.c"
+// #include "../../microlms/microstack/ILibAsyncSocket.c"
+// #include "../../microlms/microstack/ILibLMS.c"
+// #include "../../microlms/microstack/ILibParsers.c"
 import "C"
 import (
 	"bytes"
@@ -101,8 +101,26 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type AMT interface {
+	Initialize() (bool, error)
+	GetVersionDataFromME(key string) (string, error)
+	GetUUID() (string, error)
+	GetUUIDV2() (string, error)
+	GetControlMode() (int, error)
+	GetControlModeV2() (int, error)
+	GetOSDNSSuffix() (string, error)
+	GetDNSSuffix() (string, error)
+	GetCertificateHashes() ([]CertHashEntry, error)
+	GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error)
+	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
+	GetLocalSystemAccount() (LocalSystemAccount, error)
+	InitiateLMS()
+}
+type Command struct {
+}
+
 // Initialize determines if rpc is able to initialize the heci driver
-func Initialize() (bool, error) {
+func (amt Command) Initialize() (bool, error) {
 	// initialize HECI interface
 	result := C.heci_Init(nil, 0)
 	if *((*bool)(unsafe.Pointer(&result))) == false {
@@ -113,9 +131,9 @@ func Initialize() (bool, error) {
 }
 
 // GetVersionDataFromME ...
-func GetVersionDataFromME(key string) (string, error) {
+func (amt Command) GetVersionDataFromME(key string) (string, error) {
 
-	_, err := Initialize()
+	_, err := amt.Initialize()
 	if err != nil {
 		return "", err
 	}
@@ -143,8 +161,8 @@ func GetVersionDataFromME(key string) (string, error) {
 }
 
 // GetUUID ...
-func GetUUID() (string, error) {
-	_, err := Initialize()
+func (amt Command) GetUUID() (string, error) {
+	_, err := amt.Initialize()
 	if err != nil {
 		return "", err
 	}
@@ -172,7 +190,7 @@ func GetUUID() (string, error) {
 }
 
 // GetUUID ...
-func GetUUIDV2() (string, error) {
+func (amt Command) GetUUIDV2() (string, error) {
 	pthi := pthi.NewPTHICommand()
 	defer pthi.Close()
 	result, err := pthi.GetUUID()
@@ -196,8 +214,8 @@ func GetUUIDV2() (string, error) {
 }
 
 // GetControlMode ...
-func GetControlMode() (int, error) {
-	_, err := Initialize()
+func (amt Command) GetControlMode() (int, error) {
+	_, err := amt.Initialize()
 	if err != nil {
 		return -1, err
 	}
@@ -211,7 +229,7 @@ func GetControlMode() (int, error) {
 }
 
 // GetControlMode ...
-func GetControlModeV2() (int, error) {
+func (amt Command) GetControlModeV2() (int, error) {
 	pthi := pthi.NewPTHICommand()
 	defer pthi.Close()
 	result, err := pthi.GetControlMode()
@@ -224,8 +242,8 @@ func GetControlModeV2() (int, error) {
 }
 
 // GetDNSSuffix ...
-func GetOSDNSSuffix() (string, error) {
-	lanResult, _ := GetLANInterfaceSettings(false)
+func (amt Command) GetOSDNSSuffix() (string, error) {
+	lanResult, _ := amt.GetLANInterfaceSettings(false)
 	ifaces, _ := net.Interfaces()
 	for _, v := range ifaces {
 		if v.HardwareAddr.String() == lanResult.MACAddress {
@@ -251,8 +269,8 @@ func GetOSDNSSuffix() (string, error) {
 }
 
 // GetDNSSuffix ...
-func GetDNSSuffix() (string, error) {
-	_, err := Initialize()
+func (amt Command) GetDNSSuffix() (string, error) {
+	_, err := amt.Initialize()
 	if err != nil {
 		return "", err
 	}
@@ -276,10 +294,10 @@ func GetDNSSuffix() (string, error) {
 }
 
 // GetCertificateHashes ...
-func GetCertificateHashes() ([]CertHashEntry, error) {
+func (amt Command) GetCertificateHashes() ([]CertHashEntry, error) {
 	hashEntries := []CertHashEntry{}
 
-	_, err := Initialize()
+	_, err := amt.Initialize()
 	if err != nil {
 		return hashEntries, err
 	}
@@ -331,10 +349,10 @@ func GetCertificateHashes() ([]CertHashEntry, error) {
 }
 
 // GetRemoteAccessConnectionStatus ...
-func GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
+func (amt Command) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
 	remoteAccessStatus := RemoteAccessStatus{}
 
-	_, err := Initialize()
+	_, err := amt.Initialize()
 	if err != nil {
 		return remoteAccessStatus, err
 	}
@@ -346,7 +364,7 @@ func GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
 		remoteAccessStatus.RemoteStatus = utils.InterpretRemoteAccessConnectionStatus(int(packedRAS.RemoteAccessConnectionStatus))
 		remoteAccessStatus.RemoteTrigger = utils.InterpretRemoteAccessTrigger(int(packedRAS.RemoteAccessConnectionTrigger))
 
-		cdata := C.GoBytes(unsafe.Pointer(&packedRAS.MpsHostname), C.sizeof_struct__AMT_ANSI_STRING*MPSServerMaxLength)
+		cdata := C.GoBytes(unsafe.Pointer(&packedRAS.MpsHostname), C.sizeof_struct__AMT_ANSI_STRING*utils.MPSServerMaxLength)
 		buf := bytes.NewBuffer(cdata)
 
 		binary.Read(buf, binary.LittleEndian, &mpsHostname.Length)
@@ -362,10 +380,10 @@ func GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
 }
 
 // GetLANInterfaceSettings ...
-func GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
+func (amt Command) GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
 	interfaceSettings := InterfaceSettings{}
 
-	_, err := Initialize()
+	_, err := amt.Initialize()
 	if err != nil {
 		return interfaceSettings, err
 	}
@@ -415,10 +433,10 @@ func GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
 }
 
 // GetLocalSystemAccount ...
-func GetLocalSystemAccount() (LocalSystemAccount, error) {
+func (amt Command) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	lsa := LocalSystemAccount{}
 
-	_, err := Initialize()
+	_, err := amt.Initialize()
 	if err != nil {
 		return lsa, err
 	}
@@ -438,6 +456,6 @@ func GetLocalSystemAccount() (LocalSystemAccount, error) {
 }
 
 // InitiateLMS ...
-func InitiateLMS() {
+func (amt Command) InitiateLMS() {
 	C.main_micro_lms()
 }
