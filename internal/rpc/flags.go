@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
@@ -24,9 +25,7 @@ type Flags struct {
 }
 
 // ParseFlags is used for understanding the command line flags
-func ParseFlags() (Flags, error) {
-
-	f := Flags{}
+func (f Flags) ParseFlags() (Flags, error) {
 
 	//required
 	urlPtr := flag.String("u", "", "websocker server address")
@@ -52,18 +51,18 @@ func ParseFlags() (Flags, error) {
 		f.SkipCertCheck = true
 	}
 	if *versionPtr {
-		println(strings.ToUpper(ProjectName))
-		println("Protocol " + ProtocolVersion)
+		println(strings.ToUpper(utils.ProjectName))
+		println("Protocol " + utils.ProtocolVersion)
 		os.Exit(1)
 	}
-
-	result, err := Initialize()
+	amt := amt.Command{}
+	result, err := amt.Initialize()
 	if result == false || err != nil {
 		println("Unable to launch application. Please ensure that Intel ME is present, the MEI driver is installed and that this application is run with administrator or root privileges.")
 		os.Exit(1)
 	}
 
-	handleAMTInfo(amtInfoCommand)
+	f.handleAMTInfo(amtInfoCommand)
 
 	if *urlPtr == "" || *cmdPtr == "" {
 		flag.PrintDefaults()
@@ -82,7 +81,7 @@ func ParseFlags() (Flags, error) {
 	return f, nil
 }
 
-func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
+func (f Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 
 	amtInfoAllPtr := amtInfoCommand.Bool("all", false, "All AMT Info")
 	amtInfoVerPtr := amtInfoCommand.Bool("ver", false, "BIOS Version")
@@ -115,31 +114,31 @@ func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				*amtInfoLanPtr = true
 				*amtInfoHostnamePtr = true
 			}
-
+			amt := amt.Command{}
 			if *amtInfoVerPtr {
-				result, _ := GetVersionDataFromME("AMT")
+				result, _ := amt.GetVersionDataFromME("AMT")
 				println("Version			: " + result)
 			}
 			if *amtInfoBldPtr {
-				result, _ := GetVersionDataFromME("Build Number")
+				result, _ := amt.GetVersionDataFromME("Build Number")
 				println("Build Number		: " + result)
 			}
 			if *amtInfoSkuPtr {
-				result, _ := GetVersionDataFromME("Sku")
+				result, _ := amt.GetVersionDataFromME("Sku")
 				println("SKU			: " + result)
 			}
 			if *amtInfoUUIDPtr {
-				result, _ := GetUUID()
+				result, _ := amt.GetUUID()
 				println("UUID			: " + result)
 			}
 			if *amtInfoModePtr {
-				result, _ := GetControlMode()
+				result, _ := amt.GetControlMode()
 				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
 			}
 			if *amtInfoDNSPtr {
-				result, _ := GetDNSSuffix()
+				result, _ := amt.GetDNSSuffix()
 				println("DNS Suffix		: " + string(result))
-				result, _ = GetOSDNSSuffix()
+				result, _ = amt.GetOSDNSSuffix()
 				fmt.Println("DNS Suffix (OS)		: " + result)
 			}
 			if *amtInfoHostnamePtr {
@@ -148,14 +147,14 @@ func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 
 			if *amtInfoRasPtr {
-				result, _ := GetRemoteAccessConnectionStatus()
+				result, _ := amt.GetRemoteAccessConnectionStatus()
 				println("RAS Network      	: " + result.NetworkStatus)
 				println("RAS Remote Status	: " + result.RemoteStatus)
 				println("RAS Trigger      	: " + result.RemoteTrigger)
 				println("RAS MPS Hostname 	: " + result.MPSHostname)
 			}
 			if *amtInfoLanPtr {
-				wired, _ := GetLANInterfaceSettings(false)
+				wired, _ := amt.GetLANInterfaceSettings(false)
 				println("---Wired Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
 				println("DHCP Mode    		: " + wired.DHCPMode)
@@ -163,7 +162,7 @@ func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				println("IP Address   		: " + wired.IPAddress)
 				println("MAC Address  		: " + wired.MACAddress)
 
-				wireless, _ := GetLANInterfaceSettings(true)
+				wireless, _ := amt.GetLANInterfaceSettings(true)
 				println("---Wireless Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
 				println("DHCP Mode    		: " + wireless.DHCPMode)
@@ -172,7 +171,7 @@ func handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				println("MAC Address  		: " + wireless.MACAddress)
 			}
 			if *amtInfoCertPtr {
-				result, _ := GetCertificateHashes()
+				result, _ := amt.GetCertificateHashes()
 				println("Certificate Hashes	:")
 				for _, v := range result {
 
