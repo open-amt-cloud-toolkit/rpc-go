@@ -2,7 +2,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package mps
+package rps
 
 import (
 	"encoding/base64"
@@ -16,7 +16,7 @@ type Payload struct {
 	AMT amt.AMT
 }
 
-// Activation is used for tranferring messages between MPS and RPC
+// Activation is used for tranferring messages between RPS and RPC
 type Activation struct {
 	Method          string `json:"method"`
 	APIKey          string `json:"apiKey"`
@@ -28,14 +28,14 @@ type Activation struct {
 	Payload         string `json:"payload"`
 }
 
-// Status Message is used for displaying and parsing status messages from MPS
+// Status Message is used for displaying and parsing status messages from RPS
 type StatusMessage struct {
 	Status         string
 	Network        string
 	CIRAConnection string
 }
 
-// ActivationPayload struct is used for the initial request to MPS to activate a device
+// ActivationPayload struct is used for the initial request to RPS to activate a device
 type ActivationPayload struct {
 	Version           string   `json:"ver"`
 	Build             string   `json:"build"`

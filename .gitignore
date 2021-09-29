@@ -2,3 +2,4 @@ realthing
 rpc
 *.exe
 !/internal/rpc
+coverage

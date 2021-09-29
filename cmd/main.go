@@ -10,8 +10,8 @@ import (
 	"os/signal"
 	"rpc/internal/amt"
 	"rpc/internal/lms"
-	"rpc/internal/mps"
 	"rpc/internal/rpc"
+	"rpc/internal/rps"
 	"rpc/pkg/utils"
 	"syscall"
 	"time"
@@ -32,7 +32,7 @@ func main() {
 	}
 
 	//create activation request
-	payload := mps.Payload{
+	payload := rps.Payload{
 		AMT: amt.Command{},
 	}
 	activationRequest, err := payload.CreateActivationRequest(f.Command, f.DNS)
@@ -59,23 +59,23 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	log.Trace("done\n")
-	amtactivationserver := mps.AMTActivationServer{
+	amtactivationserver := rps.AMTActivationServer{
 		URL: f.URL,
 	}
 
 	err = amtactivationserver.Connect(f.SkipCertCheck)
 	if err != nil {
-		log.Error("error connecting to MPS")
+		log.Error("error connecting to RPS")
 		log.Error(err.Error())
 		os.Exit(1)
 	}
 
-	log.Debug("listening to MPS...")
+	log.Debug("listening to RPS...")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	mpsDataChannel := amtactivationserver.Listen()
+	rpsDataChannel := amtactivationserver.Listen()
 
-	log.Debug("sending activation request to MPS")
+	log.Debug("sending activation request to RPS")
 	data, err := json.Marshal(activationRequest)
 	if err != nil {
 		log.Println(err.Error())
@@ -92,9 +92,9 @@ func main() {
 
 	for {
 		select {
-		case dataFromMPS := <-mpsDataChannel:
+		case dataFromRPS := <-rpsDataChannel:
 
-			msgPayload := amtactivationserver.ProcessMessage(dataFromMPS)
+			msgPayload := amtactivationserver.ProcessMessage(dataFromRPS)
 			if msgPayload == nil {
 				return
 			} else if string(msgPayload) == "heartbeat" {
