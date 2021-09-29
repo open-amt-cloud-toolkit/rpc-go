@@ -2,7 +2,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package mps
+package rps
 
 import (
 	"net/http"
@@ -75,12 +75,12 @@ func TestListen(t *testing.T) {
 	assert.NoError(t, err)
 	var wgAll sync.WaitGroup
 	wgAll.Add(1)
-	mpsChan := server.Listen()
+	rpsChan := server.Listen()
 	go func() {
 		for {
 			select {
-			case dataFromMPS := <-mpsChan:
-				assert.Equal(t, []byte("test"), dataFromMPS)
+			case dataFromRPS := <-rpsChan:
+				assert.Equal(t, []byte("test"), dataFromRPS)
 				wgAll.Done()
 				return
 			}
