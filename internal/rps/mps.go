@@ -50,7 +50,7 @@ func (amt *AMTActivationServer) Close() error {
 // Send is used for sending data to the RPS Server
 func (amt *AMTActivationServer) Send(data []byte) error {
 	log.Debug("sending message to RPS")
-	log.Trace(string(data))
+	// log.Trace(string(data))
 	err := amt.Conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
 		return err
@@ -102,9 +102,9 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 			log.Info(activation.Message)
 
 		} else {
-			log.Info(statusMessage.Status)
-			log.Info(statusMessage.Network)
-			log.Info(statusMessage.CIRAConnection)
+			log.Info("Status: " + statusMessage.Status)
+			log.Info("Network: " + statusMessage.Network)
+			log.Info("CIRA: " + statusMessage.CIRAConnection)
 		}
 
 		return nil
