@@ -51,7 +51,7 @@ type ActivationPayload struct {
 }
 
 // createPayload gathers data from ME to assemble required information for sending to the server
-func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
+func (p Payload) createPayload(dnsSuffix string, hostname string) (ActivationPayload, error) {
 	payload := ActivationPayload{}
 	var err error
 	payload.Version, err = p.AMT.GetVersionDataFromME("AMT")
@@ -92,10 +92,13 @@ func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 			return payload, err
 		}
 	}
-
-	payload.Hostname, err = os.Hostname()
-	if err != nil {
-		return payload, err
+	if hostname != "" {
+		payload.Hostname = hostname
+	} else {
+		payload.Hostname, err = os.Hostname()
+		if err != nil {
+			return payload, err
+		}
 	}
 	payload.Client = utils.ClientName
 	hashes, err := p.AMT.GetCertificateHashes()
@@ -110,7 +113,7 @@ func (p Payload) createPayload(dnsSuffix string) (ActivationPayload, error) {
 }
 
 // CreateActivationRequest is used for assembling the message to request activation of a device
-func (p Payload) CreateActivationRequest(command string, dnsSuffix string) (Activation, error) {
+func (p Payload) CreateActivationRequest(command string, dnsSuffix string, hostname string) (Activation, error) {
 	activation := Activation{
 		Method:          command,
 		APIKey:          "key",
@@ -119,7 +122,7 @@ func (p Payload) CreateActivationRequest(command string, dnsSuffix string) (Acti
 		Status:          "ok",
 		Message:         "ok",
 	}
-	payload, err := p.createPayload(dnsSuffix)
+	payload, err := p.createPayload(dnsSuffix, hostname)
 	if err != nil {
 		return activation, err
 	}

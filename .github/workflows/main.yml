@@ -30,6 +30,12 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
+      - name: run the tests
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic
+      
+      - uses: codecov/codecov-action@v1.0.14
+        name: Upload Coverage Results
+        
       # Runs a single command using the runners shell
       - name: build go
         if: ${{ matrix.os == 'windows-2019' }}

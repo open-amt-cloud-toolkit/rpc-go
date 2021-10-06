@@ -19,13 +19,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func checkAccess() {
+	amt := amt.Command{}
+	result, err := amt.Initialize()
+	if !result || err != nil {
+		println("Unable to launch application. Please ensure that Intel ME is present, the MEI driver is installed and that this application is run with administrator or root privileges.")
+		os.Exit(1)
+	}
+}
 func main() {
 
+	checkAccess()
 	//process flags
-	flags := rpc.Flags{}
-	f, _ := flags.ParseFlags()
+	flags := rpc.NewFlags(os.Args)
+	_, result := flags.ParseFlags()
+	if !result {
+		os.Exit(1)
+	}
 
-	if f.Verbose {
+	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
@@ -35,7 +47,7 @@ func main() {
 	payload := rps.Payload{
 		AMT: amt.Command{},
 	}
-	activationRequest, err := payload.CreateActivationRequest(f.Command, f.DNS)
+	activationRequest, err := payload.CreateActivationRequest(flags.Command, flags.DNS, flags.Hostname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,10 +72,10 @@ func main() {
 
 	log.Trace("done\n")
 	amtactivationserver := rps.AMTActivationServer{
-		URL: f.URL,
+		URL: flags.URL,
 	}
 
-	err = amtactivationserver.Connect(f.SkipCertCheck)
+	err = amtactivationserver.Connect(flags.SkipCertCheck)
 	if err != nil {
 		log.Error("error connecting to RPS")
 		log.Error(err.Error())

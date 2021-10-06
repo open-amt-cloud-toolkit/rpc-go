@@ -51,7 +51,7 @@ func init() {
 }
 func TestCreatePayload(t *testing.T) {
 	mebxDNSSuffix = "mebxdns"
-	result, err := p.createPayload("")
+	result, err := p.createPayload("", "")
 	assert.Equal(t, "Version", result.Version)
 	assert.Equal(t, "Version", result.Build)
 	assert.Equal(t, "Version", result.SKU)
@@ -67,19 +67,19 @@ func TestCreatePayload(t *testing.T) {
 }
 func TestCreatePayloadWithOSDNSSuffix(t *testing.T) {
 	mebxDNSSuffix = ""
-	result, err := p.createPayload("")
+	result, err := p.createPayload("", "")
 	assert.NoError(t, err)
 	assert.Equal(t, "osdns", result.FQDN)
 }
 func TestCreatePayloadWithDNSSuffix(t *testing.T) {
 
-	result, err := p.createPayload("vprodemo.com")
+	result, err := p.createPayload("vprodemo.com", "")
 	assert.NoError(t, err)
 	assert.Equal(t, "vprodemo.com", result.FQDN)
 }
 func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
 
-	result, err := p.CreateActivationRequest("method", "")
+	result, err := p.CreateActivationRequest("method", "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, "method", result.Method)
 	assert.Equal(t, "key", result.APIKey)
@@ -90,7 +90,7 @@ func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
 }
 func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 
-	result, err := p.CreateActivationRequest("method", "vprodemo.com")
+	result, err := p.CreateActivationRequest("method", "vprodemo.com", "")
 	assert.NoError(t, err)
 	assert.Equal(t, "method", result.Method)
 	assert.Equal(t, "key", result.APIKey)
