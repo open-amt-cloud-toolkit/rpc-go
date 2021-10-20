@@ -6,6 +6,7 @@ package rps
 
 import (
 	"rpc/internal/amt"
+	"rpc/internal/rpc"
 	"rpc/pkg/utils"
 	"testing"
 
@@ -78,8 +79,10 @@ func TestCreatePayloadWithDNSSuffix(t *testing.T) {
 	assert.Equal(t, "vprodemo.com", result.FQDN)
 }
 func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
-
-	result, err := p.CreateActivationRequest("method", "", "")
+	flags := rpc.Flags{
+		Command: "method",
+	}
+	result, err := p.CreateMessageRequest(flags)
 	assert.NoError(t, err)
 	assert.Equal(t, "method", result.Method)
 	assert.Equal(t, "key", result.APIKey)
@@ -89,8 +92,11 @@ func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
 	assert.Equal(t, utils.ProjectVersion, result.AppVersion)
 }
 func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
-
-	result, err := p.CreateActivationRequest("method", "vprodemo.com", "")
+	flags := rpc.Flags{
+		Command: "method",
+		DNS:     "vprodemo.com",
+	}
+	result, err := p.CreateMessageRequest(flags)
 	assert.NoError(t, err)
 	assert.Equal(t, "method", result.Method)
 	assert.Equal(t, "key", result.APIKey)
@@ -102,7 +108,7 @@ func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 
 func TestCreateActivationResponse(t *testing.T) {
 
-	result, err := p.CreateActivationResponse([]byte(""))
+	result, err := p.CreateMessageResponse([]byte(""))
 	assert.NoError(t, err)
 	assert.Equal(t, "response", result.Method)
 	assert.Equal(t, "key", result.APIKey)

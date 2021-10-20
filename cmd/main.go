@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"rpc/internal/amt"
@@ -36,7 +37,9 @@ func main() {
 	if !result {
 		os.Exit(1)
 	}
-
+	if flags.SyncClock {
+		fmt.Println("Time to sync the clock")
+	}
 	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
 	} else {
@@ -47,7 +50,7 @@ func main() {
 	payload := rps.Payload{
 		AMT: amt.Command{},
 	}
-	activationRequest, err := payload.CreateActivationRequest(flags.Command, flags.DNS, flags.Hostname)
+	messageRequest, err := payload.CreateMessageRequest(*flags)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +91,7 @@ func main() {
 	rpsDataChannel := amtactivationserver.Listen()
 
 	log.Debug("sending activation request to RPS")
-	data, err := json.Marshal(activationRequest)
+	data, err := json.Marshal(messageRequest)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -128,7 +131,7 @@ func main() {
 				case dataFromLMS := <-lmsDataChannel:
 					if len(dataFromLMS) > 0 {
 						log.Debug("received data from LMS")
-						activationResponse, err := payload.CreateActivationResponse(dataFromLMS)
+						activationResponse, err := payload.CreateMessageResponse(dataFromLMS)
 						log.Trace(string(dataFromLMS))
 						if err != nil {
 							log.Error("error creating activation response")
