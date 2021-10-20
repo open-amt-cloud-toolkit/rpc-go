@@ -12,6 +12,8 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Flags holds data received from the command line
@@ -128,10 +130,29 @@ func (f *Flags) handleMaintenanceCommand() bool {
 	f.Command = "maintenance --synctime --password " + *passwordPtr
 	return true
 }
+
+func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
+}
+func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
+	if val, ok := os.LookupEnv(key); ok {
+		parsedVal, err := strconv.ParseBool(val)
+		if err != nil {
+			log.Error(err)
+			return false
+		}
+		return parsedVal
+	}
+	return defaultVal
+}
+
 func (f *Flags) handleActivateCommand() bool {
-	f.amtActivateCommand.StringVar(&f.DNS, "d", "", "dns suffix override")
-	f.amtActivateCommand.StringVar(&f.Hostname, "h", "", "hostname override")
-	f.amtActivateCommand.StringVar(&f.Profile, "profile", "", "name of the profile to use")
+	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
+	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
+	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
 		return false
@@ -154,7 +175,7 @@ func (f *Flags) handleActivateCommand() bool {
 	return true
 }
 func (f *Flags) handleDeactivateCommand() bool {
-	passwordPtr := f.amtDeactivateCommand.String("password", "", "AMT password")
+	passwordPtr := f.amtDeactivateCommand.String("password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	forcePtr := f.amtDeactivateCommand.Bool("f", false, "force deactivate even if device is not registered with a server")
 
 	if len(f.commandLineArgs) == 2 {

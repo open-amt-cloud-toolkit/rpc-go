@@ -197,3 +197,39 @@ func TestParseFlagsEmptyCommand(t *testing.T) {
 	assert.False(t, result)
 	assert.Equal(t, "", command)
 }
+
+func TestLookupEnvOrString_Default(t *testing.T) {
+	args := []string{"./rpc", ""}
+	flags := NewFlags(args)
+	result := flags.lookupEnvOrString("URL", "")
+	assert.Equal(t, "", result)
+}
+func TestLookupEnvOrString_Env(t *testing.T) {
+	args := []string{"./rpc", ""}
+	os.Setenv("URL", "wss://localhost")
+	flags := NewFlags(args)
+	result := flags.lookupEnvOrString("URL", "")
+	assert.Equal(t, "wss://localhost", result)
+}
+
+func TestLookupEnvOrBool_Default(t *testing.T) {
+	args := []string{"./rpc", ""}
+	flags := NewFlags(args)
+	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
+	assert.Equal(t, false, result)
+}
+func TestLookupEnvOrBool_Env(t *testing.T) {
+	args := []string{"./rpc", ""}
+	os.Setenv("SKIP_CERT_CHECK", "true")
+	flags := NewFlags(args)
+	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
+	assert.Equal(t, true, result)
+}
+
+func TestLookupEnvOrBool_EnvError(t *testing.T) {
+	args := []string{"./rpc", ""}
+	os.Setenv("SKIP_CERT_CHECK", "notparsable")
+	flags := NewFlags(args)
+	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
+	assert.Equal(t, false, result)
+}
