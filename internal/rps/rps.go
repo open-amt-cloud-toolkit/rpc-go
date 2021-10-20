@@ -82,7 +82,7 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 // ProcessMessage inspects RPS messages, decodes the base64 payload from the server and relays it to LMS
 func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	// lms.Connect()
-	activation := Activation{}
+	activation := RPSMessage{}
 	err := json.Unmarshal(message, &activation)
 	if err != nil {
 		log.Println(err)
@@ -122,7 +122,7 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 
 }
 
-func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation Activation) ([]byte, error) {
+func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation RPSMessage) ([]byte, error) {
 	activation.Method = "heartbeat_response"
 	activation.Status = "success"
 	dataToSend, err := json.Marshal(activation)

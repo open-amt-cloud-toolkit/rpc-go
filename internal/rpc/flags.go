@@ -18,18 +18,20 @@ import (
 
 // Flags holds data received from the command line
 type Flags struct {
-	commandLineArgs      []string
-	URL                  string
-	DNS                  string
-	Hostname             string
-	Proxy                string
-	Command              string
-	Profile              string
-	SkipCertCheck        bool
-	Verbose              bool
-	amtInfoCommand       *flag.FlagSet
-	amtActivateCommand   *flag.FlagSet
-	amtDeactivateCommand *flag.FlagSet
+	commandLineArgs       []string
+	URL                   string
+	DNS                   string
+	Hostname              string
+	Proxy                 string
+	Command               string
+	Profile               string
+	SkipCertCheck         bool
+	Verbose               bool
+	SyncClock             bool
+	amtInfoCommand        *flag.FlagSet
+	amtActivateCommand    *flag.FlagSet
+	amtDeactivateCommand  *flag.FlagSet
+	amtMaintenanceCommand *flag.FlagSet
 }
 
 func NewFlags(args []string) *Flags {
@@ -38,6 +40,7 @@ func NewFlags(args []string) *Flags {
 	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ExitOnError)
 	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ExitOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ExitOnError)
+	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ExitOnError)
 	flags.setupCommonFlags()
 	return flags
 }
@@ -53,6 +56,9 @@ func (f *Flags) ParseFlags() (string, bool) {
 		case "activate":
 			success := f.handleActivateCommand()
 			return "activate", success
+		case "maintenance":
+			success := f.handleMaintenanceCommand()
+			return "maintenance", success
 		case "deactivate":
 			success := f.handleDeactivateCommand()
 			return "deactivate", success
@@ -73,26 +79,56 @@ func (f *Flags) printUsage() string {
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, and status of AMT\n\n"
 	usage = usage + "Usage: rpc COMMAND [OPTIONS]\n\n"
 	usage = usage + "Supported Commands:\n"
-	usage = usage + "  activate   Activate this device with a specified profile\n"
-	usage = usage + "             Example: ./rpc activate -u wss://server/activate --profile acmprofile\n"
-	usage = usage + "  deactivate Deactivates this device. AMT password is required\n"
-	usage = usage + "             Example: ./rpc deactivate -u wss://server/activate\n"
-	usage = usage + "  amtinfo    Displays information about AMT status and configuration\n"
-	usage = usage + "             Example: ./rpc amtinfo\n"
-	usage = usage + "  version    Displays the current version of RPC and the RPC Protocol version\n"
-	usage = usage + "             Example: ./rpc version\n"
+	usage = usage + "  activate    Activate this device with a specified profile\n"
+	usage = usage + "              Example: ./rpc activate -u wss://server/activate --profile acmprofile\n"
+	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
+	usage = usage + "              Example: ./rpc deactivate -u wss://server/activate\n"
+	usage = usage + "  maintenance Maintain this device.\n"
+	usage = usage + "              Example: ./rpc maintenance -u wss://server/activate\n"
+	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
+	usage = usage + "              Example: ./rpc amtinfo\n"
+	usage = usage + "  version     Displays the current version of RPC and the RPC Protocol version\n"
+	usage = usage + "              Example: ./rpc version\n"
 	usage = usage + "\nRun 'rpc COMMAND' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
 }
 
 func (f *Flags) setupCommonFlags() {
-	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand} {
-		fs.StringVar(&f.URL, "u", f.lookupEnvOrString("URL", ""), "websocket address of server to activate against") //required
-		fs.BoolVar(&f.SkipCertCheck, "n", f.lookupEnvOrBool("SKIP_CERT_CHECK", false), "skip websocket server certificate verification")
-		fs.StringVar(&f.Proxy, "p", f.lookupEnvOrString("PROXY", ""), "proxy address and port")
+	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand, f.amtMaintenanceCommand} {
+		fs.StringVar(&f.URL, "u", "", "websocket address of server to activate against") //required
+		fs.BoolVar(&f.SkipCertCheck, "n", false, "skip websocket server certificate verification")
+		fs.StringVar(&f.Proxy, "p", "", "proxy address and port")
 		fs.BoolVar(&f.Verbose, "v", false, "verbose output")
 	}
+}
+func (f *Flags) handleMaintenanceCommand() bool {
+	passwordPtr := f.amtMaintenanceCommand.String("password", "", "AMT password")
+	f.amtMaintenanceCommand.BoolVar(&f.SyncClock, "c", false, "sync AMT clock")
+	if len(f.commandLineArgs) == 2 {
+		f.amtMaintenanceCommand.PrintDefaults()
+		return false
+	}
+	f.amtMaintenanceCommand.Parse(f.commandLineArgs[2:])
+	if f.amtMaintenanceCommand.Parsed() {
+		if f.URL == "" {
+			fmt.Println("-u flag is required and cannot be empty")
+			f.amtActivateCommand.Usage()
+			return false
+		}
+		if *passwordPtr == "" {
+			fmt.Println("Please enter AMT Password: ")
+			var password string
+			// Taking input from user
+			_, err := fmt.Scanln(&password)
+			if password == "" || err != nil {
+				return false
+			}
+			*passwordPtr = password
+		}
+	}
+	f.Command = "maintenance --synctime --password " + *passwordPtr
+	return true
 }
 
 func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"os"
 	"rpc/internal/amt"
+	"rpc/internal/rpc"
 	"rpc/pkg/utils"
 )
 
@@ -16,8 +17,8 @@ type Payload struct {
 	AMT amt.AMT
 }
 
-// Activation is used for tranferring messages between RPS and RPC
-type Activation struct {
+// RPSMessage is used for tranferring messages between RPS and RPC
+type RPSMessage struct {
 	Method          string `json:"method"`
 	APIKey          string `json:"apiKey"`
 	AppVersion      string `json:"appVersion"`
@@ -35,8 +36,8 @@ type StatusMessage struct {
 	CIRAConnection string
 }
 
-// ActivationPayload struct is used for the initial request to RPS to activate a device
-type ActivationPayload struct {
+// MessagePayload struct is used for the initial request to RPS to activate a device
+type MessagePayload struct {
 	Version           string   `json:"ver"`
 	Build             string   `json:"build"`
 	SKU               string   `json:"sku"`
@@ -51,8 +52,8 @@ type ActivationPayload struct {
 }
 
 // createPayload gathers data from ME to assemble required information for sending to the server
-func (p Payload) createPayload(dnsSuffix string, hostname string) (ActivationPayload, error) {
-	payload := ActivationPayload{}
+func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayload, error) {
+	payload := MessagePayload{}
 	var err error
 	payload.Version, err = p.AMT.GetVersionDataFromME("AMT")
 	if err != nil {
@@ -112,34 +113,34 @@ func (p Payload) createPayload(dnsSuffix string, hostname string) (ActivationPay
 
 }
 
-// CreateActivationRequest is used for assembling the message to request activation of a device
-func (p Payload) CreateActivationRequest(command string, dnsSuffix string, hostname string) (Activation, error) {
-	activation := Activation{
-		Method:          command,
+// CreateMessageRequest is used for assembling the message to request activation of a device
+func (p Payload) CreateMessageRequest(flags rpc.Flags) (RPSMessage, error) {
+	message := RPSMessage{
+		Method:          flags.Command,
 		APIKey:          "key",
 		AppVersion:      utils.ProjectVersion,
 		ProtocolVersion: utils.ProtocolVersion,
 		Status:          "ok",
 		Message:         "ok",
 	}
-	payload, err := p.createPayload(dnsSuffix, hostname)
+	payload, err := p.createPayload(flags.DNS, flags.Hostname)
 	if err != nil {
-		return activation, err
+		return message, err
 	}
 	//convert struct to json
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return activation, err
+		return message, err
 	}
 
-	activation.Payload = base64.StdEncoding.EncodeToString(data)
+	message.Payload = base64.StdEncoding.EncodeToString(data)
 
-	return activation, nil
+	return message, nil
 }
 
-// CreateActivationResponse is used for creating a response to the server
-func (p Payload) CreateActivationResponse(payload []byte) (Activation, error) {
-	activation := Activation{
+// CreateMessageResponse is used for creating a response to the server
+func (p Payload) CreateMessageResponse(payload []byte) (RPSMessage, error) {
+	message := RPSMessage{
 		Method:          "response",
 		APIKey:          "key",
 		AppVersion:      utils.ProjectVersion,
@@ -148,5 +149,5 @@ func (p Payload) CreateActivationResponse(payload []byte) (Activation, error) {
 		Message:         "ok",
 		Payload:         base64.StdEncoding.EncodeToString(payload),
 	}
-	return activation, nil
+	return message, nil
 }
