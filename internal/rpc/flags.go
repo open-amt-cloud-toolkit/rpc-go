@@ -64,6 +64,7 @@ func (f *Flags) ParseFlags() (string, bool) {
 			return "deactivate", success
 		case "version":
 			println(strings.ToUpper(utils.ProjectName))
+			println("Version " + utils.ProjectVersion)
 			println("Protocol " + utils.ProtocolVersion)
 			return "version", false
 		default:
