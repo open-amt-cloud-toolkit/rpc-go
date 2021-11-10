@@ -28,6 +28,7 @@ type Flags struct {
 	SkipCertCheck         bool
 	Verbose               bool
 	SyncClock             bool
+	Password              string
 	amtInfoCommand        *flag.FlagSet
 	amtActivateCommand    *flag.FlagSet
 	amtDeactivateCommand  *flag.FlagSet
@@ -104,8 +105,9 @@ func (f *Flags) setupCommonFlags() {
 	}
 }
 func (f *Flags) handleMaintenanceCommand() bool {
-	passwordPtr := f.amtMaintenanceCommand.String("password", "", "AMT password")
+	f.amtActivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.amtMaintenanceCommand.BoolVar(&f.SyncClock, "c", false, "sync AMT clock")
+
 	if len(f.commandLineArgs) == 2 {
 		f.amtMaintenanceCommand.PrintDefaults()
 		return false
@@ -117,7 +119,7 @@ func (f *Flags) handleMaintenanceCommand() bool {
 			f.amtActivateCommand.Usage()
 			return false
 		}
-		if *passwordPtr == "" {
+		if f.Password == "" {
 			fmt.Println("Please enter AMT Password: ")
 			var password string
 			// Taking input from user
@@ -125,10 +127,10 @@ func (f *Flags) handleMaintenanceCommand() bool {
 			if password == "" || err != nil {
 				return false
 			}
-			*passwordPtr = password
+			f.Password = password
 		}
 	}
-	f.Command = "maintenance --synctime --password " + *passwordPtr
+	f.Command = "maintenance --synctime --password " + f.Password
 	return true
 }
 
@@ -154,6 +156,8 @@ func (f *Flags) handleActivateCommand() bool {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
+	f.amtActivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
 		return false
@@ -176,7 +180,7 @@ func (f *Flags) handleActivateCommand() bool {
 	return true
 }
 func (f *Flags) handleDeactivateCommand() bool {
-	passwordPtr := f.amtDeactivateCommand.String("password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+	f.amtDeactivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	forcePtr := f.amtDeactivateCommand.Bool("f", false, "force deactivate even if device is not registered with a server")
 
 	if len(f.commandLineArgs) == 2 {
@@ -191,7 +195,7 @@ func (f *Flags) handleDeactivateCommand() bool {
 			f.amtDeactivateCommand.Usage()
 			return false
 		}
-		if *passwordPtr == "" {
+		if f.Password == "" {
 			fmt.Println("Please enter AMT Password: ")
 			var password string
 			// Taking input from user
@@ -199,9 +203,9 @@ func (f *Flags) handleDeactivateCommand() bool {
 			if password == "" || err != nil {
 				return false
 			}
-			*passwordPtr = password
+			f.Password = password
 		}
-		f.Command = "deactivate --password " + *passwordPtr
+		f.Command = "deactivate --password " + f.Password
 		if *forcePtr {
 			f.Command = f.Command + " -f"
 		}

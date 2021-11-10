@@ -44,7 +44,7 @@ func TestHandleActivateCommandNoFlags(t *testing.T) {
 	assert.False(t, success)
 }
 func TestHandleActivateCommand(t *testing.T) {
-	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName"}
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password"}
 	flags := NewFlags(args)
 	expected := "activate --profile profileName"
 	success := flags.handleActivateCommand()
@@ -52,6 +52,25 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
+	assert.Equal(t, "Password", flags.Password)
+}
+func TestHandleActivateCommandWithENV(t *testing.T) {
+
+	os.Setenv("DNS_SUFFIX", "envdnssuffix.com")
+	os.Setenv("HOSTNAME", "envhostname")
+	os.Setenv("PROFILE", "envprofile")
+	os.Setenv("AMT_PASSWORD", "envpassword")
+
+	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
+	flags := NewFlags(args)
+	expected := "activate --profile envprofile"
+	success := flags.handleActivateCommand()
+	assert.True(t, success)
+	assert.Equal(t, "wss://localhost", flags.URL)
+	assert.Equal(t, "envprofile", flags.Profile)
+	assert.Equal(t, expected, flags.Command)
+	assert.Equal(t, "envpassword", flags.Password)
+	os.Clearenv()
 }
 
 func TestHandleActivateCommandNoURL(t *testing.T) {
