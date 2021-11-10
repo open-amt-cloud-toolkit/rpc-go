@@ -5,6 +5,7 @@
 package rps
 
 import (
+	"os"
 	"rpc/internal/amt"
 	"rpc/internal/rpc"
 	"rpc/pkg/utils"
@@ -17,6 +18,7 @@ import (
 type MockAMT struct{}
 
 var mebxDNSSuffix string
+var controlMode int = 0
 
 func (c MockAMT) Initialize() (bool, error) {
 	return true, nil
@@ -24,8 +26,8 @@ func (c MockAMT) Initialize() (bool, error) {
 func (c MockAMT) GetVersionDataFromME(key string) (string, error) { return "Version", nil }
 func (c MockAMT) GetUUID() (string, error)                        { return "123-456-789", nil }
 func (c MockAMT) GetUUIDV2() (string, error)                      { return "", nil }
-func (c MockAMT) GetControlMode() (int, error)                    { return 1, nil }
-func (c MockAMT) GetControlModeV2() (int, error)                  { return 1, nil }
+func (c MockAMT) GetControlMode() (int, error)                    { return controlMode, nil }
+func (c MockAMT) GetControlModeV2() (int, error)                  { return controlMode, nil }
 func (c MockAMT) GetOSDNSSuffix() (string, error)                 { return "osdns", nil }
 func (c MockAMT) GetDNSSuffix() (string, error)                   { return mebxDNSSuffix, nil }
 func (c MockAMT) GetCertificateHashes() ([]amt.CertHashEntry, error) {
@@ -59,7 +61,7 @@ func TestCreatePayload(t *testing.T) {
 	assert.Equal(t, "123-456-789", result.UUID)
 	assert.Equal(t, "Username", result.Username)
 	assert.Equal(t, "Password", result.Password)
-	assert.Equal(t, 1, result.CurrentMode)
+	assert.Equal(t, 0, result.CurrentMode)
 	assert.NotEmpty(t, result.Hostname)
 	assert.Equal(t, "mebxdns", result.FQDN)
 	assert.Equal(t, utils.ClientName, result.Client)
@@ -88,8 +90,51 @@ func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
 	assert.Equal(t, "key", result.APIKey)
 	assert.Equal(t, "ok", result.Status)
 	assert.Equal(t, "ok", result.Message)
+	assert.NotEmpty(t, result.Payload)
 	assert.Equal(t, utils.ProtocolVersion, result.ProtocolVersion)
 	assert.Equal(t, utils.ProjectVersion, result.AppVersion)
+}
+func TestCreateActivationRequestNoPasswordShouldPrompt(t *testing.T) {
+	controlMode = 1
+	flags := rpc.Flags{
+		Command: "method",
+	}
+	input := []byte("password")
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = w.Write(input)
+	if err != nil {
+		t.Error(err)
+	}
+	w.Close()
+
+	stdin := os.Stdin
+	// Restore stdin right after the test.
+	defer func() {
+		os.Stdin = stdin
+		controlMode = 0
+	}()
+	os.Stdin = r
+	result, err := p.CreateMessageRequest(flags)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result.Payload)
+}
+func TestCreateActivationRequestWithPasswordShouldNotPrompt(t *testing.T) {
+	controlMode = 1
+	flags := rpc.Flags{
+		Command:  "method",
+		Password: "password",
+	}
+	// Restore stdin right after the test.
+	defer func() {
+		controlMode = 0
+	}()
+	result, err := p.CreateMessageRequest(flags)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result.Payload)
 }
 func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 	flags := rpc.Flags{
@@ -108,12 +153,13 @@ func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 
 func TestCreateActivationResponse(t *testing.T) {
 
-	result, err := p.CreateMessageResponse([]byte(""))
+	result, err := p.CreateMessageResponse([]byte("123"))
 	assert.NoError(t, err)
 	assert.Equal(t, "response", result.Method)
 	assert.Equal(t, "key", result.APIKey)
 	assert.Equal(t, "ok", result.Status)
 	assert.Equal(t, "ok", result.Message)
+	assert.NotEmpty(t, result.Payload)
 	assert.Equal(t, utils.ProtocolVersion, result.ProtocolVersion)
 	assert.Equal(t, utils.ProjectVersion, result.AppVersion)
 
