@@ -128,16 +128,19 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (RPSMessage, error) {
 	if err != nil {
 		return message, err
 	}
-	if flags.Password == "" && payload.CurrentMode != 0 {
-		for flags.Password == "" {
-			fmt.Println("Please enter AMT Password: ")
-			// Taking input from user
-			_, err = fmt.Scanln(&flags.Password)
-			if err != nil {
-				return message, err
+	// Update with AMT password for activated devices
+	if payload.CurrentMode != 0 {
+		if flags.Password == "" {
+			for flags.Password == "" {
+				fmt.Println("Please enter AMT Password: ")
+				// Taking input from user
+				_, err = fmt.Scanln(&flags.Password)
+				if err != nil {
+					return message, err
+				}
 			}
-			payload.Password = flags.Password
 		}
+		payload.Password = flags.Password
 	}
 	//convert struct to json
 	data, err := json.Marshal(payload)

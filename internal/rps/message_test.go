@@ -5,6 +5,8 @@
 package rps
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/rpc"
@@ -133,9 +135,16 @@ func TestCreateActivationRequestWithPasswordShouldNotPrompt(t *testing.T) {
 		controlMode = 0
 	}()
 	result, err := p.CreateMessageRequest(flags)
+	msgPayload, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	payload := MessagePayload{}
+	jsonErr := json.Unmarshal(msgPayload, &payload)
 	assert.NoError(t, err)
+	assert.NoError(t, decodeErr)
+	assert.NoError(t, jsonErr)
 	assert.NotEmpty(t, result.Payload)
+	assert.Equal(t, "password", payload.Password)
 }
+
 func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 	flags := rpc.Flags{
 		Command: "method",
