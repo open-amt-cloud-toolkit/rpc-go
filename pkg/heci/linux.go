@@ -19,7 +19,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type Heci struct {
+type Driver struct {
 	meiDevice  *os.File
 	bufferSize uint32
 }
@@ -36,22 +36,11 @@ type UUID_LE struct {
 	uuid [16]uint8
 }
 
-type MEIConnectClientData struct {
-	MaxMessageLength uint32
-	ProtocolVersion  uint8
-	Reserved         [3]uint8
-}
-type CMEIConnectClientData struct {
-	data [16]byte
-
-	// out_client_properties struct {
-	// 	max_msg_length   uint
-	// 	protocol_version byte
-	// 	reserved         [3]byte
-	// }
+func NewDriver() *Driver {
+	return &Driver{}
 }
 
-func (heci *Heci) Init() error {
+func (heci *Driver) Init() error {
 
 	var err error
 	heci.meiDevice, err = os.OpenFile(Device, syscall.O_RDWR, 0)
@@ -76,10 +65,10 @@ func (heci *Heci) Init() error {
 
 	return nil
 }
-func (heci *Heci) GetBufferSize() uint32 {
+func (heci *Driver) GetBufferSize() uint32 {
 	return heci.bufferSize
 }
-func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
+func (heci *Driver) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 
 	size, err := syscall.Write(int(heci.meiDevice.Fd()), buffer)
 	if err != nil {
@@ -88,7 +77,7 @@ func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32,
 
 	return uint32(size), nil
 }
-func (heci *Heci) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
+func (heci *Driver) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 
 	read, err := unix.Read(int(heci.meiDevice.Fd()), buffer)
 	if err != nil {
@@ -105,6 +94,6 @@ func Ioctl(fd, op, arg uintptr) error {
 	return nil
 }
 
-func (heci *Heci) Close() {
+func (heci *Driver) Close() {
 	defer heci.meiDevice.Close()
 }

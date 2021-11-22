@@ -21,7 +21,7 @@ import (
 )
 
 func checkAccess() {
-	amt := amt.Command{}
+	amt := amt.NewAMTCommand()
 	result, err := amt.Initialize()
 	if !result || err != nil {
 		println("Unable to launch application. Please ensure that Intel ME is present, the MEI driver is installed and that this application is run with administrator or root privileges.")
@@ -48,7 +48,7 @@ func main() {
 
 	//create activation request
 	payload := rps.Payload{
-		AMT: amt.Command{},
+		AMT: amt.NewAMTCommand(),
 	}
 	messageRequest, err := payload.CreateMessageRequest(*flags)
 	if err != nil {
@@ -59,10 +59,10 @@ func main() {
 	log.Trace("Seeing if existing LMS is already running....")
 	lms := lms.LMSConnection{}
 	err = lms.Connect(utils.LMSAddress, utils.LMSPort)
-	amt := amt.Command{}
+
 	if err != nil {
 		log.Trace("nope!\n")
-		go amt.InitiateLMS()
+		go lms.InitiateLMS()
 	} else {
 		log.Trace("yes!\n")
 	}

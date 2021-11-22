@@ -7,6 +7,7 @@ package rps
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/rpc"
@@ -14,7 +15,7 @@ import (
 )
 
 type Payload struct {
-	AMT amt.AMT
+	AMT amt.Interface
 }
 
 // RPSMessage is used for tranferring messages between RPS and RPC
@@ -126,6 +127,20 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (RPSMessage, error) {
 	payload, err := p.createPayload(flags.DNS, flags.Hostname)
 	if err != nil {
 		return message, err
+	}
+	// Update with AMT password for activated devices
+	if payload.CurrentMode != 0 {
+		if flags.Password == "" {
+			for flags.Password == "" {
+				fmt.Println("Please enter AMT Password: ")
+				// Taking input from user
+				_, err = fmt.Scanln(&flags.Password)
+				if err != nil {
+					return message, err
+				}
+			}
+		}
+		payload.Password = flags.Password
 	}
 	//convert struct to json
 	data, err := json.Marshal(payload)
