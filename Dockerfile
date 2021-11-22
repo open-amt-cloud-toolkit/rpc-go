@@ -2,6 +2,7 @@
 # * Copyright (c) Intel Corporation 2021
 # * SPDX-License-Identifier: Apache-2.0
 # **********************************************************************
+
 FROM golang:1.17-alpine as builder
 RUN apk update
 RUN apk upgrade

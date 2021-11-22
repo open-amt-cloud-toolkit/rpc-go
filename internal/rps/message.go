@@ -15,7 +15,7 @@ import (
 )
 
 type Payload struct {
-	AMT amt.AMT
+	AMT amt.Interface
 }
 
 // RPSMessage is used for tranferring messages between RPS and RPC

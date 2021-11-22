@@ -238,7 +238,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	amtInfoCommand.Parse(f.commandLineArgs[2:])
 
 	if amtInfoCommand.Parsed() {
-		amt := amt.Command{}
+		amt := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
 			result, _ := amt.GetVersionDataFromME("AMT")
 			println("Version			: " + result)
