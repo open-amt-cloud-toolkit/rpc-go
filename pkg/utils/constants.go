@@ -8,14 +8,7 @@ const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
 	// ProjectVersion is the full version of this executable
-	ProjectVersion = "1.0.0"
-	// ProjectVersionMajor is the major version value
-	ProjectVersionMajor = "1"
-	// ProjectVersionMinor is the minor value version
-	ProjectVersionMinor = "0"
-	// ProjectVersionPatch is the patch version
-	ProjectVersionPatch = "0"
-	// ProtocolVersion is the version used for messages between AMT activation server and RPC
+	ProjectVersion  = "2.0.0"
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable
 	ClientName = "RPC"

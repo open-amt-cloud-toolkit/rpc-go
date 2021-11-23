@@ -6,12 +6,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"rpc/internal/amt"
 	"rpc/internal/lms"
-	"rpc/internal/mps"
 	"rpc/internal/rpc"
+	"rpc/internal/rps"
 	"rpc/pkg/utils"
 	"syscall"
 	"time"
@@ -19,23 +20,37 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func checkAccess() {
+	amt := amt.NewAMTCommand()
+	result, err := amt.Initialize()
+	if !result || err != nil {
+		println("Unable to launch application. Please ensure that Intel ME is present, the MEI driver is installed and that this application is run with administrator or root privileges.")
+		os.Exit(1)
+	}
+}
 func main() {
 
+	checkAccess()
 	//process flags
-	flags := rpc.Flags{}
-	f, _ := flags.ParseFlags()
-
-	if f.Verbose {
+	flags := rpc.NewFlags(os.Args)
+	_, result := flags.ParseFlags()
+	if !result {
+		os.Exit(1)
+	}
+	if flags.SyncClock {
+		fmt.Println("Time to sync the clock")
+	}
+	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
 
 	//create activation request
-	payload := mps.Payload{
-		AMT: amt.Command{},
+	payload := rps.Payload{
+		AMT: amt.NewAMTCommand(),
 	}
-	activationRequest, err := payload.CreateActivationRequest(f.Command, f.DNS)
+	messageRequest, err := payload.CreateMessageRequest(*flags)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,10 +59,10 @@ func main() {
 	log.Trace("Seeing if existing LMS is already running....")
 	lms := lms.LMSConnection{}
 	err = lms.Connect(utils.LMSAddress, utils.LMSPort)
-	amt := amt.Command{}
+
 	if err != nil {
 		log.Trace("nope!\n")
-		go amt.InitiateLMS()
+		go lms.InitiateLMS()
 	} else {
 		log.Trace("yes!\n")
 	}
@@ -59,24 +74,24 @@ func main() {
 	time.Sleep(5 * time.Second)
 
 	log.Trace("done\n")
-	amtactivationserver := mps.AMTActivationServer{
-		URL: f.URL,
+	amtactivationserver := rps.AMTActivationServer{
+		URL: flags.URL,
 	}
 
-	err = amtactivationserver.Connect(f.SkipCertCheck)
+	err = amtactivationserver.Connect(flags.SkipCertCheck)
 	if err != nil {
-		log.Error("error connecting to MPS")
+		log.Error("error connecting to RPS")
 		log.Error(err.Error())
 		os.Exit(1)
 	}
 
-	log.Debug("listening to MPS...")
+	log.Debug("listening to RPS...")
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	mpsDataChannel := amtactivationserver.Listen()
+	rpsDataChannel := amtactivationserver.Listen()
 
-	log.Debug("sending activation request to MPS")
-	data, err := json.Marshal(activationRequest)
+	log.Debug("sending activation request to RPS")
+	data, err := json.Marshal(messageRequest)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -92,9 +107,9 @@ func main() {
 
 	for {
 		select {
-		case dataFromMPS := <-mpsDataChannel:
+		case dataFromRPS := <-rpsDataChannel:
 
-			msgPayload := amtactivationserver.ProcessMessage(dataFromMPS)
+			msgPayload := amtactivationserver.ProcessMessage(dataFromRPS)
 			if msgPayload == nil {
 				return
 			} else if string(msgPayload) == "heartbeat" {
@@ -116,7 +131,7 @@ func main() {
 				case dataFromLMS := <-lmsDataChannel:
 					if len(dataFromLMS) > 0 {
 						log.Debug("received data from LMS")
-						activationResponse, err := payload.CreateActivationResponse(dataFromLMS)
+						activationResponse, err := payload.CreateMessageResponse(dataFromLMS)
 						log.Trace(string(dataFromLMS))
 						if err != nil {
 							log.Error("error creating activation response")

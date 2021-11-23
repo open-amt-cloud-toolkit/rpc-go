@@ -4,23 +4,7 @@
  **********************************************************************/
 package amt
 
-// #cgo linux CFLAGS: -g -Wno-error -Wformat -Wformat-security -D_POSIX -DBUILD_LIBRARY -D_FORTIFY_SOURCE=2 -fstack-protector-strong
-// #cgo windows CFLAGS: -g -w -DMICROSTACK_NO_STDAFX -DWIN32 -DWIN64 -DNDEBUG -D_CONSOLE -DMICROSTACK_NO_STDAFX -DWINSOCK2 -DMICROSTACK_NOTLS -D_UNICODE -D_WINDOWS -D_WIN32_WINNT=0x0A00 -DBUILD_LIBRARY
-// #cgo windows LDFLAGS: -lDbgHelp -lIphlpapi -lSetupapi -lws2_32 -lPsapi -lCrypt32 -lWintrust -lVersion -lWtsapi32 -lGdiplus -lUserenv -lgdi32 -lucrtbase
-// #include "../../microlms/MicroLMS/main.c"
-// #include "../../microlms/core/utils.c"
-// #include "../../microlms/heci/HECIWin.c"
-// #include "../../microlms/heci/HECILinux.c"
-// #include "../../microlms/heci/LMEConnection.c"
-// #include "../../microlms/heci/PTHICommand.c"
-// #include "../../microlms/microstack/ILibAsyncServerSocket.c"
-// #include "../../microlms/microstack/ILibAsyncSocket.c"
-// #include "../../microlms/microstack/ILibLMS.c"
-// #include "../../microlms/microstack/ILibParsers.c"
-import "C"
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -29,7 +13,6 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 //TODO: Ensure pointers are freed properly throughout this file
@@ -53,12 +36,6 @@ type CodeVersions struct {
 	Versions      [50]AMTVersionType //[VERSIONS_NUMBER]
 }
 
-// AMTANSIString ...
-type AMTANSIString struct {
-	Length uint16
-	Buffer [1000]C.char
-}
-
 // InterfaceSettings ...
 type InterfaceSettings struct {
 	IsEnabled   bool
@@ -77,15 +54,6 @@ type RemoteAccessStatus struct {
 	MPSHostname   string
 }
 
-// CCertHashEntry is used for reading data from the C call for Cert Hashes
-type CCertHashEntry struct {
-	CertificateHash [64]uint8
-	HashAlgorithm   uint8
-	IsActive        uint32
-	IsDefault       uint32
-	Name            AMTANSIString
-}
-
 // CertHashEntry is the GO struct for holding Cert Hash Entries
 type CertHashEntry struct {
 	Hash      string
@@ -101,59 +69,65 @@ type LocalSystemAccount struct {
 	Password string
 }
 
-type AMT interface {
+type Interface interface {
 	Initialize() (bool, error)
 	GetVersionDataFromME(key string) (string, error)
 	GetUUID() (string, error)
-	GetUUIDV2() (string, error)
 	GetControlMode() (int, error)
-	GetControlModeV2() (int, error)
 	GetOSDNSSuffix() (string, error)
 	GetDNSSuffix() (string, error)
 	GetCertificateHashes() ([]CertHashEntry, error)
 	GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error)
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
 	GetLocalSystemAccount() (LocalSystemAccount, error)
-	InitiateLMS()
 }
-type Command struct {
+
+func ANSI2String(ansi pthi.AMTANSIString) string {
+	output := ""
+	for i := 0; i < int(ansi.Length); i++ {
+		output = output + string(ansi.Buffer[i])
+	}
+
+	return output
+}
+
+type AMTCommand struct {
+	PTHI pthi.Interface
+}
+
+func NewAMTCommand() AMTCommand {
+	return AMTCommand{
+		PTHI: pthi.NewCommand(),
+	}
 }
 
 // Initialize determines if rpc is able to initialize the heci driver
-func (amt Command) Initialize() (bool, error) {
+func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
-	result := C.heci_Init(nil, 0)
-	if *((*bool)(unsafe.Pointer(&result))) == false {
+	err := amt.PTHI.Open()
+	if err != nil {
 		return false, errors.New("unable to initialize")
 	}
-
+	defer amt.PTHI.Close()
 	return true, nil
 }
 
 // GetVersionDataFromME ...
-func (amt Command) GetVersionDataFromME(key string) (string, error) {
+func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
 
-	_, err := amt.Initialize()
+	err := amt.PTHI.Open()
+	if err != nil {
+		return "", nil
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetCodeVersions()
 	if err != nil {
 		return "", err
 	}
-	//get code version
-	codeVersion := CodeVersions{}
-	packedCodeVersion := C.struct__CODE_VERSIONS{}
-	status := C.pthi_GetCodeVersions(&packedCodeVersion)
 
-	// additional versions
-	if status == 0 {
-		cdata := C.GoBytes(unsafe.Pointer(&packedCodeVersion), C.sizeof_struct__CODE_VERSIONS)
-		buf := bytes.NewBuffer(cdata)
-		binary.Read(buf, binary.LittleEndian, &codeVersion.BiosVersion)
-		binary.Read(buf, binary.LittleEndian, &codeVersion.VersionsCount)
-		binary.Read(buf, binary.LittleEndian, &codeVersion.Versions)
-
-		for i := 0; i < int(codeVersion.VersionsCount); i++ {
-			if string(codeVersion.Versions[i].Description.String[:codeVersion.Versions[i].Description.Length]) == key {
-				return strings.Replace(string(codeVersion.Versions[i].Version.String[:]), "\u0000", "", -1), nil
-			}
+	for i := 0; i < int(result.CodeVersion.VersionsCount); i++ {
+		if string(result.CodeVersion.Versions[i].Description.String[:result.CodeVersion.Versions[i].Description.Length]) == key {
+			return strings.Replace(string(result.CodeVersion.Versions[i].Version.String[:]), "\u0000", "", -1), nil
 		}
 	}
 
@@ -161,39 +135,13 @@ func (amt Command) GetVersionDataFromME(key string) (string, error) {
 }
 
 // GetUUID ...
-func (amt Command) GetUUID() (string, error) {
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetUUID() (string, error) {
+	err := amt.PTHI.Open()
 	if err != nil {
-		return "", err
+		return "", nil
 	}
-	//get code version
-	//codeVersion := CodeVersions{}
-	packedUUID := C.AMT_UUID{}
-	status := C.pthi_GetUUID(&packedUUID)
-
-	var hexValues [16]string
-
-	if status == 0 {
-		for i := 0; i < 16; i++ {
-			hexValues[i] = fmt.Sprintf("%02x", int(packedUUID[i]))
-		}
-
-		uuidStr := hexValues[3] + hexValues[2] + hexValues[1] + hexValues[0] + "-" +
-			hexValues[5] + hexValues[4] + "-" +
-			hexValues[7] + hexValues[6] + "-" +
-			hexValues[8] + hexValues[9] + "-" +
-			hexValues[10] + hexValues[11] + hexValues[12] + hexValues[13] + hexValues[14] + hexValues[15]
-		return uuidStr, nil
-
-	}
-	return "", errors.New("UUID not found")
-}
-
-// GetUUID ...
-func (amt Command) GetUUIDV2() (string, error) {
-	pthi := pthi.NewPTHICommand()
-	defer pthi.Close()
-	result, err := pthi.GetUUID()
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetUUID()
 	if err != nil {
 		return "", err
 	}
@@ -214,35 +162,22 @@ func (amt Command) GetUUIDV2() (string, error) {
 }
 
 // GetControlMode ...
-func (amt Command) GetControlMode() (int, error) {
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetControlMode() (int, error) {
+	err := amt.PTHI.Open()
 	if err != nil {
-		return -1, err
+		return -1, nil
 	}
-
-	var controlMode C.int = 0
-	status := C.pthi_GetControlMode(&controlMode)
-	if status == 0 {
-		return int(controlMode), nil
-	}
-	return -1, errors.New("unable to determine control mode")
-}
-
-// GetControlMode ...
-func (amt Command) GetControlModeV2() (int, error) {
-	pthi := pthi.NewPTHICommand()
-	defer pthi.Close()
-	result, err := pthi.GetControlMode()
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetControlMode()
 	if err != nil {
 		return -1, err
 	}
 
 	return result, nil
-
 }
 
 // GetDNSSuffix ...
-func (amt Command) GetOSDNSSuffix() (string, error) {
+func (amt AMTCommand) GetOSDNSSuffix() (string, error) {
 	lanResult, _ := amt.GetLANInterfaceSettings(false)
 	ifaces, _ := net.Interfaces()
 	for _, v := range ifaces {
@@ -268,194 +203,154 @@ func (amt Command) GetOSDNSSuffix() (string, error) {
 	return "", nil
 }
 
-// GetDNSSuffix ...
-func (amt Command) GetDNSSuffix() (string, error) {
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetDNSSuffix() (string, error) {
+	err := amt.PTHI.Open()
+	if err != nil {
+		return "", nil
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetDNSSuffix()
 	if err != nil {
 		return "", err
 	}
-	dnsSuffix := AMTANSIString{}
-	packedDNSSuffix := C.struct__AMT_ANSI_STRING{}
-	status := C.pthi_GetDnsSuffix(&packedDNSSuffix)
-	if status == 0 {
 
-		cdata := C.GoBytes(unsafe.Pointer(&packedDNSSuffix), C.sizeof_struct__AMT_ANSI_STRING*253) //253 is maximum FQDN Length
-		buf := bytes.NewBuffer(cdata)
-
-		binary.Read(buf, binary.LittleEndian, &dnsSuffix.Length)
-		binary.Read(buf, binary.LittleEndian, &dnsSuffix.Buffer)
-		cStrings := (*[1 << 28]*C.char)(unsafe.Pointer(&dnsSuffix.Buffer))[:int(dnsSuffix.Length):int(dnsSuffix.Length)]
-		if len(cStrings) > 0 {
-			return C.GoString(cStrings[0])[:int(dnsSuffix.Length)], nil
-		}
-		return "", nil
-	}
-	return "", errors.New("unable to retrieve DNS suffix")
+	return result, nil
 }
 
-// GetCertificateHashes ...
-func (amt Command) GetCertificateHashes() ([]CertHashEntry, error) {
-	hashEntries := []CertHashEntry{}
-
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
+	err := amt.PTHI.Open()
+	amtEntryList := []CertHashEntry{}
 	if err != nil {
-		return hashEntries, err
+		return amtEntryList, nil
 	}
-	hashedHandles := C.struct__AMT_HASH_HANDLES{}
-	packedCertHashEntry := C.struct__CERTHASH_ENTRY{}
-	status := C.pthi_EnumerateHashHandles(&hashedHandles)
-	if status == 0 {
-		for i := 0; i < int(hashedHandles.Length); i++ {
-			status2 := C.pthi_GetCertificateHashEntry(hashedHandles.Handles[i], &packedCertHashEntry)
-			tmp := CertHashEntry{}
-			ccerthash := CCertHashEntry{}
-			hashSize := 0
-			if status2 == 0 {
-				cdata := C.GoBytes(unsafe.Pointer(&packedCertHashEntry), C.sizeof_struct__CERTHASH_ENTRY+(1024))
-				buf := bytes.NewBuffer(cdata)
+	defer amt.PTHI.Close()
+	pthiEntryList, err := amt.PTHI.GetCertificateHashes(pthi.AMTHashHandles{})
+	if err != nil {
+		return amtEntryList, err
+	}
 
-				binary.Read(buf, binary.LittleEndian, &ccerthash.IsDefault)
-				binary.Read(buf, binary.LittleEndian, &ccerthash.IsActive)
-				binary.Read(buf, binary.LittleEndian, &ccerthash.CertificateHash)
-				binary.Read(buf, binary.LittleEndian, &ccerthash.HashAlgorithm)
-				binary.Read(buf, binary.LittleEndian, &ccerthash.Name)
+	// Convert pthi results to amt results
+	for _, pthiEntry := range pthiEntryList {
 
-				hashSize, tmp.Algorithm = utils.InterpretHashAlgorithm(int(ccerthash.HashAlgorithm))
-				if ccerthash.IsActive == 1 {
-					cStrings := (*[1 << 28]*C.char)(unsafe.Pointer(&ccerthash.Name.Buffer))[:int(ccerthash.Name.Length):int(ccerthash.Name.Length)]
-					if len(cStrings) > 0 {
+		hashSize, algo := utils.InterpretHashAlgorithm(int(pthiEntry.HashAlgorithm))
 
-						tmp.Name = strings.Trim(C.GoString(cStrings[0])[:int(ccerthash.Name.Length)], "\xab")
-					}
-					tmp.IsDefault = ccerthash.IsDefault == 1
-					tmp.IsActive = ccerthash.IsActive == 1
-
-					hashString := ""
-					for i := 0; i < hashSize; i++ {
-						hashString = hashString + fmt.Sprintf("%02x", int(ccerthash.CertificateHash[i]))
-					}
-
-					tmp.Hash = hashString
-					hashEntries = append(hashEntries, tmp)
-				}
-
-			} else {
-				//todo: log error
-			}
+		hashString := ""
+		for i := 0; i < hashSize; i++ {
+			hashString = hashString + fmt.Sprintf("%02x", int(pthiEntry.CertificateHash[i]))
 		}
-		return hashEntries, nil
+
+		amtEntry := CertHashEntry{
+			Hash:      hashString,
+			Name:      ANSI2String(pthiEntry.Name),
+			Algorithm: algo,
+			IsActive:  pthiEntry.IsActive > 0,
+			IsDefault: pthiEntry.IsDefault > 0,
+		}
+
+		amtEntryList = append(amtEntryList, amtEntry)
 	}
-	return hashEntries, errors.New("unable to retrieve certificate hashes")
+
+	return amtEntryList, nil
 }
 
-// GetRemoteAccessConnectionStatus ...
-func (amt Command) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
-	remoteAccessStatus := RemoteAccessStatus{}
-
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
+	err := amt.PTHI.Open()
+	emptyRAStatus := RemoteAccessStatus{}
 	if err != nil {
-		return remoteAccessStatus, err
+		return emptyRAStatus, nil
 	}
-	mpsHostname := AMTANSIString{}
-	packedRAS := C.struct__REMOTE_ACCESS_STATUS{}
-	status := C.pthi_GetRemoteAccessConnectionStatus(&packedRAS)
-	if status == 0 {
-		remoteAccessStatus.NetworkStatus = utils.InterpretAMTNetworkConnectionStatus(int(packedRAS.AmtNetworkConnectionStatus))
-		remoteAccessStatus.RemoteStatus = utils.InterpretRemoteAccessConnectionStatus(int(packedRAS.RemoteAccessConnectionStatus))
-		remoteAccessStatus.RemoteTrigger = utils.InterpretRemoteAccessTrigger(int(packedRAS.RemoteAccessConnectionTrigger))
-
-		cdata := C.GoBytes(unsafe.Pointer(&packedRAS.MpsHostname), C.sizeof_struct__AMT_ANSI_STRING*utils.MPSServerMaxLength)
-		buf := bytes.NewBuffer(cdata)
-
-		binary.Read(buf, binary.LittleEndian, &mpsHostname.Length)
-		binary.Read(buf, binary.LittleEndian, &mpsHostname.Buffer)
-		cStrings := (*[1 << 28]*C.char)(unsafe.Pointer(&mpsHostname.Buffer))[:int(mpsHostname.Length):int(mpsHostname.Length)]
-		if len(cStrings) > 0 {
-			remoteAccessStatus.MPSHostname = strings.Trim(C.GoString(cStrings[0]), "\xab")
-		}
-	} else {
-		return remoteAccessStatus, nil
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetRemoteAccessConnectionStatus()
+	if err != nil {
+		return emptyRAStatus, err
 	}
-	return remoteAccessStatus, errors.New("unable to retrieve remote access connection status")
+
+	RAStatus := RemoteAccessStatus{
+		NetworkStatus: utils.InterpretAMTNetworkConnectionStatus(int(result.NetworkStatus)),
+		RemoteStatus:  utils.InterpretRemoteAccessConnectionStatus(int(result.RemoteStatus)),
+		RemoteTrigger: utils.InterpretRemoteAccessTrigger(int(result.RemoteTrigger)),
+		MPSHostname:   ANSI2String(result.MPSHostname),
+	}
+
+	return RAStatus, nil
 }
 
-// GetLANInterfaceSettings ...
-func (amt Command) GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
-	interfaceSettings := InterfaceSettings{}
-
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
+	err := amt.PTHI.Open()
+	emptySettings := InterfaceSettings{}
 	if err != nil {
-		return interfaceSettings, err
+		return emptySettings, nil
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetLANInterfaceSettings(useWireless)
+	if err != nil {
+		return emptySettings, err
 	}
 
-	LANSettings := C.struct__LAN_SETTINGS{}
-	var status C.uint
-	if useWireless {
-		status = C.pthi_GetLanInterfaceSettings(1, &LANSettings)
-	} else {
-		status = C.pthi_GetLanInterfaceSettings(0, &LANSettings)
-
+	settings := InterfaceSettings{
+		IPAddress:   "0.0.0.0",
+		IsEnabled:   result.Enabled == 1,
+		DHCPEnabled: result.DhcpEnabled == 1,
+		LinkStatus:  "down",
+		DHCPMode:    "passive",
 	}
-	if status == 0 {
-		interfaceSettings.IsEnabled = LANSettings.Enabled == 1
-		interfaceSettings.DHCPEnabled = LANSettings.DhcpEnabled == 1
 
-		if LANSettings.DhcpIpMode == 1 {
-			interfaceSettings.DHCPMode = "active"
-		} else {
-			interfaceSettings.DHCPMode = "passive"
-		}
-
-		if LANSettings.LinkStatus == 1 {
-			interfaceSettings.LinkStatus = "up"
-		} else {
-			interfaceSettings.LinkStatus = "down"
-		}
-
-		part1 := LANSettings.Ipv4Address >> 24 & 0xff
-		part2 := LANSettings.Ipv4Address >> 16 & 0xff
-		part3 := LANSettings.Ipv4Address >> 8 & 0xff
-		part4 := LANSettings.Ipv4Address & 0xff
-
-		interfaceSettings.IPAddress = strconv.Itoa(int(part1)) + "." + strconv.Itoa(int(part2)) + "." + strconv.Itoa(int(part3)) + "." + strconv.Itoa(int(part4))
-
-		macPart0 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[0]))
-		macPart1 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[1]))
-		macPart2 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[2]))
-		macPart3 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[3]))
-		macPart4 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[4]))
-		macPart5 := fmt.Sprintf("%02x", int(LANSettings.MacAddress[5]))
-		interfaceSettings.MACAddress = macPart0 + ":" + macPart1 + ":" + macPart2 + ":" + macPart3 + ":" + macPart4 + ":" + macPart5
-	} else {
-		return interfaceSettings, errors.New("unable to retrieve interface settings")
+	if result.LinkStatus == 1 {
+		settings.LinkStatus = "up"
 	}
-	return interfaceSettings, nil
+
+	if result.DhcpIpMode == 1 {
+		settings.DHCPMode = "active"
+	}
+
+	part1 := result.Ipv4Address >> 24 & 0xff
+	part2 := result.Ipv4Address >> 16 & 0xff
+	part3 := result.Ipv4Address >> 8 & 0xff
+	part4 := result.Ipv4Address & 0xff
+
+	settings.IPAddress = strconv.Itoa(int(part1)) + "." + strconv.Itoa(int(part2)) + "." + strconv.Itoa(int(part3)) + "." + strconv.Itoa(int(part4))
+
+	macPart0 := fmt.Sprintf("%02x", int(result.MacAddress[0]))
+	macPart1 := fmt.Sprintf("%02x", int(result.MacAddress[1]))
+	macPart2 := fmt.Sprintf("%02x", int(result.MacAddress[2]))
+	macPart3 := fmt.Sprintf("%02x", int(result.MacAddress[3]))
+	macPart4 := fmt.Sprintf("%02x", int(result.MacAddress[4]))
+	macPart5 := fmt.Sprintf("%02x", int(result.MacAddress[5]))
+	settings.MACAddress = macPart0 + ":" + macPart1 + ":" + macPart2 + ":" + macPart3 + ":" + macPart4 + ":" + macPart5
+
+	return settings, nil
 }
 
-// GetLocalSystemAccount ...
-func (amt Command) GetLocalSystemAccount() (LocalSystemAccount, error) {
-	lsa := LocalSystemAccount{}
-
-	_, err := amt.Initialize()
+func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
+	err := amt.PTHI.Open()
+	emptySystemAccount := LocalSystemAccount{}
 	if err != nil {
-		return lsa, err
+		return emptySystemAccount, nil
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetLocalSystemAccount()
+	if err != nil {
+		return emptySystemAccount, err
 	}
 
-	localSystemAccount := C.struct__LOCAL_SYSTEM_ACCOUNT{}
-	status := C.pthi_GetLocalSystemAccount(&localSystemAccount)
-	println(status)
-	//todo: should these be trimmed?
-	if status == 0 {
-		lsa.Username = strings.Replace(C.GoStringN((*C.char)(unsafe.Pointer(&localSystemAccount.username)), 33), "\u0000", "", -1) //33 from CFG_MAX_ACL_USER_LENGTH
-		lsa.Password = strings.Replace(C.GoStringN((*C.char)(unsafe.Pointer(&localSystemAccount.password)), 33), "\u0000", "", -1)
-	} else {
-		return lsa, errors.New("unable to retrieve local system account info")
+	username := ""
+	for i := 0; i < len(result.Account.Username); i++ {
+		if string(result.Account.Username[i]) != "\x00" {
+			username = username + string(result.Account.Username[i])
+		}
 	}
+
+	password := ""
+	for i := 0; i < len(result.Account.Password); i++ {
+		if string(result.Account.Password[i]) != "\x00" {
+			password = password + string(result.Account.Password[i])
+		}
+	}
+
+	lsa := LocalSystemAccount{
+		Username: username,
+		Password: password,
+	}
+
 	return lsa, nil
-
-}
-
-// InitiateLMS ...
-func (amt Command) InitiateLMS() {
-	C.main_micro_lms()
 }

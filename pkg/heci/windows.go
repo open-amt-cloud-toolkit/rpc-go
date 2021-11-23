@@ -11,9 +11,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"syscall"
-	"unicode/utf16"
 	"unsafe"
 
 	setupapi "rpc/pkg/windows"
@@ -28,12 +26,13 @@ func ctl_code(device_type, function, method, access uint32) uint32 {
 	return (device_type << 16) | (access << 14) | (function << 2) | method
 }
 
-type Heci struct {
+type Driver struct {
 	meiDevice  windows.Handle
 	bufferSize uint32
 	GUID       windows.GUID
 	PTHIGUID   windows.GUID
 }
+
 type HeciVersion struct {
 	major  uint8
 	minor  uint8
@@ -43,16 +42,12 @@ type HeciVersion struct {
 type HeciVersionPacked struct {
 	packed [5]byte
 }
-type HeciClient struct {
-	MaxMessageLength uint32
-	ProtocolVersion  uint8
-}
-type HeciClientPacked struct {
-	packed [5]byte
+
+func NewDriver() *Driver {
+	return &Driver{}
 }
 
-func (heci *Heci) Init() error {
-	fmt.Println("hello world")
+func (heci *Driver) Init() error {
 	var err error
 	heci.GUID, err = windows.GUIDFromString("{E2D1FF34-3458-49A9-88DA-8E6915CE9BE5}")
 	if err != nil {
@@ -68,7 +63,7 @@ func (heci *Heci) Init() error {
 	return err
 }
 
-func (heci *Heci) FindDevices(guid *windows.GUID) error {
+func (heci *Driver) FindDevices(guid *windows.GUID) error {
 	deviceInfo, err := setupapi.SetupDiGetClassDevs(guid, nil, 0, setupapi.DIGCF_PRESENT|setupapi.DIGCF_DEVICEINTERFACE)
 	if err != nil {
 		return err
@@ -111,7 +106,7 @@ func (heci *Heci) FindDevices(guid *windows.GUID) error {
 		l++
 	}
 
-	fmt.Println(string(utf16.Decode(buf[firstChar:l])))
+	// fmt.Println(string(utf16.Decode(buf[firstChar:l])))
 	err = setupapi.SetupDiDestroyDeviceInfoList(deviceInfo)
 	if err != nil {
 		return err
@@ -135,11 +130,11 @@ func (heci *Heci) FindDevices(guid *windows.GUID) error {
 	return nil
 }
 
-func (heci *Heci) GetBufferSize() uint32 {
+func (heci *Driver) GetBufferSize() uint32 {
 	return heci.bufferSize
 }
 
-func (heci *Heci) GetHeciVersion() error {
+func (heci *Driver) GetHeciVersion() error {
 	version := HeciVersion{}
 	packedVersion := HeciVersionPacked{}
 	versionSize := unsafe.Sizeof(packedVersion)
@@ -154,29 +149,26 @@ func (heci *Heci) GetHeciVersion() error {
 	binary.Read(buf2, binary.LittleEndian, &version.hotfix)
 	binary.Read(buf2, binary.LittleEndian, &version.build)
 
-	fmt.Println(version)
 	return nil
 }
 
-func (heci *Heci) ConnectHeciClient() error {
-	properties := HeciClient{}
-	propertiesPacked := HeciClientPacked{}
+func (heci *Driver) ConnectHeciClient() error {
+	properties := MEIConnectClientData{}
+	propertiesPacked := CMEIConnectClientData{}
 	propertiesSize := unsafe.Sizeof(propertiesPacked)
 	guidSize := unsafe.Sizeof(heci.PTHIGUID)
-	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&heci.PTHIGUID)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.packed)), (uint32)(propertiesSize))
+	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&heci.PTHIGUID)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
 	if err != nil {
 		return err
 	}
-	buf2 := bytes.NewBuffer(propertiesPacked.packed[:])
-	binary.Read(buf2, binary.LittleEndian, &properties.MaxMessageLength)
-	binary.Read(buf2, binary.LittleEndian, &properties.ProtocolVersion)
-	fmt.Println(properties)
+	buf2 := bytes.NewBuffer(propertiesPacked.data[:])
+	binary.Read(buf2, binary.LittleEndian, &properties)
 	heci.bufferSize = properties.MaxMessageLength
 
 	return nil
 }
 
-func (heci *Heci) doIoctl(controlCode uint32, inBuf *byte, intsize uint32, outBuf *byte, outsize uint32) (err error) {
+func (heci *Driver) doIoctl(controlCode uint32, inBuf *byte, intsize uint32, outBuf *byte, outsize uint32) (err error) {
 	var bytesRead uint32
 	var overlapped windows.Overlapped
 
@@ -190,7 +182,6 @@ func (heci *Heci) doIoctl(controlCode uint32, inBuf *byte, intsize uint32, outBu
 	}
 
 	err = windows.DeviceIoControl(heci.meiDevice, controlCode, inBuf, intsize, outBuf, outsize, &bytesRead, &overlapped)
-	fmt.Println(err)
 	// if windows.GetLastError() != windows.ERROR_IO_PENDING {
 	// 	return err
 	// }
@@ -206,7 +197,7 @@ func (heci *Heci) doIoctl(controlCode uint32, inBuf *byte, intsize uint32, outBu
 	return nil
 }
 
-func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
+func (heci *Driver) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	var overlapped windows.Overlapped
 	overlapped.HEvent, err = windows.CreateEvent(nil, 0, 0, nil)
 	defer windows.CloseHandle(overlapped.HEvent)
@@ -218,7 +209,6 @@ func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32,
 	}
 
 	err = windows.WriteFile(heci.meiDevice, buffer, done, &overlapped)
-	fmt.Println(err)
 	// if err != nil {
 	// 	return 0, err
 	// }
@@ -226,7 +216,6 @@ func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32,
 	if event == (uint32)(windows.WAIT_TIMEOUT) {
 		return 0, errors.New("wait timeout while sending data")
 	}
-	fmt.Println(event)
 
 	err = windows.GetOverlappedResult(heci.meiDevice, &overlapped, done, false)
 	if err != nil {
@@ -234,7 +223,7 @@ func (heci *Heci) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32,
 	}
 	return *done, nil
 }
-func (heci *Heci) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
+func (heci *Driver) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 
 	var overlapped windows.Overlapped
 	overlapped.HEvent, err = windows.CreateEvent(nil, 0, 0, nil)
@@ -262,7 +251,7 @@ func (heci *Heci) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32,
 	return *done, nil
 }
 
-func (heci *Heci) Close() {
+func (heci *Driver) Close() {
 	windows.CloseHandle(heci.meiDevice)
 	heci.bufferSize = 0
 }
