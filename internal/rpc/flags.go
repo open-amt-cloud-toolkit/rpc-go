@@ -106,6 +106,7 @@ func (f *Flags) setupCommonFlags() {
 		fs.BoolVar(&f.SkipCertCheck, "n", false, "skip websocket server certificate verification")
 		fs.StringVar(&f.Proxy, "p", "", "proxy address and port")
 		fs.BoolVar(&f.Verbose, "v", false, "verbose output")
+		fs.BoolVar(&f.JsonOutput, "json", false, "json output")
 	}
 }
 func (f *Flags) handleMaintenanceCommand() bool {
@@ -352,14 +353,11 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoCertPtr {
 			result, _ := amt.GetCertificateHashes()
-
-
 			certs := make(map[string]interface{})
 			for _, v := range result {
 				certs[v.Name] = v
 			}
 			dataStruct["Certificate Hashes"] = certs
-
 			if !f.JsonOutput {
 				println("Certificate Hashes	:")
 				for _, v := range result {
@@ -375,7 +373,6 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				}
 			}
 		}
-
 		if f.JsonOutput {
 			outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
 			output := string(outBytes)

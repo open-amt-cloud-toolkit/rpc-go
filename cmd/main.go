@@ -45,6 +45,9 @@ func main() {
 	} else {
 		log.SetLevel(log.InfoLevel)
 	}
+	if flags.JsonOutput {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
 
 	//create activation request
 	payload := rps.Payload{
