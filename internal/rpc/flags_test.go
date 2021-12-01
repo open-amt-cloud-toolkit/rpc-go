@@ -185,6 +185,16 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, false, flags.JsonOutput)
+}
+
+func TestParseFlagsAMTInfoJSON(t *testing.T) {
+	args := []string{"./rpc", "amtinfo", "-json"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.False(t, result)
+	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, true, flags.JsonOutput)
 }
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}

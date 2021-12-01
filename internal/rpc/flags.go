@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -27,6 +28,7 @@ type Flags struct {
 	Profile               string
 	SkipCertCheck         bool
 	Verbose               bool
+	JsonOutput            bool
 	SyncClock             bool
 	Password              string
 	amtInfoCommand        *flag.FlagSet
@@ -39,6 +41,8 @@ func NewFlags(args []string) *Flags {
 	flags := &Flags{}
 	flags.commandLineArgs = args
 	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ExitOnError)
+	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+
 	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ExitOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ExitOnError)
 	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ExitOnError)
@@ -223,7 +227,15 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	amtInfoRasPtr := amtInfoCommand.Bool("ras", false, "Remote Access Status")
 	amtInfoLanPtr := amtInfoCommand.Bool("lan", false, "LAN Settings")
 	amtInfoHostnamePtr := amtInfoCommand.Bool("hostname", false, "OS Hostname")
-	if len(f.commandLineArgs) == 2 {
+
+	amtInfoCommand.Parse(f.commandLineArgs[2:])
+
+	defaultFlagCount := 2
+	if f.JsonOutput {
+		defaultFlagCount = defaultFlagCount + 1
+	}
+	if len(f.commandLineArgs) == defaultFlagCount {
+
 		*amtInfoVerPtr = true
 		*amtInfoBldPtr = true
 		*amtInfoSkuPtr = true
@@ -235,80 +247,142 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		*amtInfoLanPtr = true
 		*amtInfoHostnamePtr = true
 	}
-	amtInfoCommand.Parse(f.commandLineArgs[2:])
+	dataStruct := make(map[string]interface{})
 
 	if amtInfoCommand.Parsed() {
 		amt := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
 			result, _ := amt.GetVersionDataFromME("AMT")
-			println("Version			: " + result)
+			dataStruct["AMT"] = result
+			if !f.JsonOutput {
+				println("Version			: " + result)
+			}
 		}
 		if *amtInfoBldPtr {
 			result, _ := amt.GetVersionDataFromME("Build Number")
-			println("Build Number		: " + result)
+			dataStruct["Build Number"] = result
+
+			if !f.JsonOutput {
+				println("Build Number		: " + result)
+			}
 		}
 		if *amtInfoSkuPtr {
 			result, _ := amt.GetVersionDataFromME("Sku")
-			println("SKU			: " + result)
+			dataStruct["SKU"] = result
+
+			if !f.JsonOutput {
+				println("SKU			: " + result)
+			}
 		}
 		if *amtInfoUUIDPtr {
 			result, _ := amt.GetUUID()
-			println("UUID			: " + result)
+			dataStruct["UUID"] = result
+
+			if !f.JsonOutput {
+				println("UUID			: " + result)
+			}
 		}
 		if *amtInfoModePtr {
 			result, _ := amt.GetControlMode()
-			println("Control Mode		: " + string(utils.InterpretControlMode(result)))
+			dataStruct["Control Mode (Raw)"] = result
+			dataStruct["Control Mode"] = string(utils.InterpretControlMode(result))
+
+			if !f.JsonOutput {
+				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
+			}
 		}
 		if *amtInfoDNSPtr {
 			result, _ := amt.GetDNSSuffix()
-			println("DNS Suffix		: " + string(result))
+			dataStruct["DNS Suffix"] = result
+
+			if !f.JsonOutput {
+				println("DNS Suffix		: " + string(result))
+			}
 			result, _ = amt.GetOSDNSSuffix()
-			fmt.Println("DNS Suffix (OS)		: " + result)
+			dataStruct["DNS Suffix (OS)"] = result
+
+			if !f.JsonOutput {
+				fmt.Println("DNS Suffix (OS)		: " + result)
+			}
 		}
 		if *amtInfoHostnamePtr {
 			result, _ := os.Hostname()
-			println("Hostname (OS)		: " + string(result))
+			dataStruct["Hostname (OS)"] = result
+			if !f.JsonOutput {
+
+				println("Hostname (OS)		: " + string(result))
+			}
 		}
 
 		if *amtInfoRasPtr {
 			result, _ := amt.GetRemoteAccessConnectionStatus()
-			println("RAS Network      	: " + result.NetworkStatus)
-			println("RAS Remote Status	: " + result.RemoteStatus)
-			println("RAS Trigger      	: " + result.RemoteTrigger)
-			println("RAS MPS Hostname 	: " + result.MPSHostname)
+			dataStruct["RAS"] = result
+
+			if !f.JsonOutput {
+				println("RAS Network      	: " + result.NetworkStatus)
+				println("RAS Remote Status	: " + result.RemoteStatus)
+				println("RAS Trigger      	: " + result.RemoteTrigger)
+				println("RAS MPS Hostname 	: " + result.MPSHostname)
+			}
 		}
 		if *amtInfoLanPtr {
 			wired, _ := amt.GetLANInterfaceSettings(false)
-			println("---Wired Adapter---")
-			println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
-			println("DHCP Mode    		: " + wired.DHCPMode)
-			println("Link Status  		: " + wired.LinkStatus)
-			println("IP Address   		: " + wired.IPAddress)
-			println("MAC Address  		: " + wired.MACAddress)
+			dataStruct["Wired Adapter"] = wired
+
+			if !f.JsonOutput {
+				println("---Wired Adapter---")
+				println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
+				println("DHCP Mode    		: " + wired.DHCPMode)
+				println("Link Status  		: " + wired.LinkStatus)
+				println("IP Address   		: " + wired.IPAddress)
+				println("MAC Address  		: " + wired.MACAddress)
+			}
 
 			wireless, _ := amt.GetLANInterfaceSettings(true)
-			println("---Wireless Adapter---")
-			println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
-			println("DHCP Mode    		: " + wireless.DHCPMode)
-			println("Link Status  		: " + wireless.LinkStatus)
-			println("IP Address   		: " + wireless.IPAddress)
-			println("MAC Address  		: " + wireless.MACAddress)
+			dataStruct["Wireless Adapter"] = wireless
+
+			if !f.JsonOutput {
+				println("---Wireless Adapter---")
+				println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
+				println("DHCP Mode    		: " + wireless.DHCPMode)
+				println("Link Status  		: " + wireless.LinkStatus)
+				println("IP Address   		: " + wireless.IPAddress)
+				println("MAC Address  		: " + wireless.MACAddress)
+			}
 		}
 		if *amtInfoCertPtr {
 			result, _ := amt.GetCertificateHashes()
-			println("Certificate Hashes	:")
-			for _, v := range result {
 
-				print(v.Name + " (")
-				if v.IsDefault {
-					print("Default,")
-				}
-				if v.IsActive {
-					print("Active)")
-				}
-				println()
-				println("   " + v.Algorithm + ": " + v.Hash)
+
+			certs := make(map[string]interface{})
+			for _, v := range result {
+				certs[v.Name] = v
 			}
+			dataStruct["Certificate Hashes"] = certs
+
+			if !f.JsonOutput {
+				println("Certificate Hashes	:")
+				for _, v := range result {
+					print(v.Name + " (")
+					if v.IsDefault {
+						print("Default,")
+					}
+					if v.IsActive {
+						print("Active)")
+					}
+					println()
+					println("   " + v.Algorithm + ": " + v.Hash)
+				}
+			}
+		}
+
+		if f.JsonOutput {
+			outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
+			output := string(outBytes)
+			if err != nil {
+				output = err.Error()
+			}
+			println(output)
 		}
 	}
 }
