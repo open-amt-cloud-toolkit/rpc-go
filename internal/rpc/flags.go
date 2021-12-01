@@ -353,7 +353,11 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoCertPtr {
 			result, _ := amt.GetCertificateHashes()
-			dataStruct["Certificate Hashes"] = result
+			certs := make(map[string]interface{})
+			for _, v := range result {
+				certs[v.Name] = v
+			}
+			dataStruct["Certificate Hashes"] = certs
 			if !f.JsonOutput {
 				println("Certificate Hashes	:")
 				for _, v := range result {
