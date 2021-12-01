@@ -2,7 +2,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package rpc
+package rps
 
 import (
 	"crypto/tls"
@@ -13,19 +13,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AMTActivationServer struct represents the connection to MPS
+// AMTActivationServer struct represents the connection to RPS
 type AMTActivationServer struct {
 	URL  string
 	Conn *websocket.Conn
 }
 
-// Connect is used to connect to the MPS Server
+// Connect is used to connect to the RPS Server
 func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	log.Info("connecting to ", amt.URL)
 	var err error
 	dialer := websocket.Dialer{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skipCertCheck, //TODO: leverage flag for this
+			InsecureSkipVerify: skipCertCheck,
 		},
 	}
 	amt.Conn, _, err = dialer.Dial(amt.URL, nil)
@@ -37,9 +37,9 @@ func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	return nil
 }
 
-// Close closes the connection to lms
+// Close closes the connection to rps
 func (amt *AMTActivationServer) Close() error {
-	log.Info("closed lms connection")
+	log.Info("closed RPS connection")
 	err := amt.Conn.Close()
 	if err != nil {
 		return err
@@ -47,10 +47,10 @@ func (amt *AMTActivationServer) Close() error {
 	return nil
 }
 
-// Send is used for sending data to the MPS Server
+// Send is used for sending data to the RPS Server
 func (amt *AMTActivationServer) Send(data []byte) error {
-	log.Debug("sending message to mps")
-	log.Trace(string(data))
+	log.Debug("sending message to RPS")
+	// log.Trace(string(data))
 	err := amt.Conn.WriteMessage(websocket.TextMessage, data)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func (amt *AMTActivationServer) Send(data []byte) error {
 	return nil
 }
 
-// Listen is used for listening to responses from MPS
+// Listen is used for listening to responses from RPS
 func (amt *AMTActivationServer) Listen() chan []byte {
 	dataChannel := make(chan []byte)
 	// done := make(chan struct{})
@@ -79,27 +79,32 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 	return dataChannel
 }
 
-// ProcessMessage inspects MPS messages, decodes the base64 payload from the server and relays it to LMS
+// ProcessMessage inspects RPS messages, decodes the base64 payload from the server and relays it to LMS
 func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	// lms.Connect()
-	activation := Activation{}
+	activation := RPSMessage{}
 	err := json.Unmarshal(message, &activation)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
 
+	if activation.Method == "heartbeat_request" {
+		heartbeat, _ := amt.GenerateHeartbeatResponse(activation)
+		return heartbeat
+	}
+
 	if activation.Method == "success" {
-		statusMessage := MPSStatusMessage{}
+		statusMessage := StatusMessage{}
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
 		if err != nil {
 			log.Error(err)
 			log.Info(activation.Message)
 
 		} else {
-			log.Info(statusMessage.Status)
-			log.Info(statusMessage.Network)
-			log.Info(statusMessage.CIRAConnection)
+			log.Info("Status: " + statusMessage.Status)
+			log.Info("Network: " + statusMessage.Network)
+			log.Info("CIRA: " + statusMessage.CIRAConnection)
 		}
 
 		return nil
@@ -110,9 +115,25 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 
 	msgPayload, err := base64.StdEncoding.DecodeString(activation.Payload)
 	if err != nil {
-		log.Error("unable to decode base64 payload from mps")
+		log.Error("unable to decode base64 payload from RPS")
 	}
 	log.Trace("PAYLOAD:" + string(msgPayload))
 	return msgPayload
 
+}
+
+func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation RPSMessage) ([]byte, error) {
+	activation.Method = "heartbeat_response"
+	activation.Status = "success"
+	dataToSend, err := json.Marshal(activation)
+	if err != nil {
+		log.Error("unable to marshal activationResponse to JSON")
+		return nil, err
+	}
+	err = amt.Send(dataToSend)
+	if err != nil {
+		log.Error("Heartbeat send failure")
+		return nil, err
+	}
+	return []byte("heartbeat"), nil
 }
