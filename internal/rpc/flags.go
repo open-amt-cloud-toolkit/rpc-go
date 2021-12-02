@@ -44,8 +44,11 @@ func NewFlags(args []string) *Flags {
 	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
 	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ExitOnError)
+	flags.amtActivateCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ExitOnError)
+	flags.amtDeactivateCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ExitOnError)
+	flags.amtMaintenanceCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 	flags.setupCommonFlags()
 	return flags
 }
