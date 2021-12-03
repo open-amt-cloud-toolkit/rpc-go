@@ -209,6 +209,16 @@ func TestParseFlagsVersion(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "version", command)
+	assert.Equal(t, false, flags.JsonOutput)
+}
+
+func TestParseFlagsVersionJSON(t *testing.T) {
+	args := []string{"./rpc", "version", "-json"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.False(t, result)
+	assert.Equal(t, "version", command)
+	assert.Equal(t, true, flags.JsonOutput)
 }
 
 func TestParseFlagsNone(t *testing.T) {
