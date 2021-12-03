@@ -38,20 +38,20 @@ type CodeVersions struct {
 
 // InterfaceSettings ...
 type InterfaceSettings struct {
-	IsEnabled   bool
-	LinkStatus  string
-	DHCPEnabled bool
-	DHCPMode    string
-	IPAddress   string //net.IP
-	MACAddress  string
+	IsEnabled   bool   `json:"isEnable"`
+	LinkStatus  string `json:"linkStatus"`
+	DHCPEnabled bool   `json:"dhcpEnabled"`
+	DHCPMode    string `json:"dhcpMode"`
+	IPAddress   string `json:"ipAddress"` //net.IP
+	MACAddress  string `json:"macAddress"`
 }
 
 // RemoteAccessStatus holds connect status information
 type RemoteAccessStatus struct {
-	NetworkStatus string
-	RemoteStatus  string
-	RemoteTrigger string
-	MPSHostname   string
+	NetworkStatus string `json:"networkStatus"`
+	RemoteStatus  string `json:"remoteStatus"`
+	RemoteTrigger string `json:"remoteTrigger"`
+	MPSHostname   string `json:"mpsHostname"`
 }
 
 // CertHashEntry is the GO struct for holding Cert Hash Entries

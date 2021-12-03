@@ -35,6 +35,7 @@ type Flags struct {
 	amtActivateCommand    *flag.FlagSet
 	amtDeactivateCommand  *flag.FlagSet
 	amtMaintenanceCommand *flag.FlagSet
+	versionCommand        *flag.FlagSet
 }
 
 func NewFlags(args []string) *Flags {
@@ -46,6 +47,10 @@ func NewFlags(args []string) *Flags {
 	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ExitOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ExitOnError)
 	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ExitOnError)
+
+	flags.versionCommand = flag.NewFlagSet("version", flag.ExitOnError)
+	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+
 	flags.setupCommonFlags()
 	return flags
 }
@@ -68,9 +73,7 @@ func (f *Flags) ParseFlags() (string, bool) {
 			success := f.handleDeactivateCommand()
 			return "deactivate", success
 		case "version":
-			println(strings.ToUpper(utils.ProjectName))
-			println("Version " + utils.ProjectVersion)
-			println("Protocol " + utils.ProtocolVersion)
+			f.handleVersionCommand()
 			return "version", false
 		default:
 			f.printUsage()
@@ -254,14 +257,14 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		amt := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
 			result, _ := amt.GetVersionDataFromME("AMT")
-			dataStruct["AMT"] = result
+			dataStruct["amt"] = result
 			if !f.JsonOutput {
 				println("Version			: " + result)
 			}
 		}
 		if *amtInfoBldPtr {
 			result, _ := amt.GetVersionDataFromME("Build Number")
-			dataStruct["Build Number"] = result
+			dataStruct["buildNumber"] = result
 
 			if !f.JsonOutput {
 				println("Build Number		: " + result)
@@ -269,7 +272,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoSkuPtr {
 			result, _ := amt.GetVersionDataFromME("Sku")
-			dataStruct["SKU"] = result
+			dataStruct["sku"] = result
 
 			if !f.JsonOutput {
 				println("SKU			: " + result)
@@ -277,7 +280,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoUUIDPtr {
 			result, _ := amt.GetUUID()
-			dataStruct["UUID"] = result
+			dataStruct["uuid"] = result
 
 			if !f.JsonOutput {
 				println("UUID			: " + result)
@@ -285,8 +288,8 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoModePtr {
 			result, _ := amt.GetControlMode()
-			dataStruct["Control Mode (Raw)"] = result
-			dataStruct["Control Mode"] = string(utils.InterpretControlMode(result))
+			dataStruct["controlModeRaw"] = result
+			dataStruct["controlMode"] = string(utils.InterpretControlMode(result))
 
 			if !f.JsonOutput {
 				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
@@ -294,13 +297,13 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoDNSPtr {
 			result, _ := amt.GetDNSSuffix()
-			dataStruct["DNS Suffix"] = result
+			dataStruct["dnsSuffix"] = result
 
 			if !f.JsonOutput {
 				println("DNS Suffix		: " + string(result))
 			}
 			result, _ = amt.GetOSDNSSuffix()
-			dataStruct["DNS Suffix (OS)"] = result
+			dataStruct["dnsSuffixOS"] = result
 
 			if !f.JsonOutput {
 				fmt.Println("DNS Suffix (OS)		: " + result)
@@ -308,7 +311,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoHostnamePtr {
 			result, _ := os.Hostname()
-			dataStruct["Hostname (OS)"] = result
+			dataStruct["hostnameOS"] = result
 			if !f.JsonOutput {
 
 				println("Hostname (OS)		: " + string(result))
@@ -317,7 +320,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 
 		if *amtInfoRasPtr {
 			result, _ := amt.GetRemoteAccessConnectionStatus()
-			dataStruct["RAS"] = result
+			dataStruct["ras"] = result
 
 			if !f.JsonOutput {
 				println("RAS Network      	: " + result.NetworkStatus)
@@ -328,7 +331,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoLanPtr {
 			wired, _ := amt.GetLANInterfaceSettings(false)
-			dataStruct["Wired Adapter"] = wired
+			dataStruct["wiredAdapter"] = wired
 
 			if !f.JsonOutput {
 				println("---Wired Adapter---")
@@ -340,7 +343,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 
 			wireless, _ := amt.GetLANInterfaceSettings(true)
-			dataStruct["Wireless Adapter"] = wireless
+			dataStruct["wirelessAdapter"] = wireless
 
 			if !f.JsonOutput {
 				println("---Wireless Adapter---")
@@ -357,7 +360,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			for _, v := range result {
 				certs[v.Name] = v
 			}
-			dataStruct["Certificate Hashes"] = certs
+			dataStruct["certificateHashes"] = certs
 			if !f.JsonOutput {
 				println("Certificate Hashes	:")
 				for _, v := range result {
@@ -382,4 +385,37 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			println(output)
 		}
 	}
+}
+
+func (f *Flags) handleVersionCommand() bool {
+
+	f.versionCommand.Parse(f.commandLineArgs[2:])
+
+	if !f.JsonOutput {
+		println(strings.ToUpper(utils.ProjectName))
+		println("Version " + utils.ProjectVersion)
+		println("Protocol " + utils.ProtocolVersion)
+	}
+
+	if f.JsonOutput {
+		dataStruct := make(map[string]interface{})
+
+		projectName := strings.ToUpper(utils.ProjectName)
+		dataStruct["app"] = projectName
+
+		projectVersion := utils.ProjectVersion
+		dataStruct["version"] = projectVersion
+
+		protocolVersion := utils.ProtocolVersion
+		dataStruct["protocol"] = protocolVersion
+
+		outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
+		output := string(outBytes)
+		if err != nil {
+			output = err.Error()
+		}
+		println(output)
+	}
+
+	return true
 }
