@@ -288,7 +288,6 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoModePtr {
 			result, _ := amt.GetControlMode()
-			dataStruct["controlModeRaw"] = result
 			dataStruct["controlMode"] = string(utils.InterpretControlMode(result))
 
 			if !f.JsonOutput {
