@@ -34,6 +34,7 @@ jobs:
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       
       - uses: codecov/codecov-action@v1.0.14
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         name: Upload Coverage Results
         
       # Runs a single command using the runners shell
