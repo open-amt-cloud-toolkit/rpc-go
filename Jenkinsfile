@@ -8,33 +8,37 @@ pipeline{
         timeout(unit: 'HOURS', time: 2)
     }
     stages{
-        stage('Cloning Repository') {
-            steps{ 
+        stage('Scan'){
+            environment {
+                PROJECT_NAME               = 'OpenAMT - RPC'
+                SCANNERS                   = 'checkmarx,snyk'
+
+                // publishArtifacts details
+                PUBLISH_TO_ARTIFACTORY     = true
+
+                SNYK_MANIFEST_FILE         = 'go.mod'
+                SNYK_PROJECT_NAME          = 'openamt-rpc'
+            }
+            when {
+                anyOf {
+                    branch 'main';
+                }
+            }
+            steps {
                 script{
-                    scmCheckout {
+                    scmCheckout { 
                         clean = true
                     }
                 }
+                rbheStaticCodeScan()
             }
         }
-        stage('Static Code Scan') {
-            steps{
-                script{
-                    staticCodeScan {
-                        // generic
-                        scanners             = ['checkmarx', 'protex', 'snyk']
-                        scannerType          = 'go'
-
-                        protexProjectName    = 'OpenAMT - RPC-GO'
-                        // internal, do not change
-                        protexBuildName      = 'rrs-generic-protex-build'
-
-                        checkmarxProjectName = "OpenAMT - RPC"
-
-                        //snyk details
-                        snykManifestFile        = ['go.mod']
-                        snykProjectName         = ['openamt-rpc']
-                    }
+    }
+    post{
+        failure {
+             script{
+                slackBuildNotify {
+                    slackFailureChannel = '#open-amt-cloud-toolkit-build'
                 }
             }
         }
