@@ -12,7 +12,7 @@ COPY . .
 RUN CGO_LDFLAGS="-lexecinfo" GOOS=linux GOARCH=amd64 go build -o /build/rpc ./cmd
 
 
-FROM alpine:latest
+FROM alpine:3.15
 LABEL license='SPDX-License-Identifier: Apache-2.0' \
       copyright='Copyright (c) Intel Corporation 2021'
 RUN apk add libexecinfo 
