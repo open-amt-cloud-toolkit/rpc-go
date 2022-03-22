@@ -53,6 +53,20 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
 	assert.Equal(t, "Password", flags.Password)
+	assert.Equal(t, "localhost", flags.LMSAddress)
+	assert.Equal(t, "16992", flags.LMSPort)
+}
+func TestHandleActivateCommandWithLMS(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}
+	flags := NewFlags(args)
+	expected := "activate --profile profileName"
+	success := flags.handleActivateCommand()
+	assert.True(t, success)
+	assert.Equal(t, "wss://localhost", flags.URL)
+	assert.Equal(t, "profileName", flags.Profile)
+	assert.Equal(t, expected, flags.Command)
+	assert.Equal(t, "1.1.1.1", flags.LMSAddress)
+	assert.Equal(t, "99", flags.LMSPort)
 }
 func TestHandleActivateCommandWithENV(t *testing.T) {
 
