@@ -13,7 +13,6 @@ import (
 	"rpc/internal/lms"
 	"rpc/internal/rpc"
 	"rpc/internal/rps"
-	"rpc/pkg/utils"
 	"syscall"
 	"time"
 
@@ -61,7 +60,7 @@ func main() {
 	//try to connect to an existing LMS instance
 	log.Trace("Seeing if existing LMS is already running....")
 	lms := lms.LMSConnection{}
-	err = lms.Connect(utils.LMSAddress, utils.LMSPort)
+	err = lms.Connect(flags.LMSAddress, flags.LMSPort)
 
 	if err != nil {
 		log.Trace("nope!\n")
@@ -118,7 +117,7 @@ func main() {
 			} else if string(msgPayload) == "heartbeat" {
 				break
 			}
-			err = lms.Connect(utils.LMSAddress, utils.LMSPort)
+			err = lms.Connect(flags.LMSAddress, flags.LMSPort)
 			if err != nil {
 				log.Fatal(err)
 				return

@@ -26,6 +26,8 @@ type Flags struct {
 	Proxy                 string
 	Command               string
 	Profile               string
+	LMSAddress            string
+	LMSPort               string
 	SkipCertCheck         bool
 	Verbose               bool
 	JsonOutput            bool
@@ -108,6 +110,8 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.URL, "u", "", "websocket address of server to activate against") //required
 		fs.BoolVar(&f.SkipCertCheck, "n", false, "skip websocket server certificate verification")
 		fs.StringVar(&f.Proxy, "p", "", "proxy address and port")
+		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "lms address")
+		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "lms port")
 		fs.BoolVar(&f.Verbose, "v", false, "verbose output")
 		fs.BoolVar(&f.JsonOutput, "json", false, "json output")
 	}
