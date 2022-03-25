@@ -1,4 +1,4 @@
-## [vNext] - 2022-03-18
+## [v2.1.0] - 2022-03-18
 ### Build
 - **docker:** C style comments are not valid in Dockerfiles
 - **version:** update version to v2.1.0
