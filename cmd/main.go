@@ -4,11 +4,15 @@
  **********************************************************************/
 package main
 
+
+import "C"
 import (
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
+
 	"rpc/internal/amt"
 	"rpc/internal/lms"
 	"rpc/internal/rpc"
@@ -19,6 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//export checkAccess
 func checkAccess() {
 	amt := amt.NewAMTCommand()
 	result, err := amt.Initialize()
@@ -27,11 +32,18 @@ func checkAccess() {
 		os.Exit(1)
 	}
 }
-func main() {
 
-	checkAccess()
+//export configAMT
+func configAMT( Input *C.char, Output **C.char) {
+	checkAccess() 
+	s := strings.Fields(C.GoString(Input))
+	runRPC(s)
+	*Output = C.CString("test output")
+}
+
+func runRPC(args []string ) {
 	//process flags
-	flags := rpc.NewFlags(os.Args)
+	flags := rpc.NewFlags(args)
 	_, result := flags.ParseFlags()
 	if !result {
 		os.Exit(1)
@@ -175,4 +187,11 @@ func main() {
 			}
 		}
 	}
+}
+
+func main() {
+
+	checkAccess()
+	runRPC(os.Args)
+
 }
