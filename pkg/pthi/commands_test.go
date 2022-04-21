@@ -7,6 +7,7 @@ package pthi
 import (
 	"bytes"
 	"encoding/binary"
+	"rpc/pkg/apf"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,8 +18,8 @@ type MockHECICommands struct{}
 var message []byte
 var numBytes uint32 = GET_REQUEST_SIZE
 
-func (c *MockHECICommands) Init() error           { return nil }
-func (c *MockHECICommands) GetBufferSize() uint32 { return 5120 } // MaxMessageLength
+func (c *MockHECICommands) Init(useLME bool) error { return nil }
+func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
 
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	return numBytes, nil
@@ -35,9 +36,23 @@ var pthi Command
 
 func init() {
 	pthi = Command{}
-	pthi.heci = &MockHECICommands{}
+	pthi.Heci = &MockHECICommands{}
 }
 
+func TestSend(t *testing.T) {
+	numBytes = 54
+	bin_buf := apf.ChannelOpen(1)
+	err := pthi.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	assert.NoError(t, err)
+}
+func TestReceive(t *testing.T) {
+	numBytes = 54
+
+	result, n, err := pthi.Receive()
+	assert.NotNil(t, result)
+	assert.Greater(t, n, uint32(0))
+	assert.NoError(t, err)
+}
 func TestGetGUID(t *testing.T) {
 
 	// Call function will check that numBytes equals the command size

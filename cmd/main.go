@@ -5,16 +5,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"os/signal"
+	"rpc"
 	"rpc/internal/amt"
-	"rpc/internal/lms"
-	"rpc/internal/rpc"
+	"rpc/internal/client"
 	"rpc/internal/rps"
-	"syscall"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -27,9 +23,7 @@ func checkAccess() {
 		os.Exit(1)
 	}
 }
-func main() {
-
-	checkAccess()
+func handleFlags() *rpc.Flags {
 	//process flags
 	flags := rpc.NewFlags(os.Args)
 	_, result := flags.ParseFlags()
@@ -47,132 +41,17 @@ func main() {
 	if flags.JsonOutput {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
+	return flags
+}
+func main() {
 
-	//create activation request
-	payload := rps.Payload{
-		AMT: amt.NewAMTCommand(),
-	}
-	messageRequest, err := payload.CreateMessageRequest(*flags)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// ensure we are admin/sudo
+	checkAccess()
+	// process cli flags/env vars
+	flags := handleFlags()
 
-	//try to connect to an existing LMS instance
-	log.Trace("Seeing if existing LMS is already running....")
-	lms := lms.LMSConnection{}
-	err = lms.Connect(flags.LMSAddress, flags.LMSPort)
+	startMessage := rps.PrepareInitialMessage(flags)
 
-	if err != nil {
-		log.Trace("nope!\n")
-		go lms.InitiateLMS()
-	} else {
-		log.Trace("yes!\n")
-	}
-	err = lms.Close()
-	if err != nil {
-		log.Println(err)
-	}
-	// Calling Sleep method
-	time.Sleep(5 * time.Second)
-
-	log.Trace("done\n")
-	amtactivationserver := rps.AMTActivationServer{
-		URL: flags.URL,
-	}
-
-	err = amtactivationserver.Connect(flags.SkipCertCheck)
-	if err != nil {
-		log.Error("error connecting to RPS")
-		log.Error(err.Error())
-		os.Exit(1)
-	}
-
-	log.Debug("listening to RPS...")
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	rpsDataChannel := amtactivationserver.Listen()
-
-	log.Debug("sending activation request to RPS")
-	data, err := json.Marshal(messageRequest)
-	if err != nil {
-		log.Println(err.Error())
-	}
-	err = amtactivationserver.Send(data)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	lmsDataChannel := make(chan []byte)
-	lmsErrorChannel := make(chan error)
-	defer close(lmsDataChannel)
-	defer close(lmsErrorChannel)
-
-	for {
-		select {
-		case dataFromRPS := <-rpsDataChannel:
-
-			msgPayload := amtactivationserver.ProcessMessage(dataFromRPS)
-			if msgPayload == nil {
-				return
-			} else if string(msgPayload) == "heartbeat" {
-				break
-			}
-			err = lms.Connect(flags.LMSAddress, flags.LMSPort)
-			if err != nil {
-				log.Fatal(err)
-				return
-			}
-			err = lms.Send(msgPayload)
-			if err != nil {
-				log.Fatal(err)
-				return
-			}
-			go lms.Listen(lmsDataChannel, lmsErrorChannel)
-			for {
-				select {
-				case dataFromLMS := <-lmsDataChannel:
-					if len(dataFromLMS) > 0 {
-						log.Debug("received data from LMS")
-						activationResponse, err := payload.CreateMessageResponse(dataFromLMS)
-						log.Trace(string(dataFromLMS))
-						if err != nil {
-							log.Error("error creating activation response")
-							return
-						}
-						dataToSend, err := json.Marshal(activationResponse)
-						if err != nil {
-							log.Error("unable to marshal activationResponse to JSON")
-							return
-						}
-						amtactivationserver.Send(dataToSend)
-					}
-					break
-
-				case errFromLMS := <-lmsErrorChannel:
-					if errFromLMS != nil {
-						log.Error("error from LMS")
-						return
-					}
-				}
-				lms.Close()
-				break
-			}
-
-		case <-interrupt:
-			log.Info("interrupt")
-
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := lms.Close()
-			if err != nil {
-				log.Error("Connection close failed", err)
-				return
-			}
-			err = amtactivationserver.Close()
-			if err != nil {
-				log.Error("Connection close failed", err)
-				return
-			}
-		}
-	}
+	rpc := client.NewExecutor(*flags)
+	rpc.MakeItSo(startMessage)
 }

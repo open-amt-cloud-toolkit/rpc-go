@@ -104,7 +104,7 @@ func NewAMTCommand() AMTCommand {
 // Initialize determines if rpc is able to initialize the heci driver
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	if err != nil {
 		return false, errors.New("unable to initialize")
 	}
@@ -115,7 +115,7 @@ func (amt AMTCommand) Initialize() (bool, error) {
 // GetVersionDataFromME ...
 func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
 
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	if err != nil {
 		return "", nil
 	}
@@ -136,7 +136,7 @@ func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
 
 // GetUUID ...
 func (amt AMTCommand) GetUUID() (string, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	if err != nil {
 		return "", nil
 	}
@@ -163,7 +163,7 @@ func (amt AMTCommand) GetUUID() (string, error) {
 
 // GetControlMode ...
 func (amt AMTCommand) GetControlMode() (int, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	if err != nil {
 		return -1, nil
 	}
@@ -204,7 +204,7 @@ func (amt AMTCommand) GetOSDNSSuffix() (string, error) {
 }
 
 func (amt AMTCommand) GetDNSSuffix() (string, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	if err != nil {
 		return "", nil
 	}
@@ -218,7 +218,7 @@ func (amt AMTCommand) GetDNSSuffix() (string, error) {
 }
 
 func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	amtEntryList := []CertHashEntry{}
 	if err != nil {
 		return amtEntryList, nil
@@ -254,7 +254,7 @@ func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
 }
 
 func (amt AMTCommand) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	emptyRAStatus := RemoteAccessStatus{}
 	if err != nil {
 		return emptyRAStatus, nil
@@ -276,7 +276,7 @@ func (amt AMTCommand) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, err
 }
 
 func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	emptySettings := InterfaceSettings{}
 	if err != nil {
 		return emptySettings, nil
@@ -322,7 +322,7 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 }
 
 func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
-	err := amt.PTHI.Open()
+	err := amt.PTHI.Open(false)
 	emptySystemAccount := LocalSystemAccount{}
 	if err != nil {
 		return emptySystemAccount, nil

@@ -6,15 +6,14 @@
 FROM golang:1.17-alpine as builder
 RUN apk update
 RUN apk upgrade
-RUN apk add gcc libc-dev  linux-headers libexecinfo-dev 
+RUN apk add --no-cache git
 WORKDIR /rpc
 COPY . .
-RUN CGO_LDFLAGS="-lexecinfo" GOOS=linux GOARCH=amd64 go build -o /build/rpc ./cmd
+RUN CGO_ENABLED=0 LDFLAGS="-s -w" GOOS=linux GOARCH=amd64 go build -o /build/rpc ./cmd
 
 
-FROM alpine:latest
+FROM scratch
 LABEL license='SPDX-License-Identifier: Apache-2.0' \
       copyright='Copyright (c) Intel Corporation 2021'
-RUN apk add libexecinfo 
 COPY --from=builder /build/rpc /rpc
 ENTRYPOINT ["/rpc"]

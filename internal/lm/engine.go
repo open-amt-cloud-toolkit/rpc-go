@@ -1,0 +1,157 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2022
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+package lm
+
+import (
+	"bytes"
+	"encoding/binary"
+	"rpc/pkg/apf"
+	"rpc/pkg/pthi"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
+
+// LMConnection is struct for managing connection to LMS
+type LMEConnection struct {
+	Command    pthi.Command
+	Session    *apf.LMESession
+	ourChannel int
+}
+
+func NewLMEConnection(data chan []byte, errors chan error, status chan bool) *LMEConnection {
+	lme := &LMEConnection{
+		ourChannel: 1,
+	}
+	lme.Command = pthi.NewCommand()
+	lme.Session = &apf.LMESession{
+		DataBuffer:  data,
+		ErrorBuffer: errors,
+		Tempdata:    []byte{},
+		Status:      status,
+	}
+
+	return lme
+}
+
+func (lme *LMEConnection) Initialize() error {
+	err := lme.Command.Open(true)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	var bin_buf bytes.Buffer
+	protocolVersion := apf.ProtocolVersion(1, 0, 9)
+	binary.Write(&bin_buf, binary.BigEndian, protocolVersion)
+
+	err = lme.execute(bin_buf)
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
+// Connect initializes connection to LME via MEI Driver
+func (lme *LMEConnection) Connect() error {
+	log.Debug("Sending APF_CHANNEL_OPEN")
+	lme.ourChannel = ((lme.ourChannel + 1) % 32) + 1
+	// err := lms.execute()
+	bin_buf := apf.ChannelOpen(lme.ourChannel)
+	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
+// Send writes data to LMS TCP Socket
+func (lme *LMEConnection) Send(data []byte) error {
+	log.Debug("sending message to LMS")
+	var bin_buf bytes.Buffer
+
+	channelData := apf.ChannelData(lme.Session.SenderChannel, data)
+	binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
+	binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
+	binary.Write(&bin_buf, binary.BigEndian, channelData.DataLength)
+	binary.Write(&bin_buf, binary.BigEndian, channelData.Data)
+	lme.Session.TXWindow -= lme.Session.TXWindow // hmmm
+	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	if err != nil {
+		return err
+	}
+	log.Debug("sent message to LMS")
+	return nil
+}
+
+func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
+	for {
+		result, err := lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+		if err != nil && err.Error() == "empty response from AMT" {
+			break
+		} else if err != nil {
+			return err
+		}
+		bin_buf = apf.Process(result, lme.Session)
+		if bin_buf.Len() == 0 {
+			log.Debug("done EXECUTING.........")
+			break
+		} else {
+			log.Debug("Apparently there is more in the buffer?")
+		}
+	}
+	return nil
+}
+
+// Listen reads data from the LMS socket connection
+func (lme *LMEConnection) Listen() {
+	go func() {
+		lme.Session.Timer = time.NewTimer(2 * time.Second)
+		<-lme.Session.Timer.C
+		lme.Session.DataBuffer <- lme.Session.Tempdata
+		lme.Session.Tempdata = []byte{}
+		var bin_buf bytes.Buffer
+		// var windowAdjust apf.APF_CHANNEL_WINDOW_ADJUST_MESSAGE
+		// if lme.Session.RXWindow > 1024 { // TODO: Check this
+		// 	windowAdjust = apf.ChannelWindowAdjust(lme.Session.RecipientChannel, lme.Session.RXWindow)
+		// 	lme.Session.RXWindow = 0
+		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.MessageType)
+		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.RecipientChannel)
+		// 	lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+		// }
+
+		channelData := apf.ChannelClose(lme.Session.SenderChannel)
+		binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
+		binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
+
+		lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+		lme.Session.Status <- true
+	}()
+	for {
+
+		result2, bytesRead, err2 := lme.Command.Receive()
+		if bytesRead == 0 || err2 != nil {
+			log.Debug("NO MORE DATA TO READ")
+			break
+		} else {
+			result := apf.Process(result2, lme.Session)
+			if result.Len() != 0 {
+				log.Debug(result)
+			}
+		}
+	}
+}
+
+// Close closes the LMS socket connection
+func (lme *LMEConnection) Close() error {
+	log.Debug("closing connection to lms")
+	lme.Command.Close()
+	if lme.Session.Timer != nil {
+		lme.Session.Timer.Stop()
+	}
+	return nil
+}
