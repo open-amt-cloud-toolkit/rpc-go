@@ -12,11 +12,11 @@ import (
 )
 
 type Command struct {
-	heci heci.Interface
+	Heci heci.Interface
 }
 
 type Interface interface {
-	Open() error
+	Open(useLME bool) error
 	Close()
 	Call(command []byte, commandSize uint32) (result []byte, err error)
 	GetCodeVersions() (GetCodeVersionsResponse, error)
@@ -31,12 +31,12 @@ type Interface interface {
 
 func NewCommand() Command {
 	return Command{
-		heci: heci.NewDriver(),
+		Heci: heci.NewDriver(),
 	}
 }
 
-func (pthi Command) Open() error {
-	err := pthi.heci.Init()
+func (pthi Command) Open(useLME bool) error {
+	err := pthi.Heci.Init(useLME)
 	if err != nil {
 		return err
 	}
@@ -44,13 +44,13 @@ func (pthi Command) Open() error {
 }
 
 func (pthi Command) Close() {
-	pthi.heci.Close()
+	pthi.Heci.Close()
 }
 
 func (pthi Command) Call(command []byte, commandSize uint32) (result []byte, err error) {
-	size := pthi.heci.GetBufferSize()
+	size := pthi.Heci.GetBufferSize()
 
-	bytesWritten, err := pthi.heci.SendMessage(command, &commandSize)
+	bytesWritten, err := pthi.Heci.SendMessage(command, &commandSize)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (pthi Command) Call(command []byte, commandSize uint32) (result []byte, err
 		return nil, errors.New("amt internal error")
 	}
 	readBuffer := make([]byte, size)
-	bytesRead, err := pthi.heci.ReceiveMessage(readBuffer, &size)
+	bytesRead, err := pthi.Heci.ReceiveMessage(readBuffer, &size)
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +67,28 @@ func (pthi Command) Call(command []byte, commandSize uint32) (result []byte, err
 		return nil, errors.New("empty response from AMT")
 	}
 	return readBuffer, nil
+}
+func (pthi Command) Send(command []byte, commandSize uint32) (err error) {
+	bytesWritten, err := pthi.Heci.SendMessage(command, &commandSize)
+	if err != nil {
+		return err
+	}
+
+	if bytesWritten != uint32(len(command)) {
+		return errors.New("amt internal error")
+	}
+	return nil
+}
+func (pthi Command) Receive() (result []byte, bytesRead uint32, err error) {
+	size := pthi.Heci.GetBufferSize()
+
+	readBuffer := make([]byte, size)
+	bytesRead, err = pthi.Heci.ReceiveMessage(readBuffer, &size)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return readBuffer, bytesRead, nil
 }
 
 func CreateRequestHeader(command uint32, length uint32) MessageHeader {

@@ -8,8 +8,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"rpc"
 	"rpc/internal/amt"
-	"rpc/internal/rpc"
 	"rpc/pkg/utils"
 	"testing"
 
@@ -162,8 +162,7 @@ func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 
 func TestCreateActivationResponse(t *testing.T) {
 
-	result, err := p.CreateMessageResponse([]byte("123"))
-	assert.NoError(t, err)
+	result := p.CreateMessageResponse([]byte("123"))
 	assert.Equal(t, "response", result.Method)
 	assert.Equal(t, "key", result.APIKey)
 	assert.Equal(t, "ok", result.Status)

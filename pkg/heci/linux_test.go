@@ -1,5 +1,4 @@
 //go:build linux && amt
-// +build linux,amt
 
 /*********************************************************************
  * Copyright (c) Intel Corporation 2021
@@ -34,22 +33,30 @@ type GetUUIDRequest struct {
 }
 
 func TestHeciInit(t *testing.T) {
-	h := Heci{}
-	err := h.Init()
+	h := Driver{}
+	err := h.Init(false)
 	defer h.Close()
 	assert.NoError(t, err)
-	assert.Equal(t, h.bufferSize, uint32(5120))
+	assert.Equal(t, uint32(5120), h.bufferSize)
+}
+func TestHeciInitLME(t *testing.T) {
+	h := Driver{}
+	err := h.Init(true)
+	defer h.Close()
+	assert.NoError(t, err)
+	assert.Equal(t, uint8(4), h.protocolVersion)
+	assert.Equal(t, uint32(8192), h.bufferSize)
 }
 func TestGetBufferSize(t *testing.T) {
-	h := Heci{}
+	h := Driver{}
 	h.bufferSize = uint32(10)
 	result := h.GetBufferSize()
 	assert.Equal(t, result, uint32(10))
 }
 
 func TestSendMessage(t *testing.T) {
-	h := Heci{}
-	err := h.Init()
+	h := Driver{}
+	err := h.Init(false)
 	defer h.Close()
 	assert.NoError(t, err)
 	commandSize := (uint32)(12) //(uint32)(unsafe.Sizeof(GetUUIDRequest{}))
@@ -73,8 +80,8 @@ func TestSendMessage(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestReceiveMessage(t *testing.T) {
-	h := Heci{}
-	err := h.Init()
+	h := Driver{}
+	err := h.Init(false)
 	defer h.Close()
 	assert.NoError(t, err)
 	// send a message so we can receieve it
@@ -104,5 +111,4 @@ func TestReceiveMessage(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Positive(t, bytesRead)
-
 }

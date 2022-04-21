@@ -13,8 +13,8 @@ import (
 
 type MockPTHICommands struct{}
 
-func (c MockPTHICommands) Open() error { return nil }
-func (c MockPTHICommands) Close()      {}
+func (c MockPTHICommands) Open(useLME bool) error { return nil }
+func (c MockPTHICommands) Close()                 {}
 func (c MockPTHICommands) Call(command []byte, commandSize uint32) (result []byte, err error) {
 	return nil, nil
 }

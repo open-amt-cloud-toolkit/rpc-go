@@ -45,10 +45,9 @@ func init() {
 	// Convert http to ws
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 }
+
 func TestConnect(t *testing.T) {
-	server := AMTActivationServer{
-		URL: testUrl,
-	}
+	server := NewAMTActivationServer(testUrl)
 	err := server.Connect(true)
 	defer server.Close()
 	assert.NoError(t, err)
@@ -61,7 +60,10 @@ func TestSend(t *testing.T) {
 	err := server.Connect(true)
 	defer server.Close()
 	assert.NoError(t, err)
-	server.Send([]byte("test"))
+	message := Message{
+		Status: "test",
+	}
+	server.Send(message)
 
 }
 
@@ -80,14 +82,16 @@ func TestListen(t *testing.T) {
 		for {
 			select {
 			case dataFromRPS := <-rpsChan:
-				assert.Equal(t, []byte("test"), dataFromRPS)
+				assert.Equal(t, []byte("{\"method\":\"\",\"apiKey\":\"\",\"appVersion\":\"\",\"protocolVersion\":\"\",\"status\":\"test\",\"message\":\"\",\"fqdn\":\"\",\"payload\":\"\"}"), dataFromRPS)
 				wgAll.Done()
 				return
 			}
 		}
 	}()
-
-	server.Send([]byte("test"))
+	message := Message{
+		Status: "test",
+	}
+	server.Send(message)
 	wgAll.Wait()
 }
 

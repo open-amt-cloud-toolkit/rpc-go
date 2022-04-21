@@ -31,6 +31,8 @@ type Driver struct {
 	bufferSize uint32
 	GUID       windows.GUID
 	PTHIGUID   windows.GUID
+	LMEGUID    windows.GUID
+	useLME     bool
 }
 
 type HeciVersion struct {
@@ -47,8 +49,15 @@ func NewDriver() *Driver {
 	return &Driver{}
 }
 
-func (heci *Driver) Init() error {
+func (heci *Driver) Init(useLME bool) error {
 	var err error
+	heci.useLME = useLME
+
+	heci.LMEGUID, err = windows.GUIDFromString("{6733A4DB-0476-4E7B-B3AF-BCFC29BEE7A7}")
+	if err != nil {
+		return err
+	}
+
 	heci.GUID, err = windows.GUIDFromString("{E2D1FF34-3458-49A9-88DA-8E6915CE9BE5}")
 	if err != nil {
 		return err
@@ -157,7 +166,12 @@ func (heci *Driver) ConnectHeciClient() error {
 	propertiesPacked := CMEIConnectClientData{}
 	propertiesSize := unsafe.Sizeof(propertiesPacked)
 	guidSize := unsafe.Sizeof(heci.PTHIGUID)
-	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&heci.PTHIGUID)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
+	guid := heci.PTHIGUID
+	if heci.useLME {
+		guid = heci.LMEGUID
+	}
+
+	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&guid)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
 	if err != nil {
 		return err
 	}

@@ -8,7 +8,6 @@
 package heci
 
 import (
-	"C"
 	"bytes"
 	"encoding/binary"
 	"log"
@@ -20,8 +19,9 @@ import (
 )
 
 type Driver struct {
-	meiDevice  *os.File
-	bufferSize uint32
+	meiDevice       *os.File
+	bufferSize      uint32
+	protocolVersion uint8
 }
 
 const (
@@ -30,6 +30,7 @@ const (
 )
 
 var MEI_IAMTHIF = [16]byte{0x28, 0x00, 0xf8, 0x12, 0xb7, 0xb4, 0x2d, 0x4b, 0xac, 0xa8, 0x46, 0xe0, 0xff, 0x65, 0x81, 0x4c}
+var MEI_LMEIF = [16]byte{0xdb, 0xa4, 0x33, 0x67, 0x76, 0x04, 0x7b, 0x4e, 0xb3, 0xaf, 0xbc, 0xfc, 0x29, 0xbe, 0xe7, 0xa7}
 
 // uint8 == uchar
 type UUID_LE struct {
@@ -40,7 +41,7 @@ func NewDriver() *Driver {
 	return &Driver{}
 }
 
-func (heci *Driver) Init() error {
+func (heci *Driver) Init(useLME bool) error {
 
 	var err error
 	heci.meiDevice, err = os.OpenFile(Device, syscall.O_RDWR, 0)
@@ -50,7 +51,11 @@ func (heci *Driver) Init() error {
 	}
 
 	data := CMEIConnectClientData{}
-	data.data = MEI_IAMTHIF
+	if useLME {
+		data.data = MEI_LMEIF
+	} else {
+		data.data = MEI_IAMTHIF
+	}
 	err = Ioctl(heci.meiDevice.Fd(), IOCTL_MEI_CONNECT_CLIENT, uintptr(unsafe.Pointer(&data)))
 	if err != nil {
 		return err
@@ -62,6 +67,7 @@ func (heci *Driver) Init() error {
 	}
 
 	heci.bufferSize = t.MaxMessageLength
+	heci.protocolVersion = t.ProtocolVersion //should be 4?
 
 	return nil
 }

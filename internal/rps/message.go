@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"rpc"
 	"rpc/internal/amt"
-	"rpc/internal/rpc"
 	"rpc/pkg/utils"
 )
 
@@ -18,8 +18,8 @@ type Payload struct {
 	AMT amt.Interface
 }
 
-// RPSMessage is used for tranferring messages between RPS and RPC
-type RPSMessage struct {
+// Message is used for tranferring messages between RPS and RPC
+type Message struct {
 	Method          string `json:"method"`
 	APIKey          string `json:"apiKey"`
 	AppVersion      string `json:"appVersion"`
@@ -50,6 +50,12 @@ type MessagePayload struct {
 	FQDN              string   `json:"fqdn"`
 	Client            string   `json:"client"`
 	CertificateHashes []string `json:"certHashes"`
+}
+
+func NewPayload() Payload {
+	return Payload{
+		AMT: amt.NewAMTCommand(),
+	}
 }
 
 // createPayload gathers data from ME to assemble required information for sending to the server
@@ -115,8 +121,8 @@ func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayloa
 }
 
 // CreateMessageRequest is used for assembling the message to request activation of a device
-func (p Payload) CreateMessageRequest(flags rpc.Flags) (RPSMessage, error) {
-	message := RPSMessage{
+func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
+	message := Message{
 		Method:          flags.Command,
 		APIKey:          "key",
 		AppVersion:      utils.ProjectVersion,
@@ -154,8 +160,8 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (RPSMessage, error) {
 }
 
 // CreateMessageResponse is used for creating a response to the server
-func (p Payload) CreateMessageResponse(payload []byte) (RPSMessage, error) {
-	message := RPSMessage{
+func (p Payload) CreateMessageResponse(payload []byte) Message {
+	message := Message{
 		Method:          "response",
 		APIKey:          "key",
 		AppVersion:      utils.ProjectVersion,
@@ -164,5 +170,5 @@ func (p Payload) CreateMessageResponse(payload []byte) (RPSMessage, error) {
 		Message:         "ok",
 		Payload:         base64.StdEncoding.EncodeToString(payload),
 	}
-	return message, nil
+	return message
 }

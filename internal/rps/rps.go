@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"rpc"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,24 @@ import (
 type AMTActivationServer struct {
 	URL  string
 	Conn *websocket.Conn
+}
+
+func NewAMTActivationServer(url string) AMTActivationServer {
+	amtactivationserver := AMTActivationServer{
+		URL: url,
+	}
+	return amtactivationserver
+}
+
+func PrepareInitialMessage(flags *rpc.Flags) Message {
+	//create activation request
+	payload := NewPayload()
+
+	messageRequest, err := payload.CreateMessageRequest(*flags)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return messageRequest
 }
 
 // Connect is used to connect to the RPS Server
@@ -30,7 +49,6 @@ func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	}
 	amt.Conn, _, err = dialer.Dial(amt.URL, nil)
 	if err != nil {
-		//log.Fatal("dial:", err)
 		return err
 	}
 	log.Info("connected to ", amt.URL)
@@ -48,10 +66,15 @@ func (amt *AMTActivationServer) Close() error {
 }
 
 // Send is used for sending data to the RPS Server
-func (amt *AMTActivationServer) Send(data []byte) error {
+func (amt *AMTActivationServer) Send(data Message) error {
+	dataToSend, err := json.Marshal(data)
+	if err != nil {
+		log.Error("unable to marshal activationResponse to JSON")
+		return err
+	}
 	log.Debug("sending message to RPS")
 	// log.Trace(string(data))
-	err := amt.Conn.WriteMessage(websocket.TextMessage, data)
+	err = amt.Conn.WriteMessage(websocket.TextMessage, dataToSend)
 	if err != nil {
 		return err
 	}
@@ -60,6 +83,7 @@ func (amt *AMTActivationServer) Send(data []byte) error {
 
 // Listen is used for listening to responses from RPS
 func (amt *AMTActivationServer) Listen() chan []byte {
+	log.Debug("listening to RPS...")
 	dataChannel := make(chan []byte)
 	// done := make(chan struct{})
 
@@ -82,7 +106,7 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 // ProcessMessage inspects RPS messages, decodes the base64 payload from the server and relays it to LMS
 func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	// lms.Connect()
-	activation := RPSMessage{}
+	activation := Message{}
 	err := json.Unmarshal(message, &activation)
 	if err != nil {
 		log.Println(err)
@@ -122,15 +146,10 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 
 }
 
-func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation RPSMessage) ([]byte, error) {
+func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation Message) ([]byte, error) {
 	activation.Method = "heartbeat_response"
 	activation.Status = "success"
-	dataToSend, err := json.Marshal(activation)
-	if err != nil {
-		log.Error("unable to marshal activationResponse to JSON")
-		return nil, err
-	}
-	err = amt.Send(dataToSend)
+	err := amt.Send(activation)
 	if err != nil {
 		log.Error("Heartbeat send failure")
 		return nil, err
