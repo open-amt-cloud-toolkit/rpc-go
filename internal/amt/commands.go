@@ -117,10 +117,11 @@ func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
 
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	defer amt.PTHI.Close()
+
 	result, err := amt.PTHI.GetCodeVersions()
+	amt.PTHI.Close()
 	if err != nil {
 		return "", err
 	}
@@ -138,7 +139,7 @@ func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
 func (amt AMTCommand) GetUUID() (string, error) {
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetUUID()
@@ -165,7 +166,7 @@ func (amt AMTCommand) GetUUID() (string, error) {
 func (amt AMTCommand) GetControlMode() (int, error) {
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetControlMode()
@@ -206,7 +207,7 @@ func (amt AMTCommand) GetOSDNSSuffix() (string, error) {
 func (amt AMTCommand) GetDNSSuffix() (string, error) {
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetDNSSuffix()
@@ -221,7 +222,7 @@ func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
 	err := amt.PTHI.Open(false)
 	amtEntryList := []CertHashEntry{}
 	if err != nil {
-		return amtEntryList, nil
+		return amtEntryList, err
 	}
 	defer amt.PTHI.Close()
 	pthiEntryList, err := amt.PTHI.GetCertificateHashes(pthi.AMTHashHandles{})
@@ -257,7 +258,7 @@ func (amt AMTCommand) GetRemoteAccessConnectionStatus() (RemoteAccessStatus, err
 	err := amt.PTHI.Open(false)
 	emptyRAStatus := RemoteAccessStatus{}
 	if err != nil {
-		return emptyRAStatus, nil
+		return emptyRAStatus, err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetRemoteAccessConnectionStatus()
@@ -279,7 +280,7 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 	err := amt.PTHI.Open(false)
 	emptySettings := InterfaceSettings{}
 	if err != nil {
-		return emptySettings, nil
+		return emptySettings, err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetLANInterfaceSettings(useWireless)
@@ -325,7 +326,7 @@ func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	err := amt.PTHI.Open(false)
 	emptySystemAccount := LocalSystemAccount{}
 	if err != nil {
-		return emptySystemAccount, nil
+		return emptySystemAccount, err
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetLocalSystemAccount()

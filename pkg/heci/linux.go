@@ -10,11 +10,11 @@ package heci
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
 	"os"
 	"syscall"
 	"unsafe"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -46,7 +46,7 @@ func (heci *Driver) Init(useLME bool) error {
 	var err error
 	heci.meiDevice, err = os.OpenFile(Device, syscall.O_RDWR, 0)
 	if err != nil {
-		log.Println("Cannot open MEI Device")
+		log.Error("Cannot open MEI Device")
 		return err
 	}
 
@@ -56,7 +56,14 @@ func (heci *Driver) Init(useLME bool) error {
 	} else {
 		data.data = MEI_IAMTHIF
 	}
-	err = Ioctl(heci.meiDevice.Fd(), IOCTL_MEI_CONNECT_CLIENT, uintptr(unsafe.Pointer(&data)))
+
+	// we try up to 3 times in case the resource/device is still busy from previous call.
+	for i := 0; i < 3; i++ {
+		err = Ioctl(heci.meiDevice.Fd(), IOCTL_MEI_CONNECT_CLIENT, uintptr(unsafe.Pointer(&data)))
+		if err == nil {
+			break
+		}
+	}
 	if err != nil {
 		return err
 	}
@@ -101,5 +108,8 @@ func Ioctl(fd, op, arg uintptr) error {
 }
 
 func (heci *Driver) Close() {
-	defer heci.meiDevice.Close()
+	err := heci.meiDevice.Close()
+	if err != nil {
+		log.Error(err)
+	}
 }
