@@ -100,6 +100,11 @@ func TestGetVersionDataFromME(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "11.8.55", result)
 }
+func TestGetVersionDataFromMEError(t *testing.T) {
+	result, err := amt.GetVersionDataFromME("")
+	assert.Error(t, err)
+	assert.Equal(t, "", result)
+}
 
 func TestGetGUID(t *testing.T) {
 	result, err := amt.GetUUID()

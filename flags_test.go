@@ -210,6 +210,22 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, true, flags.JsonOutput)
 }
+func TestParseFlagsAMTInfoCert(t *testing.T) {
+	args := []string{"./rpc", "amtinfo", "-cert"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.False(t, result)
+	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, false, flags.JsonOutput)
+}
+func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
+	args := []string{"./rpc", "amtinfo", "-dns"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.False(t, result)
+	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, false, flags.JsonOutput)
+}
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
