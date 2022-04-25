@@ -3,3 +3,8 @@ rpc
 *.exe
 !/internal/rpc
 coverage
+**/bin
+**/obj
+**/*.so
+**/*.dll
+**/*.h
