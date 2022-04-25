@@ -10,16 +10,26 @@
 
 ### Windows
 
+#### As executable: 
 ```
 go build -o rpc.exe ./cmd
+```
+#### As Library: 
+```
+go build -buildmode=c-shared -o rpc.dll ./cmd
 ```
 
 ### Linux
 
+#### As executable: 
 ```
 go build -o rpc ./cmd
 ```
 
+#### As Library: 
+```
+go build -buildmode=c-shared -o rpc.so ./cmd   
+```
 ### Docker image
 
 ```bash
