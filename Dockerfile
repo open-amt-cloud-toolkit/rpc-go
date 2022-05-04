@@ -9,7 +9,7 @@ RUN apk upgrade
 RUN apk add --no-cache git
 WORKDIR /rpc
 COPY . .
-RUN CGO_ENABLED=0 LDFLAGS="-s -w" GOOS=linux GOARCH=amd64 go build -o /build/rpc ./cmd
+RUN CGO_ENABLED=0 LDFLAGS="-s -w" GOOS=linux GOARCH=amd64 go build -o /build/rpc ./cmd/main.go
 
 
 FROM scratch
