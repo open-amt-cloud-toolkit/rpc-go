@@ -21,7 +21,7 @@ func checkAccess() {
 func rpcExec(Input *C.char, Output **C.char) {
 	checkAccess()
 
-	//create argurment array from input string
+	//create argument array from input string
 	args := strings.Fields(C.GoString(Input))
 	args = append([]string{"rpc"}, args...)
 	runRPC(args)

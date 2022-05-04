@@ -12,7 +12,7 @@
 
 #### As executable: 
 ```
-go build -o rpc.exe ./cmd
+go build -o rpc.exe ./cmd/main.go
 ```
 #### As Library: 
 ```
@@ -23,7 +23,7 @@ go build -buildmode=c-shared -o rpc.dll ./cmd
 
 #### As executable: 
 ```
-go build -o rpc ./cmd
+go build -o rpc ./cmd/main.go
 ```
 
 #### As Library: 
