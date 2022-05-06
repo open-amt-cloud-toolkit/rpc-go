@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"rpc"
 	"rpc/internal/amt"
@@ -32,13 +31,20 @@ func handleFlags(args []string) *rpc.Flags {
 	if !result {
 		os.Exit(1)
 	}
-	if flags.SyncClock {
-		fmt.Println("Time to sync the clock")
-	}
 	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
 	} else {
-		log.SetLevel(log.InfoLevel)
+		lvl, err := log.ParseLevel(flags.LogLevel)
+		if err != nil {
+			log.Warn(err)
+			log.SetLevel(log.InfoLevel)
+		} else {
+			log.SetLevel(lvl)
+		}
+
+	}
+	if flags.SyncClock {
+		log.Info("Syncing the clock")
 	}
 	if flags.JsonOutput {
 		log.SetFormatter(&log.JSONFormatter{})
