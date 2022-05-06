@@ -114,11 +114,8 @@ func ProcessGlobalRequest(data []byte) interface{} {
 			tcpForwardRequest.Address = string(addressBuffer[:int(tcpForwardRequest.AddressLength)])
 		}
 		binary.Read(dataBuffer, binary.BigEndian, &tcpForwardRequest.Port)
-		fmt.Printf("%+v", genericHeader)
+		log.Tracef("%+v", genericHeader)
 		log.Tracef("%+v", tcpForwardRequest)
-		fmt.Printf("%+v", tcpForwardRequest)
-		println(genericHeader.String + "\n")
-		println(fmt.Sprint(tcpForwardRequest.Port) + "\n")
 
 		if genericHeader.String == APF_GLOBAL_REQUEST_STR_TCP_FORWARD_REQUEST {
 			if tcpForwardRequest.Port == 16992 || tcpForwardRequest.Port == 16993 {
@@ -199,8 +196,8 @@ func ProcessChannelOpenConfirmation(data []byte, session *LMESession) {
 	log.Tracef("%+v", confirmationMessage)
 	// replySuccess := ChannelOpenReplySuccess(confirmationMessage.RecipientChannel, confirmationMessage.SenderChannel)
 
-	log.Debug("our channel: "+fmt.Sprint(confirmationMessage.RecipientChannel), " AMT's channel: "+fmt.Sprint(confirmationMessage.SenderChannel))
-	log.Debug("initial window: " + fmt.Sprint(confirmationMessage.InitialWindowSize))
+	log.Trace("our channel: "+fmt.Sprint(confirmationMessage.RecipientChannel), " AMT's channel: "+fmt.Sprint(confirmationMessage.SenderChannel))
+	log.Trace("initial window: " + fmt.Sprint(confirmationMessage.InitialWindowSize))
 	session.SenderChannel = confirmationMessage.SenderChannel
 	session.RecipientChannel = confirmationMessage.RecipientChannel
 	session.TXWindow = confirmationMessage.InitialWindowSize

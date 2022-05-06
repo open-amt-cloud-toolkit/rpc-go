@@ -135,12 +135,12 @@ func (lme *LMEConnection) Listen() {
 
 		result2, bytesRead, err2 := lme.Command.Receive()
 		if bytesRead == 0 || err2 != nil {
-			log.Debug("NO MORE DATA TO READ")
+			log.Trace("NO MORE DATA TO READ")
 			break
 		} else {
 			result := apf.Process(result2, lme.Session)
 			if result.Len() != 0 {
-				log.Debug(result)
+				log.Trace(result)
 			}
 		}
 	}
@@ -148,7 +148,7 @@ func (lme *LMEConnection) Listen() {
 
 // Close closes the LMS socket connection
 func (lme *LMEConnection) Close() error {
-	log.Debug("closing connection to lms")
+	log.Debug("closing connection to lme")
 	lme.Command.Close()
 	if lme.Session.Timer != nil {
 		lme.Session.Timer.Stop()

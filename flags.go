@@ -33,6 +33,7 @@ type Flags struct {
 	JsonOutput            bool
 	SyncClock             bool
 	Password              string
+	LogLevel              string
 	amtInfoCommand        *flag.FlagSet
 	amtActivateCommand    *flag.FlagSet
 	amtDeactivateCommand  *flag.FlagSet
@@ -113,6 +114,7 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "lms address")
 		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "lms port")
 		fs.BoolVar(&f.Verbose, "v", false, "verbose output")
+		fs.StringVar(&f.LogLevel, "l", "info", "log level (panic,fatal,error,warn,info,debug,trace)")
 		fs.BoolVar(&f.JsonOutput, "json", false, "json output")
 	}
 }
@@ -261,7 +263,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		amt := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
 			result, err := amt.GetVersionDataFromME("AMT")
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["amt"] = result
@@ -271,7 +273,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoBldPtr {
 			result, err := amt.GetVersionDataFromME("Build Number")
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["buildNumber"] = result
@@ -282,7 +284,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoSkuPtr {
 			result, err := amt.GetVersionDataFromME("Sku")
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["sku"] = result
@@ -293,7 +295,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoUUIDPtr {
 			result, err := amt.GetUUID()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["uuid"] = result
@@ -304,7 +306,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoModePtr {
 			result, err := amt.GetControlMode()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["controlMode"] = string(utils.InterpretControlMode(result))
@@ -315,7 +317,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoDNSPtr {
 			result, err := amt.GetDNSSuffix()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["dnsSuffix"] = result
@@ -324,7 +326,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				println("DNS Suffix		: " + string(result))
 			}
 			result, err = amt.GetOSDNSSuffix()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["dnsSuffixOS"] = result
@@ -335,7 +337,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoHostnamePtr {
 			result, err := os.Hostname()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["hostnameOS"] = result
@@ -347,7 +349,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 
 		if *amtInfoRasPtr {
 			result, err := amt.GetRemoteAccessConnectionStatus()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["ras"] = result
@@ -361,7 +363,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoLanPtr {
 			wired, err := amt.GetLANInterfaceSettings(false)
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["wiredAdapter"] = wired
@@ -376,7 +378,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 
 			wireless, err := amt.GetLANInterfaceSettings(true)
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["wirelessAdapter"] = wireless
@@ -392,7 +394,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 		if *amtInfoCertPtr {
 			result, err := amt.GetCertificateHashes()
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 			certs := make(map[string]interface{})
