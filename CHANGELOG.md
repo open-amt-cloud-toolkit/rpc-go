@@ -1,3 +1,30 @@
+<a name="v2.2.0"></a>
+## [v2.2.0] - 2022-05-09
+
+### Build
+- **version:** bump to v2.2.0
+
+### Ci
+- add build for sample
+- **docker:** ensure docker build occurs in PR checks
+- **lint:** adds semantic checks to PRs
+
+### Docs
+- **changelog:** update version
+- **readme:** add command for shared library build
+- **readme:** remove unnecessary prerequisites
+
+### Feat
+- **build:** adds support for c-shared buildmode
+- **logging:** adds support for fine grained control of log ouput
+
+### Fix
+- **heci:** adds retry for device busy
+
+### Refactor
+- **lms:** rewrite lme communication in go
+- **main:** eliminate need for CGO if not buildling library
+
 ## [v2.1.0] - 2022-03-18
 ### Build
 - **docker:** C style comments are not valid in Dockerfiles
