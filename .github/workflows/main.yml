@@ -30,7 +30,15 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: run the tests
+      - name: Install Test Converter and run tests
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        run: |
+          export GOPATH="$HOME/go/"
+          export PATH=$PATH:$GOPATH/bin
+          go install github.com/jstemmer/go-junit-report/v2@latest
+          go test -v 2>&1 ./... | go-junit-report -set-exit-code > rpc-go-unit.xml
+
+      - name: run the tests with coverage
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       
       - uses: codecov/codecov-action@v1.0.14
@@ -47,13 +55,8 @@ jobs:
         if: ${{ matrix.os != 'windows-2019' }}
         run: go build -o rpc ./cmd
 
-        
-
-      # Runs a set of commands using the runners shell
-      # - name: GitHub Upload Release Artifacts
-      #   uses: actions/upload-artifact@v2
-      #   with:
-      #     name: RPC_${{ matrix.os }}
-      #     path: |
-      #         rpc
-      #         rpc.exe
+      - name: GitHub Upload Release Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: rpc-go-unit
+          path: rpc-go-unit.xml
