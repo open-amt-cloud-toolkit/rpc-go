@@ -368,7 +368,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["wiredAdapter"] = wired
 
-			if !f.JsonOutput {
+			if !f.JsonOutput && wired.MACAddress != "00:00:00:00:00:00" {
 				println("---Wired Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
 				println("DHCP Mode    		: " + wired.DHCPMode)
@@ -383,7 +383,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["wirelessAdapter"] = wireless
 
-			if !f.JsonOutput {
+			if !f.JsonOutput{
 				println("---Wireless Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
 				println("DHCP Mode    		: " + wireless.DHCPMode)
