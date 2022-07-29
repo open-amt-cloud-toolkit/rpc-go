@@ -8,7 +8,7 @@
             "mode": "auto",
             "asRoot": true,
             "console": "integratedTerminal",
-            "program": "${workspaceFolder}/cmd",
+            "program": "${workspaceFolder}/cmd/main.go",
             // "args": [
             //     "amtinfo",
             //     "-bld"
