@@ -105,8 +105,14 @@ func NewAMTCommand() AMTCommand {
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
+	//fmt.Print(err.Error())
 	if err != nil {
-		return false, errors.New("unable to initialize")
+		if err.Error() == "Access is denied." {
+			return false, errors.New("need administrator privilege")
+		} else if err.Error() != "Access is denied." && err.Error() != "open /dev/mei0: permission denied" { //Need to check error if AMT is in administrator mode and has MEI driver
+			return false, errors.New("unable to initialize")
+		}
+
 	}
 	defer amt.PTHI.Close()
 	return true, nil

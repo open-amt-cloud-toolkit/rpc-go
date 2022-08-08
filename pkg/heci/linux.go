@@ -46,7 +46,11 @@ func (heci *Driver) Init(useLME bool) error {
 	var err error
 	heci.meiDevice, err = os.OpenFile(Device, syscall.O_RDWR, 0)
 	if err != nil {
-		log.Error("Cannot open MEI Device")
+		if err != nil {
+			err.Error() == "open /dev/mei0: permission denied"
+		} else {
+			log.Error("Cannot open MEI Device")
+		}
 		return err
 	}
 
