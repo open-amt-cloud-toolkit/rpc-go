@@ -112,8 +112,9 @@ func (amt AMTCommand) Initialize() (bool, error) {
 		} else if err.Error() != "Access is denied." && err.Error() != "open /dev/mei0: permission denied" { //Need to check error if AMT is in administrator mode and has MEI driver
 			return false, errors.New("unable to initialize")
 		}
-
+		//return false, errors.New("unable to initialize")
 	}
+
 	defer amt.PTHI.Close()
 	return true, nil
 }

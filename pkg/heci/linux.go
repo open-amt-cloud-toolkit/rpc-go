@@ -42,18 +42,19 @@ func NewDriver() *Driver {
 }
 
 func (heci *Driver) Init(useLME bool) error {
-
 	var err error
 	heci.meiDevice, err = os.OpenFile(Device, syscall.O_RDWR, 0)
 	if err != nil {
 		if err != nil {
-			err.Error() == "open /dev/mei0: permission denied"
-		} else {
-			log.Error("Cannot open MEI Device")
+			if err.Error() == "open /dev/mei0: permission denied" {
+				log.Error("need administrator privilege")
+			} else {
+				log.Error("Cannot open MEI Device")
+			}
+			//log.Error("Cannot open MEI Device")
+			return err
 		}
-		return err
 	}
-
 	data := CMEIConnectClientData{}
 	if useLME {
 		data.data = MEI_LMEIF

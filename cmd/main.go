@@ -64,7 +64,7 @@ func checkAdminAccess() {
 	result, err := amt.Initialize()
 
 	if !result || err != nil {
-		log.Error(err)
+		log.Error(err) //Print the errors
 		os.Exit(1)
 	}
 }
