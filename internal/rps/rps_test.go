@@ -80,12 +80,10 @@ func TestListen(t *testing.T) {
 	rpsChan := server.Listen()
 	go func() {
 		for {
-			select {
-			case dataFromRPS := <-rpsChan:
-				assert.Equal(t, []byte("{\"method\":\"\",\"apiKey\":\"\",\"appVersion\":\"\",\"protocolVersion\":\"\",\"status\":\"test\",\"message\":\"\",\"fqdn\":\"\",\"payload\":\"\"}"), dataFromRPS)
-				wgAll.Done()
-				return
-			}
+			dataFromRPS := <-rpsChan
+			assert.Equal(t, []byte("{\"method\":\"\",\"apiKey\":\"\",\"appVersion\":\"\",\"protocolVersion\":\"\",\"status\":\"test\",\"message\":\"\",\"fqdn\":\"\",\"payload\":\"\"}"), dataFromRPS)
+			wgAll.Done()
+			return
 		}
 	}()
 	message := Message{

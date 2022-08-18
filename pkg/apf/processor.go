@@ -21,46 +21,32 @@ func Process(data []byte, session *LMESession) bytes.Buffer {
 	case APF_GLOBAL_REQUEST: // 80
 		log.Debug("received APF_GLOBAL_REQUEST")
 		dataToSend = ProcessGlobalRequest(data)
-		break
 	case APF_CHANNEL_OPEN: // (90) Sent by Intel AMT when a channel needs to be open from Intel AMT. This is not common, but WSMAN events are a good example of channel coming from AMT.
 		log.Debug("received APF_CHANNEL_OPEN")
-		break
 	case APF_DISCONNECT: // (1) Intel AMT wants to completely disconnect. Not sure when this happens.
 		log.Debug("received APF_DISCONNECT")
-		break
 	case APF_SERVICE_REQUEST: // (5)
 		log.Debug("received APF SERVICE REQUEST")
 		dataToSend = ProcessServiceRequest(data)
-		break
 	case APF_CHANNEL_OPEN_CONFIRMATION: // (91) Intel AMT confirmation to an APF_CHANNEL_OPEN request.
 		log.Debug("received APF_CHANNEL_OPEN_CONFIRMATION")
 		ProcessChannelOpenConfirmation(data, session)
-		break
 	case APF_CHANNEL_OPEN_FAILURE: // (92) Intel AMT rejected our connection attempt.
 		log.Debug("received APF_CHANNEL_OPEN_FAILURE")
 		ProcessChannelOpenFailure(data, session)
-		break
 	case APF_CHANNEL_CLOSE: // (97) Intel AMT is closing this channel, we need to disconnect the LMS TCP connection
 		log.Debug("received APF_CHANNEL_CLOSE")
-		dataToSend = ProcessChannelClose(data, session)
-		break
+		ProcessChannelClose(data, session)
 	case APF_CHANNEL_DATA: // (94) Intel AMT is sending data that we must relay into an LMS TCP connection.
 		ProcessChannelData(data, session)
-		break
 	case APF_CHANNEL_WINDOW_ADJUST: // 93
 		log.Debug("received APF_CHANNEL_WINDOW_ADJUST")
 		ProcessChannelWindowAdjust(data, session)
-		break
 	case APF_PROTOCOLVERSION: // 192
 		log.Debug("received APF PROTOCOL VERSION")
 		dataToSend = ProcessProtocolVersion(data)
-		break
 	case APF_USERAUTH_REQUEST: // 50
-
-		break
 	default:
-
-		break
 	}
 	if dataToSend != nil {
 		binary.Write(&bin_buf, binary.BigEndian, dataToSend)
@@ -68,13 +54,6 @@ func Process(data []byte, session *LMESession) bytes.Buffer {
 	return bin_buf
 }
 
-func ProcessChannelOpenFailure(data []byte, session *LMESession) {
-	channelOpenFailure := APF_CHANNEL_OPEN_FAILURE_MESSAGE{}
-	dataBuffer := bytes.NewBuffer(data)
-	binary.Read(dataBuffer, binary.BigEndian, &channelOpenFailure)
-	log.Tracef("%+v", channelOpenFailure)
-	session.ErrorBuffer <- errors.New("error opening APF channel, reason code: " + fmt.Sprint(channelOpenFailure.ReasonCode))
-}
 func ProcessChannelWindowAdjust(data []byte, session *LMESession) {
 	adjustMessage := APF_CHANNEL_WINDOW_ADJUST_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -120,9 +99,11 @@ func ProcessGlobalRequest(data []byte) interface{} {
 		if genericHeader.String == APF_GLOBAL_REQUEST_STR_TCP_FORWARD_REQUEST {
 			if tcpForwardRequest.Port == 16992 || tcpForwardRequest.Port == 16993 {
 				reply = TcpForwardReplySuccess(tcpForwardRequest.Port)
+			} else {
+				reply = APF_REQUEST_FAILURE
 			}
 		} else if genericHeader.String == APF_GLOBAL_REQUEST_STR_TCP_FORWARD_CANCEL_REQUEST {
-			reply = APF_REQUEST_FAILURE
+			reply = APF_REQUEST_SUCCESS
 		}
 	}
 	return reply
@@ -146,7 +127,7 @@ func ProcessChannelData(data []byte, session *LMESession) {
 	// 	windowAdjust = ChannelWindowAdjust(channelData.RecipientChannel, session.RXWindow)
 	// 	session.RXWindow = 0
 	// }
-	session.Timer.Reset(2 * time.Second)
+	session.Timer.Reset(3 * time.Second)
 	// var windowAdjust APF_CHANNEL_WINDOW_ADJUST_MESSAGE
 	// if session.RXWindow > 1024 { // TODO: Check this
 	// 	windowAdjust = ChannelWindowAdjust(channelData.RecipientChannel, session.RXWindow)
@@ -180,12 +161,6 @@ func ProcessServiceRequest(data []byte) APF_SERVICE_ACCEPT_MESSAGE {
 	var serviceAccept APF_SERVICE_ACCEPT_MESSAGE
 	if service > 0 {
 		serviceAccept = ServiceAccept(message.ServiceName)
-	} else {
-		// LMSDEBUG("APF_SERVICE_REQUEST - APF_DISCONNECT_SERVICE_NOT_AVAILABLE\r\n");
-		// LME_Disconnect(lmemodule, APF_DISCONNECT_SERVICE_NOT_AVAILABLE);
-		// LME_Deinit(lmemodule);
-		// sem_post(&(module->Lock));
-		// return
 	}
 	return serviceAccept
 }
@@ -203,6 +178,14 @@ func ProcessChannelOpenConfirmation(data []byte, session *LMESession) {
 	session.TXWindow = confirmationMessage.InitialWindowSize
 	session.Status <- true
 }
+func ProcessChannelOpenFailure(data []byte, session *LMESession) {
+	channelOpenFailure := APF_CHANNEL_OPEN_FAILURE_MESSAGE{}
+	dataBuffer := bytes.NewBuffer(data)
+	binary.Read(dataBuffer, binary.BigEndian, &channelOpenFailure)
+	log.Tracef("%+v", channelOpenFailure)
+	session.Status <- false
+	session.ErrorBuffer <- errors.New("error opening APF channel, reason code: " + fmt.Sprint(channelOpenFailure.ReasonCode))
+}
 func ProcessProtocolVersion(data []byte) APF_PROTOCOL_VERSION_MESSAGE {
 	message := APF_PROTOCOL_VERSION_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -210,16 +193,6 @@ func ProcessProtocolVersion(data []byte) APF_PROTOCOL_VERSION_MESSAGE {
 	log.Tracef("%+v", message)
 	version := ProtocolVersion(message.MajorVersion, message.MinorVersion, message.TriggerReason)
 	return version
-}
-
-// Send the APF disconnect message to the MEI
-func Disconnect(reasonCode uint32) {
-	//	unsigned char buf[sizeof(APF_DISCONNECT_MESSAGE)]
-	//APF_DISCONNECT_MESSAGE *disconnectMessage = (APF_DISCONNECT_MESSAGE *)buf
-	//memset(disconnectMessage, 0, sizeof(buf))
-	//disconnectMessage->MessageType = APF_DISCONNECT
-	//disconnectMessage->ReasonCode = reasonCode
-	// return (LME_sendMessage(module, buf, sizeof(buf)) == sizeof(buf))
 }
 
 // Send the AFP service accept message to the MEI

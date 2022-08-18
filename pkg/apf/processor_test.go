@@ -22,17 +22,20 @@ func TestProcess(t *testing.T) {
 func TestProcessChannelOpenFailure(t *testing.T) {
 	data := []byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	errorChannel := make(chan error)
+	statusChannel := make(chan bool)
 
 	session := &LMESession{
 		ErrorBuffer: errorChannel,
+		Status:      statusChannel,
 	}
 	defer close(errorChannel)
 	go func() {
+		status := <-statusChannel
 		err := <-errorChannel
 		assert.Error(t, err)
+		assert.False(t, status)
 	}()
 	ProcessChannelOpenFailure(data, session)
-
 }
 func TestProcessChannelWindowAdjust(t *testing.T) {
 	data := []byte{0x01}
@@ -72,10 +75,26 @@ func TestProcessChannelData(t *testing.T) {
 	ProcessChannelData(data, session)
 
 }
-func TestProcessServiceRequest(t *testing.T) {
-	data := []byte{0x01}
+func TestProcessServiceRequestWhenAUTH(t *testing.T) {
+	data := []byte{0x01, 0x00, 0x00, 0x00, 0x12, 0x61, 0x75, 0x74, 0x68, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}
+	hi := int(0x12)
+	println(hi)
 	result := ProcessServiceRequest(data)
 	assert.NotNil(t, result)
+	assert.Equal(t, uint8(0x6), result.MessageType) // APF_SERVICE_ACCEPT
+	assert.Equal(t, uint32(0x12), result.ServiceNameLength)
+	assert.Equal(t, [18]uint8{0x61, 0x75, 0x74, 0x68, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}, result.ServiceName)
+}
+
+func TestProcessServiceRequestWhenPWFD(t *testing.T) {
+	data := []byte{0x01, 0x00, 0x00, 0x00, 0x12, 0x70, 0x66, 0x77, 0x64, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}
+	hi := int(0x12)
+	println(hi)
+	result := ProcessServiceRequest(data)
+	assert.NotNil(t, result)
+	assert.Equal(t, uint8(0x6), result.MessageType) // APF_SERVICE_ACCEPT
+	assert.Equal(t, uint32(0x12), result.ServiceNameLength)
+	assert.Equal(t, [18]uint8{0x70, 0x66, 0x77, 0x64, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}, result.ServiceName)
 }
 func TestProcessChannelOpenConfirmation(t *testing.T) {
 	data := []byte{0x01}
@@ -96,12 +115,6 @@ func TestProcessProtocolVersion(t *testing.T) {
 	assert.NotNil(t, result)
 }
 
-// func TestDisconnect(t *testing.T) {
-// 	data := []byte{0x01}
-// 	session := &LMESession{}
-// 	result := Disconnect(data, session)
-// 	assert.NotNil(t, result)
-// }
 func TestServiceAccept(t *testing.T) {
 	serviceName := ""
 	result := ServiceAccept(serviceName)
