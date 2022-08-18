@@ -62,13 +62,11 @@ func TestListen(t *testing.T) {
 
 	go func() {
 		for {
-			select {
-			case data := <-lms.data:
-				if len(data) > 0 {
-					assert.Equal(t, []byte("data"), data)
-					wait2 <- true
-					break
-				}
+			data := <-lms.data
+			if len(data) > 0 {
+				assert.Equal(t, []byte("data"), data)
+				wait2 <- true
+				break
 			}
 		}
 	}()

@@ -48,6 +48,11 @@ func handleFlags(args []string) *rpc.Flags {
 	}
 	if flags.JsonOutput {
 		log.SetFormatter(&log.JSONFormatter{})
+	} else {
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: true,
+			FullTimestamp: true,
+		})
 	}
 	return flags
 }

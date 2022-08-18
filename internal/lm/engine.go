@@ -19,6 +19,7 @@ type LMEConnection struct {
 	Command    pthi.Command
 	Session    *apf.LMESession
 	ourChannel int
+	retries    int
 }
 
 func NewLMEConnection(data chan []byte, errors chan error, status chan bool) *LMEConnection {
@@ -58,20 +59,32 @@ func (lme *LMEConnection) Initialize() error {
 // Connect initializes connection to LME via MEI Driver
 func (lme *LMEConnection) Connect() error {
 	log.Debug("Sending APF_CHANNEL_OPEN")
-	lme.ourChannel = ((lme.ourChannel + 1) % 32) + 1
-	// err := lms.execute()
+	lme.ourChannel = ((lme.ourChannel + 1) % 32)
+
 	bin_buf := apf.ChannelOpen(lme.ourChannel)
 	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
 	if err != nil {
-		log.Fatal(err)
+		lme.retries = lme.retries + 1
+		if lme.retries < 3 && (err.Error() == "no such device" || err.Error() == "The device is not connected.") {
+			log.Warn(err.Error())
+			log.Warn("Retrying...")
+			// retry connection/initialization to device if it doesn't respond
+			err = lme.Initialize()
+			if err == nil {
+				return lme.Connect()
+			}
+		} else {
+			log.Error(err)
+		}
 		return err
 	}
+	lme.retries = 0
 	return nil
 }
 
 // Send writes data to LMS TCP Socket
 func (lme *LMEConnection) Send(data []byte) error {
-	log.Debug("sending message to LMS")
+	log.Debug("sending message to LME")
 	var bin_buf bytes.Buffer
 
 	channelData := apf.ChannelData(lme.Session.SenderChannel, data)
@@ -84,14 +97,16 @@ func (lme *LMEConnection) Send(data []byte) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("sent message to LMS")
+	log.Debug("sent message to LME")
 	return nil
 }
 
 func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
 	for {
 		result, err := lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
-		if err != nil && err.Error() == "empty response from AMT" {
+		if err != nil && (err.Error() == "empty response from AMT" || err.Error() == "no such device") {
+			log.Warn(err.Error())
+			log.Warn("Retrying...")
 			break
 		} else if err != nil {
 			return err
@@ -100,8 +115,6 @@ func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
 		if bin_buf.Len() == 0 {
 			log.Debug("done EXECUTING.........")
 			break
-		} else {
-			log.Debug("Apparently there is more in the buffer?")
 		}
 	}
 	return nil
@@ -140,6 +153,10 @@ func (lme *LMEConnection) Listen() {
 		} else {
 			result := apf.Process(result2, lme.Session)
 			if result.Len() != 0 {
+				err2 = lme.execute(result)
+				if err2 != nil {
+					log.Trace(err2)
+				}
 				log.Trace(result)
 			}
 		}

@@ -105,6 +105,7 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 
 // ProcessMessage inspects RPS messages, decodes the base64 payload from the server and relays it to LMS
 func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
+	log.Debug("received messages from RPS")
 	// lms.Connect()
 	activation := Message{}
 	err := json.Unmarshal(message, &activation)
@@ -129,6 +130,7 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 			log.Info("Status: " + statusMessage.Status)
 			log.Info("Network: " + statusMessage.Network)
 			log.Info("CIRA: " + statusMessage.CIRAConnection)
+			log.Info("TLS: " + statusMessage.TLSConfiguration)
 		}
 
 		return nil

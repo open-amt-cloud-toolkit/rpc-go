@@ -5,6 +5,7 @@
 package lm
 
 import (
+	"errors"
 	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
 	"testing"
@@ -16,12 +17,13 @@ type MockHECICommands struct{}
 
 var message []byte
 var numBytes uint32 = 12
+var sendError error = nil
 
 func (c *MockHECICommands) Init(useLME bool) error { return nil }
 func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
 
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
-	return numBytes, nil
+	return numBytes, sendError
 }
 func (c *MockHECICommands) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 	for i := 0; i < len(message) && i < len(buffer); i++ {
@@ -103,9 +105,18 @@ func Test_Connect(t *testing.T) {
 	}
 	err := lme.Connect()
 	assert.NoError(t, err)
-
 }
-
+func Test_Connect_With_Error(t *testing.T) {
+	sendError = errors.New("no such device")
+	numBytes = 54
+	lme := &LMEConnection{
+		Command:    pthiVar,
+		Session:    &apf.LMESession{},
+		ourChannel: 1,
+	}
+	err := lme.Connect()
+	assert.Error(t, err)
+}
 func Test_Listen(t *testing.T) {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
@@ -122,7 +133,6 @@ func Test_Listen(t *testing.T) {
 	message = []byte{0x94, 0x01}
 	defer lme.Close()
 	go lme.Listen()
-
 }
 
 func Test_Close(t *testing.T) {
