@@ -62,7 +62,7 @@ func checkAdminAccess() {
 	amt := amt.NewAMTCommand()
 	result, err := amt.Initialize()
 	if !result || err != nil {
-		println("Unable to launch application. Please ensure that Intel ME is present, the MEI driver is installed and that this application is run with administrator or root privileges.")
+		log.Error(err) //Print the errors
 		os.Exit(1)
 	}
 }
