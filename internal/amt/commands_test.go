@@ -5,6 +5,7 @@
 package amt
 
 import (
+	"errors"
 	"rpc/pkg/pthi"
 	"testing"
 
@@ -13,8 +14,19 @@ import (
 
 type MockPTHICommands struct{}
 
-func (c MockPTHICommands) Open(useLME bool) error { return nil }
-func (c MockPTHICommands) Close()                 {}
+var flag bool = false
+var flag1 bool = false
+
+func (c MockPTHICommands) Open(useLME bool) error {
+	if flag == true {
+		return errors.New("The handle is invalid.")
+	} else if flag1 == true {
+		return errors.New("")
+	} else {
+		return nil
+	}
+}
+func (c MockPTHICommands) Close() {}
 func (c MockPTHICommands) Call(command []byte, commandSize uint32) (result []byte, err error) {
 	return nil, nil
 }
@@ -94,7 +106,22 @@ func init() {
 	amt = AMTCommand{}
 	amt.PTHI = MockPTHICommands{}
 }
-
+func TestInitializeNoError(t *testing.T) {
+	result, err := amt.Initialize()
+	assert.NoError(t, err, result)
+}
+func TestInitializeMEIError(t *testing.T) {
+	flag = true
+	result, err := amt.Initialize()
+	assert.Error(t, err, result)
+	flag = false
+}
+func TestInitializeError(t *testing.T) {
+	flag1 = true
+	result, err := amt.Initialize()
+	assert.Error(t, err, result)
+	flag1 = false
+}
 func TestGetVersionDataFromME(t *testing.T) {
 	result, err := amt.GetVersionDataFromME("Flash")
 	assert.NoError(t, err)

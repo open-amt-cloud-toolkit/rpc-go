@@ -105,9 +105,15 @@ func NewAMTCommand() AMTCommand {
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
+
 	if err != nil {
-		return false, errors.New("unable to initialize")
+		if err.Error() == "The handle is invalid." {
+			return false, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
+		} else {
+			return false, errors.New("unable to initialize")
+		}
 	}
+
 	defer amt.PTHI.Close()
 	return true, nil
 }
