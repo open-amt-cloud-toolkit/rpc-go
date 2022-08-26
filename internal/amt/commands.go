@@ -13,6 +13,8 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //TODO: Ensure pointers are freed properly throughout this file
@@ -104,10 +106,28 @@ func NewAMTCommand() AMTCommand {
 // Initialize determines if rpc is able to initialize the heci driver
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
-	err := amt.PTHI.Open(false)
-	if err != nil {
-		return false, errors.New("unable to initialize")
+
+	wired, _ := amt.GetLANInterfaceSettings(false)
+	_, err1 := amt.GetDNSSuffix()
+
+	if wired.LinkStatus != "up" {
+		log.Warn("link status is down, unable to active AMT in Admin Control Mode (ACM)")
 	}
+
+	if err1 != nil {
+		log.Warn("DNS suffix is empty, unable to activate AMT in admin Control Mode (ACM)")
+	}
+
+	err := amt.PTHI.Open(false)
+
+	if err != nil {
+		if err.Error() == "The handle is invalid." {
+			return false, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
+		} else {
+			return false, errors.New("unable to initialize")
+		}
+	}
+
 	defer amt.PTHI.Close()
 	return true, nil
 }
