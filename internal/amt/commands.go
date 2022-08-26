@@ -106,7 +106,6 @@ func NewAMTCommand() AMTCommand {
 // Initialize determines if rpc is able to initialize the heci driver
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
-	err := amt.PTHI.Open(false)
 
 	wired, _ := amt.GetLANInterfaceSettings(false)
 	_, err1 := amt.GetDNSSuffix()
@@ -118,6 +117,8 @@ func (amt AMTCommand) Initialize() (bool, error) {
 	if err1 != nil {
 		log.Warn("DNS suffix is empty, unable to activate AMT in admin Control Mode (ACM)")
 	}
+
+	err := amt.PTHI.Open(false)
 
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
