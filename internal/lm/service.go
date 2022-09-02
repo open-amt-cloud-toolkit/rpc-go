@@ -5,6 +5,7 @@
 package lm
 
 import (
+	"errors"
 	"io"
 	"net"
 	"strings"
@@ -33,8 +34,7 @@ func NewLMSConnection(address string, port string, data chan []byte, errors chan
 	return lms
 }
 func (lms *LMSConnection) Initialize() error {
-	log.Fatal("Not Implemented")
-	return nil
+	return errors.New("not implemented")
 }
 
 // Connect initializes TCP connection to LMS

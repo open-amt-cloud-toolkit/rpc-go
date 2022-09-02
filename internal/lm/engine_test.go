@@ -16,20 +16,29 @@ import (
 type MockHECICommands struct{}
 
 var message []byte
-var numBytes uint32 = 12
-var sendError error = nil
+var sendBytesWritten uint32
+var sendError error
+var initError error
+var bufferSize uint32
 
-func (c *MockHECICommands) Init(useLME bool) error { return nil }
-func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
+func resetMock() {
+	message = []byte{}
+	sendBytesWritten = 12
+	sendError = nil
+	initError = nil
+	bufferSize = 5120
+}
 
+func (c *MockHECICommands) Init(useLME bool) error { return initError }
+func (c *MockHECICommands) GetBufferSize() uint32  { return bufferSize } // MaxMessageLength
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
-	return numBytes, sendError
+	return sendBytesWritten, sendError
 }
 func (c *MockHECICommands) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 	for i := 0; i < len(message) && i < len(buffer); i++ {
 		buffer[i] = message[i]
 	}
-	return 12, nil
+	return uint32(len(message)), nil
 }
 func (c *MockHECICommands) Close() {}
 
@@ -40,6 +49,7 @@ func init() {
 	pthiVar.Heci = &MockHECICommands{}
 }
 func Test_NewLMEConnection(t *testing.T) {
+	resetMock()
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 	lmStatusChannel := make(chan bool)
@@ -49,32 +59,45 @@ func Test_NewLMEConnection(t *testing.T) {
 	assert.Equal(t, lmStatusChannel, lme.Session.Status)
 }
 func TestLMEConnection_Initialize(t *testing.T) {
-	numBytes = 93
-
-	type fields struct {
-		Command pthi.Command
-		Session *apf.LMESession
-	}
-	t1 := fields{
-		Command: pthiVar,
-		Session: &apf.LMESession{},
-	}
+	resetMock()
+	testError := errors.New("test error")
 	tests := []struct {
-		name    string
-		fields  fields
-		wantErr bool
+		name         string
+		sendNumBytes uint32
+		sendErr      error
+		initErr      error
+		wantErr      bool
 	}{
 		{
-			name:    "Normal",
-			fields:  t1,
-			wantErr: false,
+			name:         "Normal",
+			sendNumBytes: uint32(93),
+			sendErr:      nil,
+			initErr:      nil,
+			wantErr:      false,
+		},
+		{
+			name:         "ExpectedFailureOnOpen",
+			sendNumBytes: uint32(93),
+			sendErr:      nil,
+			initErr:      testError,
+			wantErr:      true,
+		},
+		{
+			name:         "ExpectedFailureOnExecute",
+			sendNumBytes: uint32(93),
+			sendErr:      testError,
+			initErr:      nil,
+			wantErr:      true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			sendBytesWritten = tt.sendNumBytes
+			sendError = tt.sendErr
+			initError = tt.initErr
 			lme := &LMEConnection{
-				Command:    tt.fields.Command,
-				Session:    tt.fields.Session,
+				Command:    pthiVar,
+				Session:    &apf.LMESession{},
 				ourChannel: 1,
 			}
 			if err := lme.Initialize(); (err != nil) != tt.wantErr {
@@ -85,7 +108,8 @@ func TestLMEConnection_Initialize(t *testing.T) {
 }
 
 func Test_Send(t *testing.T) {
-	numBytes = 14
+	resetMock()
+	sendBytesWritten = 14
 
 	lme := &LMEConnection{
 		Command:    pthiVar,
@@ -97,7 +121,8 @@ func Test_Send(t *testing.T) {
 	assert.NoError(t, err)
 }
 func Test_Connect(t *testing.T) {
-	numBytes = 54
+	resetMock()
+	sendBytesWritten = 54
 	lme := &LMEConnection{
 		Command:    pthiVar,
 		Session:    &apf.LMESession{},
@@ -107,8 +132,9 @@ func Test_Connect(t *testing.T) {
 	assert.NoError(t, err)
 }
 func Test_Connect_With_Error(t *testing.T) {
+	resetMock()
 	sendError = errors.New("no such device")
-	numBytes = 54
+	sendBytesWritten = 54
 	lme := &LMEConnection{
 		Command:    pthiVar,
 		Session:    &apf.LMESession{},
@@ -118,6 +144,7 @@ func Test_Connect_With_Error(t *testing.T) {
 	assert.Error(t, err)
 }
 func Test_Listen(t *testing.T) {
+	resetMock()
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 
@@ -136,6 +163,7 @@ func Test_Listen(t *testing.T) {
 }
 
 func Test_Close(t *testing.T) {
+	resetMock()
 	lme := &LMEConnection{
 		Command:    pthiVar,
 		Session:    &apf.LMESession{},
@@ -145,6 +173,7 @@ func Test_Close(t *testing.T) {
 	assert.NoError(t, err)
 }
 func Test_CloseWithChannel(t *testing.T) {
+	resetMock()
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 

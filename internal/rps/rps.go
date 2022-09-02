@@ -27,15 +27,9 @@ func NewAMTActivationServer(url string) AMTActivationServer {
 	return amtactivationserver
 }
 
-func PrepareInitialMessage(flags *rpc.Flags) Message {
-	//create activation request
+func PrepareInitialMessage(flags *rpc.Flags) (Message, error) {
 	payload := NewPayload()
-
-	messageRequest, err := payload.CreateMessageRequest(*flags)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return messageRequest
+	return payload.CreateMessageRequest(*flags)
 }
 
 // Connect is used to connect to the RPS Server

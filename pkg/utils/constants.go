@@ -20,4 +20,9 @@ const (
 
 	// MPSServerMaxLength is the max length of the servername
 	MPSServerMaxLength = 256
+
+	// Return Codes
+	Success           = 0
+	ErrGeneralFailure = -1
+	ErrAccess         = -1
 )
