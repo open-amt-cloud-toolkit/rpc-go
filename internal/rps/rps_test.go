@@ -46,6 +46,14 @@ func init() {
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 }
 
+//func TestPrepareInitialMessage(t *testing.T) {
+//	flags := rpc.Flags{
+//		Command: "method",
+//	}
+//	message, err := PrepareInitialMessage(&flags)
+//	assert.NotNil(t, message)
+//	assert.NoError(t, err)
+//}
 func TestConnect(t *testing.T) {
 	server := NewAMTActivationServer(testUrl)
 	err := server.Connect(true)

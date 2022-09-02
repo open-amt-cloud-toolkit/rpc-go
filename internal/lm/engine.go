@@ -40,7 +40,7 @@ func NewLMEConnection(data chan []byte, errors chan error, status chan bool) *LM
 func (lme *LMEConnection) Initialize() error {
 	err := lme.Command.Open(true)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return err
 	}
 
@@ -50,7 +50,7 @@ func (lme *LMEConnection) Initialize() error {
 
 	err = lme.execute(bin_buf)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return err
 	}
 	return nil

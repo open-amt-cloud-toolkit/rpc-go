@@ -6,16 +6,24 @@ namespace clientAgent
 {
     class clientAgent
     {
-        // use appropriately named (.so/.dll) on desired OS
-        [DllImport("rpclib.so", EntryPoint = "checkAccess")]
-        static extern void checkAccess();
-
         // use appropriately named library (.so/.dll) on desired OS
-        [DllImport("rpclib.so", EntryPoint = "rpcExec")]
-        static extern string rpc([In] byte[] rpccmd, ref IntPtr output);
+        // Linux [DllImport("rpc")]
+        // Win [DllImport("rpc.dll")]
+        [DllImport("rpc")]
+        static extern int rpcCheckAccess();
+
+        [DllImport("rpc")]
+        static extern int rpcExec([In] byte[] rpccmd, ref IntPtr output);
 
         static void Main(string[] args)
         {
+            int returnCode;
+
+            Console.WriteLine("... CALLING rpcCheckAccess ...");
+            returnCode = rpcCheckAccess();
+            Console.WriteLine("... rpcCheckAccess completed: return code[" + returnCode + "] ");
+            Console.WriteLine();
+
             var res = "";
             foreach (var arg in args)
             {
@@ -27,8 +35,9 @@ namespace clientAgent
             // string res = "amtinfo";
 
             IntPtr output = IntPtr.Zero;
-            rpc(Encoding.ASCII.GetBytes(res), ref output);
-            Console.WriteLine("Output from RunRPC: " + Marshal.PtrToStringAnsi(output));
+            Console.WriteLine("... CALLING rpcExec with argument string: " + res);
+            returnCode = rpcExec(Encoding.ASCII.GetBytes(res), ref output);
+            Console.WriteLine("... rpcExec completed: return code[" + returnCode + "] " + Marshal.PtrToStringAnsi(output));
         }
     }
 }

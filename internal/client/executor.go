@@ -26,7 +26,7 @@ type Executor struct {
 	status          chan bool
 }
 
-func NewExecutor(flags rpc.Flags) Executor {
+func NewExecutor(flags rpc.Flags) (Executor, error) {
 	// these are closed in the close function for each lm implementation
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
@@ -56,9 +56,10 @@ func NewExecutor(flags rpc.Flags) Executor {
 	err = client.server.Connect(flags.SkipCertCheck)
 	if err != nil {
 		log.Error("error connecting to RPS")
-		log.Fatal(err.Error())
+		// TODO: should the connection be closed?
+		// client.localManagement.Close()
 	}
-	return client
+	return client, err
 }
 
 func (e Executor) MakeItSo(messageRequest rps.Message) {
@@ -70,7 +71,8 @@ func (e Executor) MakeItSo(messageRequest rps.Message) {
 	log.Debug("sending activation request to RPS")
 	err := e.server.Send(messageRequest)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Error(err.Error())
+		return
 	}
 	defer e.localManagement.Close()
 	defer close(e.data)
@@ -125,7 +127,7 @@ func (e Executor) HandleDataFromRPS(dataFromServer []byte) bool {
 	go e.localManagement.Listen()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return true
 	}
 	if e.isLME {
@@ -140,7 +142,7 @@ func (e Executor) HandleDataFromRPS(dataFromServer []byte) bool {
 	// send our data to LMX
 	err = e.localManagement.Send(msgPayload)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 		return true
 	}
 
@@ -168,7 +170,7 @@ func (e Executor) HandleDataFromLM(data []byte) {
 
 		err := e.server.Send(e.payload.CreateMessageResponse(data))
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 	}
 }
