@@ -7,6 +7,7 @@ package rps
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"os"
 	"rpc"
 	"rpc/internal/amt"
@@ -20,7 +21,9 @@ import (
 type MockAMT struct{}
 
 var mebxDNSSuffix string
+var osDNSSuffix string = "osdns"
 var controlMode int = 0
+var err error = nil
 
 func (c MockAMT) Initialize() (bool, error) {
 	return true, nil
@@ -30,7 +33,7 @@ func (c MockAMT) GetUUID() (string, error)                        { return "123-
 func (c MockAMT) GetUUIDV2() (string, error)                      { return "", nil }
 func (c MockAMT) GetControlMode() (int, error)                    { return controlMode, nil }
 func (c MockAMT) GetControlModeV2() (int, error)                  { return controlMode, nil }
-func (c MockAMT) GetOSDNSSuffix() (string, error)                 { return "osdns", nil }
+func (c MockAMT) GetOSDNSSuffix() (string, error)                 { return osDNSSuffix, nil }
 func (c MockAMT) GetDNSSuffix() (string, error)                   { return mebxDNSSuffix, nil }
 func (c MockAMT) GetCertificateHashes() ([]amt.CertHashEntry, error) {
 	return []amt.CertHashEntry{}, nil
@@ -77,12 +80,21 @@ func TestCreatePayloadWithOSDNSSuffix(t *testing.T) {
 	assert.Equal(t, "osdns", result.FQDN)
 }
 func TestCreatePayloadWithDNSSuffix(t *testing.T) {
-
 	result, err := p.createPayload("vprodemo.com", "")
 	assert.NoError(t, err)
 	assert.Equal(t, "vprodemo.com", result.FQDN)
 }
-func TestCreateActivationRequestNoDNSSuffix(t *testing.T) {
+
+func TestCreatePayloadWithNODNSSuffix(t *testing.T) {
+	mebxDNSSuffix = ""
+	osDNSSuffix = ""
+	err = errors.New("Nope")
+	result, err := p.createPayload("", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "", result.FQDN)
+}
+
+func TestCreateActivationRequestNoDNSSuffixProvided(t *testing.T) {
 	flags := rpc.Flags{
 		Command: "method",
 	}
