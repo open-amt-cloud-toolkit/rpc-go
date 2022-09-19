@@ -31,6 +31,7 @@ func handleFlags(args []string) *rpc.Flags {
 	if !result {
 		os.Exit(1)
 	}
+
 	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
 	} else {
@@ -41,7 +42,6 @@ func handleFlags(args []string) *rpc.Flags {
 		} else {
 			log.SetLevel(lvl)
 		}
-
 	}
 	if flags.SyncClock {
 		log.Info("Syncing the clock")

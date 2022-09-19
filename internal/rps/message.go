@@ -12,6 +12,8 @@ import (
 	"rpc"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Payload struct {
@@ -63,6 +65,10 @@ func NewPayload() Payload {
 func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayload, error) {
 	payload := MessagePayload{}
 	var err error
+	wired, _ := p.AMT.GetLANInterfaceSettings(false)
+	if wired.LinkStatus != "up" {
+		log.Warn("link status is down, unable to active AMT in Admin Control Mode (ACM)")
+	}
 	payload.Version, err = p.AMT.GetVersionDataFromME("AMT")
 	if err != nil {
 		return payload, err
@@ -90,17 +96,6 @@ func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayloa
 	payload.Username = lsa.Username
 	payload.Password = lsa.Password
 
-	if dnsSuffix != "" {
-		payload.FQDN = dnsSuffix
-	} else {
-		payload.FQDN, err = p.AMT.GetDNSSuffix()
-		if payload.FQDN == "" {
-			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
-		}
-		if err != nil {
-			return payload, err
-		}
-	}
 	if hostname != "" {
 		payload.Hostname = hostname
 	} else {
@@ -117,6 +112,19 @@ func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayloa
 	for _, v := range hashes {
 		payload.CertificateHashes = append(payload.CertificateHashes, v.Hash)
 	}
+
+	if dnsSuffix != "" {
+		payload.FQDN = dnsSuffix
+	} else {
+		payload.FQDN, _ = p.AMT.GetDNSSuffix()
+		if payload.FQDN == "" {
+			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
+		}
+		if payload.FQDN == "" {
+			log.Warn("DNS suffix is empty, unable to activate AMT in admin Control Mode (ACM)")
+		}
+	}
+
 	return payload, nil
 
 }
