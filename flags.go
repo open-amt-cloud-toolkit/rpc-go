@@ -44,14 +44,14 @@ type Flags struct {
 func NewFlags(args []string) *Flags {
 	flags := &Flags{}
 	flags.commandLineArgs = args
-	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ExitOnError)
+	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ContinueOnError)
 	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
-	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ExitOnError)
-	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ExitOnError)
-	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ExitOnError)
+	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ContinueOnError)
+	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ContinueOnError)
+	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ContinueOnError)
 
-	flags.versionCommand = flag.NewFlagSet("version", flag.ExitOnError)
+	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
 	flags.setupCommonFlags()
@@ -126,7 +126,9 @@ func (f *Flags) handleMaintenanceCommand() bool {
 		f.amtMaintenanceCommand.PrintDefaults()
 		return false
 	}
-	f.amtMaintenanceCommand.Parse(f.commandLineArgs[2:])
+	if err := f.amtMaintenanceCommand.Parse(f.commandLineArgs[2:]); err != nil {
+		return false
+	}
 	if f.amtMaintenanceCommand.Parsed() {
 		if f.URL == "" {
 			fmt.Println("-u flag is required and cannot be empty")
@@ -176,7 +178,9 @@ func (f *Flags) handleActivateCommand() bool {
 		f.amtActivateCommand.PrintDefaults()
 		return false
 	}
-	f.amtActivateCommand.Parse(f.commandLineArgs[2:])
+	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
+		return false
+	}
 
 	if f.amtActivateCommand.Parsed() {
 		if f.URL == "" {
@@ -201,7 +205,9 @@ func (f *Flags) handleDeactivateCommand() bool {
 		f.amtDeactivateCommand.PrintDefaults()
 		return false
 	}
-	f.amtDeactivateCommand.Parse(f.commandLineArgs[2:])
+	if err := f.amtDeactivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
+		return false
+	}
 
 	if f.amtDeactivateCommand.Parsed() {
 		if f.URL == "" {
@@ -238,7 +244,9 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	amtInfoLanPtr := amtInfoCommand.Bool("lan", false, "LAN Settings")
 	amtInfoHostnamePtr := amtInfoCommand.Bool("hostname", false, "OS Hostname")
 
-	amtInfoCommand.Parse(f.commandLineArgs[2:])
+	if err := f.amtInfoCommand.Parse(f.commandLineArgs[2:]); err != nil {
+		return
+	}
 
 	defaultFlagCount := 2
 	if f.JsonOutput {
@@ -260,9 +268,9 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	dataStruct := make(map[string]interface{})
 
 	if amtInfoCommand.Parsed() {
-		amt := amt.NewAMTCommand()
+		amtCommand := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
-			result, err := amt.GetVersionDataFromME("AMT")
+			result, err := amtCommand.GetVersionDataFromME("AMT")
 			if err != nil {
 				log.Error(err)
 			}
@@ -272,7 +280,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoBldPtr {
-			result, err := amt.GetVersionDataFromME("Build Number")
+			result, err := amtCommand.GetVersionDataFromME("Build Number")
 			if err != nil {
 				log.Error(err)
 			}
@@ -283,7 +291,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoSkuPtr {
-			result, err := amt.GetVersionDataFromME("Sku")
+			result, err := amtCommand.GetVersionDataFromME("Sku")
 			if err != nil {
 				log.Error(err)
 			}
@@ -294,7 +302,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoUUIDPtr {
-			result, err := amt.GetUUID()
+			result, err := amtCommand.GetUUID()
 			if err != nil {
 				log.Error(err)
 			}
@@ -305,18 +313,18 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoModePtr {
-			result, err := amt.GetControlMode()
+			result, err := amtCommand.GetControlMode()
 			if err != nil {
 				log.Error(err)
 			}
-			dataStruct["controlMode"] = string(utils.InterpretControlMode(result))
+			dataStruct["controlMode"] = utils.InterpretControlMode(result)
 
 			if !f.JsonOutput {
 				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
 			}
 		}
 		if *amtInfoDNSPtr {
-			result, err := amt.GetDNSSuffix()
+			result, err := amtCommand.GetDNSSuffix()
 			if err != nil {
 				log.Error(err)
 			}
@@ -325,7 +333,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			if !f.JsonOutput {
 				println("DNS Suffix		: " + string(result))
 			}
-			result, err = amt.GetOSDNSSuffix()
+			result, err = amtCommand.GetOSDNSSuffix()
 			if err != nil {
 				log.Error(err)
 			}
@@ -348,7 +356,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 		}
 
 		if *amtInfoRasPtr {
-			result, err := amt.GetRemoteAccessConnectionStatus()
+			result, err := amtCommand.GetRemoteAccessConnectionStatus()
 			if err != nil {
 				log.Error(err)
 			}
@@ -362,7 +370,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoLanPtr {
-			wired, err := amt.GetLANInterfaceSettings(false)
+			wired, err := amtCommand.GetLANInterfaceSettings(false)
 			if err != nil {
 				log.Error(err)
 			}
@@ -377,13 +385,13 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				println("MAC Address  		: " + wired.MACAddress)
 			}
 
-			wireless, err := amt.GetLANInterfaceSettings(true)
+			wireless, err := amtCommand.GetLANInterfaceSettings(true)
 			if err != nil {
 				log.Error(err)
 			}
 			dataStruct["wirelessAdapter"] = wireless
 
-			if !f.JsonOutput{
+			if !f.JsonOutput {
 				println("---Wireless Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
 				println("DHCP Mode    		: " + wireless.DHCPMode)
@@ -393,7 +401,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoCertPtr {
-			result, err := amt.GetCertificateHashes()
+			result, err := amtCommand.GetCertificateHashes()
 			if err != nil {
 				log.Error(err)
 			}
@@ -430,7 +438,9 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 
 func (f *Flags) handleVersionCommand() bool {
 
-	f.versionCommand.Parse(f.commandLineArgs[2:])
+	if err := f.versionCommand.Parse(f.commandLineArgs[2:]); err != nil {
+		return false
+	}
 
 	if !f.JsonOutput {
 		println(strings.ToUpper(utils.ProjectName))
