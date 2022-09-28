@@ -113,8 +113,8 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 		return heartbeat
 	}
 
+	statusMessage := StatusMessage{}
 	if activation.Method == "success" {
-		statusMessage := StatusMessage{}
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
 		if err != nil {
 			log.Error(err)
@@ -129,7 +129,13 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 
 		return nil
 	} else if activation.Method == "error" {
-		log.Error(activation.Message)
+		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
+		if err == nil {
+			log.Error(statusMessage.Status)
+		} else {
+			log.Error(err)
+			log.Error(activation.Message)
+		}
 		return nil
 	}
 
