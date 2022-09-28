@@ -34,10 +34,10 @@ type Message struct {
 
 // Status Message is used for displaying and parsing status messages from RPS
 type StatusMessage struct {
-	Status           string
-	Network          string
-	CIRAConnection   string
-	TLSConfiguration string
+	Status           string `json:"Status,omitempty"`
+	Network          string `json:"Network,omitempty"`
+	CIRAConnection   string `json:"CIRAConnection,omitempty"`
+	TLSConfiguration string `json:"TLSConfiguration,omitempty"`
 }
 
 // MessagePayload struct is used for the initial request to RPS to activate a device
