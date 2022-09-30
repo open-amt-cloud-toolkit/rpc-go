@@ -89,7 +89,7 @@ func main() {
 			log.Error(err.Error())
 		}
 		log.Error(AccessErrMsg)
-		return
+		os.Exit(status)
 	}
 	status, err = runRPC(os.Args)
 	if err != nil {
