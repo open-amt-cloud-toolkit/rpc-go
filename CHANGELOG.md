@@ -1,8 +1,32 @@
+<a name="v2.3.0"></a>
+## v2.3.0 - 2022-10-05
+
+### Ci
+- add junit test output
+
+### Docs
+- update changelog for v2.3.0
+
+### Feat
+- add warnings for link status and dns suffix
+- added admin privilege check and AMT not found error check
+- **amtinfo:** display wired only when wired adapter is available
+- **win:** add admin privilege check
+
+### Fix
+- **amtinfo:** shouldnt display warnings on amtinfo
+- **tls:** tls configuration now completes after TLS configuration
+
+### Refactor
+- **return codes:** replace log.Fatal with log.Error replace os.Exit calls
+- **return-codes:** change tag error handling to continue instead of exit
+- **status:** attempt to unmarshal error message
+
 <a name="v2.2.0"></a>
 ## [v2.2.0] - 2022-05-09
 
 ### Build
-- **version:** bump to v2.2.0
+- **version:** bump to v2.2.00
 
 ### Ci
 - add build for sample
@@ -80,5 +104,3 @@
 ### Refactor
 - rename mps to rps for accurate naming
 - **rpc:** organize code to be unit testable
-
-
