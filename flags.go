@@ -6,9 +6,12 @@ package rpc
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"os"
+	"path/filepath"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
@@ -17,28 +20,49 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// A NetEnumerator enumerates local IP addresses.
+type NetEnumerator struct {
+	Interfaces     func() ([]net.Interface, error)
+	InterfaceAddrs func(*net.Interface) ([]net.Addr, error)
+}
+
+type IPConfiguration struct {
+	IpAddress    string `json:"ipAddress"`
+	Netmask      string `json:"netmask"`
+	Gateway      string `json:"gateway"`
+	PrimaryDns   string `json:"primaryDns"`
+	SecondaryDns string `json:"secondaryDns"`
+}
+
 // Flags holds data received from the command line
 type Flags struct {
-	commandLineArgs       []string
-	URL                   string
-	DNS                   string
-	Hostname              string
-	Proxy                 string
-	Command               string
-	Profile               string
-	LMSAddress            string
-	LMSPort               string
-	SkipCertCheck         bool
-	Verbose               bool
-	JsonOutput            bool
-	SyncClock             bool
-	Password              string
-	LogLevel              string
-	amtInfoCommand        *flag.FlagSet
-	amtActivateCommand    *flag.FlagSet
-	amtDeactivateCommand  *flag.FlagSet
-	amtMaintenanceCommand *flag.FlagSet
-	versionCommand        *flag.FlagSet
+	commandLineArgs                     []string
+	URL                                 string
+	DNS                                 string
+	Hostname                            string
+	Proxy                               string
+	Command                             string
+	Profile                             string
+	LMSAddress                          string
+	LMSPort                             string
+	SkipCertCheck                       bool
+	Verbose                             bool
+	JsonOutput                          bool
+	RandomPassword                      bool
+	StaticPassword                      string
+	Password                            string
+	LogLevel                            string
+	amtInfoCommand                      *flag.FlagSet
+	amtActivateCommand                  *flag.FlagSet
+	amtDeactivateCommand                *flag.FlagSet
+	amtMaintenanceCommand               *flag.FlagSet
+	amtMaintenanceSyncIPCommand         *flag.FlagSet
+	amtMaintenanceSyncClockCommand      *flag.FlagSet
+	amtMaintenanceChangePasswordCommand *flag.FlagSet
+	versionCommand                      *flag.FlagSet
+	amtCommand                          amt.AMTCommand
+	netEnumerator                       NetEnumerator
+	IpConfiguration                     IPConfiguration
 }
 
 func NewFlags(args []string) *Flags {
@@ -51,9 +75,17 @@ func NewFlags(args []string) *Flags {
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ContinueOnError)
 	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ContinueOnError)
 
+	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet("syncip", flag.ContinueOnError)
+	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
+	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
+
 	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
+	flags.amtCommand = amt.NewAMTCommand()
+	flags.netEnumerator = NetEnumerator{}
+	flags.netEnumerator.Interfaces = net.Interfaces
+	flags.netEnumerator.InterfaceAddrs = (*net.Interface).Addrs
 	flags.setupCommonFlags()
 	return flags
 }
@@ -88,66 +120,191 @@ func (f *Flags) ParseFlags() (string, bool) {
 
 }
 func (f *Flags) printUsage() string {
-	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, and status of AMT\n\n"
-	usage = usage + "Usage: rpc COMMAND [OPTIONS]\n\n"
+	executable := filepath.Base(os.Args[0])
+	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
+	usage = usage + "Usage: " + executable + " COMMAND [OPTIONS]\n\n"
 	usage = usage + "Supported Commands:\n"
 	usage = usage + "  activate    Activate this device with a specified profile\n"
-	usage = usage + "              Example: ./rpc activate -u wss://server/activate --profile acmprofile\n"
-	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
-	usage = usage + "              Example: ./rpc deactivate -u wss://server/activate\n"
-	usage = usage + "  maintenance Maintain this device.\n"
-	usage = usage + "              Example: ./rpc maintenance -u wss://server/activate\n"
+	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
-	usage = usage + "              Example: ./rpc amtinfo\n"
+	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
+	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " maintenance syncclock -u wss://server/activate \n"
 	usage = usage + "  version     Displays the current version of RPC and the RPC Protocol version\n"
-	usage = usage + "              Example: ./rpc version\n"
-	usage = usage + "\nRun 'rpc COMMAND' for more information on a command.\n"
+	usage = usage + "              Example: " + executable + " version\n"
+	usage = usage + "\nRun '" + executable + " COMMAND' for more information on a command.\n"
+	fmt.Println(usage)
+	return usage
+}
+
+func (f *Flags) printMaintenanceUsage() string {
+	executable := filepath.Base(os.Args[0])
+	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
+	usage = usage + "Usage: " + executable + " maintenance COMMAND [OPTIONS]\n\n"
+	usage = usage + "Supported Maintenance Commands:\n"
+	usage = usage + "  changepassword Change the AMT password. A random password is generated by default. Specify -static to set manually. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance changepassword -u wss://server/activate\n"
+	usage = usage + "  syncclock      Sync the host OS clock to AMT. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance syncclock -u wss://server/activate\n"
+	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
+	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
+	usage = usage + "\nRun '" + executable + " maintenance COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
 }
 
 func (f *Flags) setupCommonFlags() {
-	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand, f.amtMaintenanceCommand} {
-		fs.StringVar(&f.URL, "u", "", "websocket address of server to activate against") //required
-		fs.BoolVar(&f.SkipCertCheck, "n", false, "skip websocket server certificate verification")
-		fs.StringVar(&f.Proxy, "p", "", "proxy address and port")
-		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "lms address")
-		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "lms port")
-		fs.BoolVar(&f.Verbose, "v", false, "verbose output")
-		fs.StringVar(&f.LogLevel, "l", "info", "log level (panic,fatal,error,warn,info,debug,trace)")
-		fs.BoolVar(&f.JsonOutput, "json", false, "json output")
+	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand, f.amtMaintenanceCommand, f.amtMaintenanceChangePasswordCommand, f.amtMaintenanceSyncClockCommand, f.amtMaintenanceSyncIPCommand} {
+		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
+		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
+		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
+		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address (default localhost). Can be used to change location of LMS for debugging.")
+		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port (default 16992)")
+		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
+		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	}
 }
-func (f *Flags) handleMaintenanceCommand() bool {
-	f.amtActivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.amtMaintenanceCommand.BoolVar(&f.SyncClock, "c", false, "sync AMT clock")
 
+func (f *Flags) handleMaintenanceCommand() bool {
+
+	//validation section
 	if len(f.commandLineArgs) == 2 {
-		f.amtMaintenanceCommand.PrintDefaults()
+		f.printMaintenanceUsage()
 		return false
 	}
-	if err := f.amtMaintenanceCommand.Parse(f.commandLineArgs[2:]); err != nil {
+
+	task := ""
+	switch f.commandLineArgs[2] {
+	case "syncclock":
+		task = f.handleMaintenanceSyncClock()
+	case "syncip":
+		task = f.handleMaintenanceSyncIP()
+	case "changepassword":
+		task = f.handleMaintenanceSyncChangePassword()
+	default:
+		f.printMaintenanceUsage()
+	}
+	if task == "" {
 		return false
 	}
-	if f.amtMaintenanceCommand.Parsed() {
-		if f.URL == "" {
-			fmt.Println("-u flag is required and cannot be empty")
-			f.amtActivateCommand.Usage()
+	if f.URL == "" {
+		fmt.Print("\n-u flag is required and cannot be empty\n\n")
+		f.amtMaintenanceCommand.Usage()
+		return false
+	}
+	if f.Password == "" {
+		fmt.Println("Please enter the current AMT Password: ")
+		_, err := fmt.Scanln(&f.Password)
+		if f.Password == "" || err != nil {
+			fmt.Print("\ncurrent AMT password is required and cannot be empty\n\n")
+			f.amtMaintenanceCommand.Usage()
 			return false
 		}
-		if f.Password == "" {
-			fmt.Println("Please enter AMT Password: ")
-			var password string
-			// Taking input from user
-			_, err := fmt.Scanln(&password)
-			if password == "" || err != nil {
-				return false
+	}
+
+	f.Command = fmt.Sprintf("maintenance --password %s %s", f.Password, task)
+	return true
+}
+
+func (f *Flags) handleMaintenanceSyncClock() string {
+	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		return ""
+	}
+	return "--synctime"
+}
+
+// wrap the flag.Func method signature with the assignment value
+func validateIP(assignee *string) func(string) error {
+	return func(val string) error {
+		if net.ParseIP(val) == nil {
+			return errors.New("not a valid ip address")
+		}
+		*assignee = val
+		return nil
+	}
+}
+
+func (f *Flags) handleMaintenanceSyncIP() string {
+	f.amtMaintenanceSyncIPCommand.Func(
+		"staticip",
+		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
+		validateIP(&f.IpConfiguration.IpAddress))
+	f.amtMaintenanceSyncIPCommand.Func(
+		"netmask",
+		"Network mask to be assigned to AMT - if not specified, the Network mask of the active OS newtork interface is used",
+		validateIP(&f.IpConfiguration.Netmask))
+	f.amtMaintenanceSyncIPCommand.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
+	f.amtMaintenanceSyncIPCommand.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
+	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+
+	if err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		return ""
+	} else if len(f.IpConfiguration.IpAddress) != 0 {
+		return "--syncip"
+	}
+
+	amtLanIfc, err := f.amtCommand.GetLANInterfaceSettings(false)
+	if err != nil {
+		log.Error(err)
+		return ""
+	}
+
+	ifaces, err := f.netEnumerator.Interfaces()
+	if err != nil {
+		log.Error(err)
+		return ""
+	}
+
+	for _, i := range ifaces {
+		if len(f.IpConfiguration.IpAddress) != 0 {
+			break
+		}
+		if i.HardwareAddr.String() != amtLanIfc.MACAddress {
+			continue
+		}
+		addrs, _ := f.netEnumerator.InterfaceAddrs(&i)
+		if err != nil {
+			continue
+		}
+		for _, address := range addrs {
+			if ipnet, ok := address.(*net.IPNet); ok &&
+				ipnet.IP.To4() != nil &&
+				!ipnet.IP.IsLoopback() {
+				f.IpConfiguration.IpAddress = ipnet.IP.String()
+				f.IpConfiguration.Netmask = net.IP(ipnet.Mask).String()
 			}
-			f.Password = password
 		}
 	}
-	f.Command = "maintenance --synctime --password " + f.Password
-	return true
+
+	if len(f.IpConfiguration.IpAddress) == 0 {
+		log.Errorf("static ip address not found")
+		return ""
+	}
+	return "--syncip"
+}
+
+func (f *Flags) handleMaintenanceSyncChangePassword() string {
+	task := "--changepassword "
+	f.amtMaintenanceChangePasswordCommand.BoolVar(&f.RandomPassword, "random", true, "a new random password will be generated for AMT")
+	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
+	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		f.amtMaintenanceChangePasswordCommand.Usage()
+		return ""
+	}
+	if f.StaticPassword == "" && !f.RandomPassword {
+		f.amtMaintenanceChangePasswordCommand.Usage()
+		return ""
+	}
+	if f.StaticPassword != "" {
+		task += f.StaticPassword
+	}
+
+	return task
 }
 
 func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {
@@ -172,7 +329,6 @@ func (f *Flags) handleActivateCommand() bool {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
-	f.amtActivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
@@ -197,8 +353,8 @@ func (f *Flags) handleActivateCommand() bool {
 	f.Command = "activate --profile " + f.Profile
 	return true
 }
+
 func (f *Flags) handleDeactivateCommand() bool {
-	f.amtDeactivateCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	forcePtr := f.amtDeactivateCommand.Bool("f", false, "force deactivate even if device is not registered with a server")
 
 	if len(f.commandLineArgs) == 2 {
@@ -350,7 +506,6 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["hostnameOS"] = result
 			if !f.JsonOutput {
-
 				println("Hostname (OS)		: " + string(result))
 			}
 		}

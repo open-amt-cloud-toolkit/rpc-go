@@ -22,9 +22,11 @@ NOTE: assumes the dotnet SDK version is 6.0, check the bin path and adjust as ne
 go build -buildmode=c-shared -o samples/dotnet/bin/Debug/net6.0/librpc.so ./cmd
 ```
 
-On Ubuntu, there seems to be issues with Console.WriteLine showing up so
-execute the csharp .dll directly rather than using ```dotnet run```  
-NOTE: make sure the shared object library is co-located and named correctly
+On Ubuntu, there seems to be issues with Console.WriteLine showing up in
+the command line termninal. Execute the csharp .dll directly rather than
+using ```dotnet run```  
+NOTE: the path of the .dll is created from ```dotnet build``` step.
+Check the path and .dll name on the build system
 ```shell
 dotnet samples/dotnet/bin/Debug/net6.0/client.dll
 ```

@@ -5,13 +5,14 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os"
 	"rpc"
 	"rpc/internal/amt"
 	"rpc/internal/client"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const AccessErrMsg = "Failed to execute due to access issues. " +
@@ -68,9 +69,7 @@ func handleFlags(args []string) (*rpc.Flags, bool) {
 			log.SetLevel(lvl)
 		}
 	}
-	if flags.SyncClock {
-		log.Info("Syncing the clock")
-	}
+
 	if flags.JsonOutput {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else {

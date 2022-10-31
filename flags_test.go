@@ -5,11 +5,135 @@
 package rpc
 
 import (
+	"errors"
+	"net"
 	"os"
+	"path/filepath"
+	"rpc/pkg/pthi"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+const trickyPassword string = "!@#$%^&*(()-+="
+
+type MockPTHICommands struct{}
+
+func (c MockPTHICommands) Open(bool) error {
+	return nil
+}
+
+func (c MockPTHICommands) Close() {}
+
+func (c MockPTHICommands) Call([]byte, uint32) (result []byte, err error) {
+	return []byte{}, nil
+}
+
+func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error) {
+	return pthi.GetCodeVersionsResponse{}, nil
+}
+
+func (c MockPTHICommands) GetUUID() (uuid string, err error) {
+	return "", nil
+}
+
+func (c MockPTHICommands) GetControlMode() (state int, err error) {
+	return 0, nil
+}
+
+func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) {
+	return "", nil
+}
+
+func (c MockPTHICommands) GetCertificateHashes(pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
+	return []pthi.CertHashEntry{}, nil
+}
+
+func (c MockPTHICommands) GetRemoteAccessConnectionStatus() (RAStatus pthi.GetRemoteAccessConnectionStatusResponse, err error) {
+	return pthi.GetRemoteAccessConnectionStatusResponse{}, nil
+}
+
+func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSystemAccountResponse, err error) {
+	return pthi.GetLocalSystemAccountResponse{}, nil
+}
+
+func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterface pthi.GetLANInterfaceSettingsResponse, err error) {
+	if useWireless {
+		return pthi.GetLANInterfaceSettingsResponse{}, nil
+	} else {
+		return pthi.GetLANInterfaceSettingsResponse{
+			Enabled:     1,
+			Ipv4Address: 0,
+			DhcpEnabled: 1,
+			DhcpIpMode:  2,
+			LinkStatus:  1,
+			MacAddress:  [6]uint8{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+		}, nil
+	}
+}
+
+var testNetEnumerator = NetEnumerator{
+	Interfaces: func() ([]net.Interface, error) {
+		return []net.Interface{
+			{
+				Index: 0, MTU: 1200, Name: "wlanTest01",
+				HardwareAddr: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+				Flags:        0,
+			},
+			{
+				Index: 0, MTU: 1200, Name: "errTest01",
+				HardwareAddr: []byte{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+				Flags:        0,
+			},
+			{
+				Index: 0, MTU: 1200, Name: "ethTest01",
+				HardwareAddr: []byte{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+				Flags:        0,
+			},
+		}, nil
+	},
+	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
+		if i.Name == "errTest01" {
+			return nil, errors.New("test message")
+		} else {
+			return []net.Addr{
+				&net.IPNet{
+					IP:   net.ParseIP("127.0.0.1"),
+					Mask: net.CIDRMask(8, 32),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("::1234:5678"),
+					Mask: net.CIDRMask(64, 128),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("192.168.1.1"),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}, nil
+		}
+	},
+}
+
+func userInput(t *testing.T, input string) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = w.Write([]byte(input))
+	if err != nil {
+		t.Error(err)
+	}
+	err = w.Close()
+	if err != nil {
+		t.Error(err)
+	}
+	stdin := os.Stdin
+	os.Stdin = r
+	return func() {
+		os.Stdin = stdin
+	}
+}
 
 func TestNewFlags(t *testing.T) {
 	args := []string{"./rpc"}
@@ -17,23 +141,44 @@ func TestNewFlags(t *testing.T) {
 	assert.NotNil(t, flags)
 }
 func TestPrintUsage(t *testing.T) {
-	args := []string{"./rpc"}
+	executable := filepath.Base(os.Args[0])
+	args := []string{executable}
+
 	flags := NewFlags(args)
 	output := flags.printUsage()
-	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, and status of AMT\n\n"
-	usage = usage + "Usage: rpc COMMAND [OPTIONS]\n\n"
+	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
+	usage = usage + "Usage: " + executable + " COMMAND [OPTIONS]\n\n"
 	usage = usage + "Supported Commands:\n"
 	usage = usage + "  activate    Activate this device with a specified profile\n"
-	usage = usage + "              Example: ./rpc activate -u wss://server/activate --profile acmprofile\n"
-	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
-	usage = usage + "              Example: ./rpc deactivate -u wss://server/activate\n"
-	usage = usage + "  maintenance Maintain this device.\n"
-	usage = usage + "              Example: ./rpc maintenance -u wss://server/activate\n"
+	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
-	usage = usage + "              Example: ./rpc amtinfo\n"
+	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
+	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " maintenance syncclock -u wss://server/activate \n"
 	usage = usage + "  version     Displays the current version of RPC and the RPC Protocol version\n"
-	usage = usage + "              Example: ./rpc version\n"
-	usage = usage + "\nRun 'rpc COMMAND' for more information on a command.\n"
+	usage = usage + "              Example: " + executable + " version\n"
+	usage = usage + "\nRun '" + executable + " COMMAND' for more information on a command.\n"
+	assert.Equal(t, usage, output)
+}
+
+func TestPrintMaintenanceUsage(t *testing.T) {
+	executable := filepath.Base(os.Args[0])
+	args := []string{executable}
+	flags := NewFlags(args)
+	output := flags.printMaintenanceUsage()
+	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
+	usage = usage + "Usage: " + executable + " maintenance COMMAND [OPTIONS]\n\n"
+	usage = usage + "Supported Maintenance Commands:\n"
+	usage = usage + "  changepassword Change the AMT password. A random password is generated by default. Specify -static to set manually. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance changepassword -u wss://server/activate\n"
+	usage = usage + "  syncclock      Sync the host OS clock to AMT. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance syncclock -u wss://server/activate\n"
+	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
+	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
+	usage = usage + "\nRun '" + executable + " maintenance COMMAND -h' for more information on a command.\n"
 	assert.Equal(t, usage, output)
 }
 
@@ -70,10 +215,18 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 }
 func TestHandleActivateCommandWithENV(t *testing.T) {
 
-	os.Setenv("DNS_SUFFIX", "envdnssuffix.com")
-	os.Setenv("HOSTNAME", "envhostname")
-	os.Setenv("PROFILE", "envprofile")
-	os.Setenv("AMT_PASSWORD", "envpassword")
+	if err := os.Setenv("DNS_SUFFIX", "envdnssuffix.com"); err != nil {
+		t.Error(err)
+	}
+	if err := os.Setenv("HOSTNAME", "envhostname"); err != nil {
+		t.Error(err)
+	}
+	if err := os.Setenv("PROFILE", "envprofile"); err != nil {
+		t.Error(err)
+	}
+	if err := os.Setenv("AMT_PASSWORD", "envpassword"); err != nil {
+		t.Error(err)
+	}
 
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
 	flags := NewFlags(args)
@@ -114,23 +267,7 @@ func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
 	expected := "deactivate --password password"
-	input := []byte("password")
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = w.Write(input)
-	if err != nil {
-		t.Error(err)
-	}
-	w.Close()
-
-	stdin := os.Stdin
-	// Restore stdin right after the test.
-	defer func() { os.Stdin = stdin }()
-	os.Stdin = r
-
+	defer userInput(t, "password")()
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
 	assert.True(t, success)
@@ -138,23 +275,7 @@ func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 }
 func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
-	input := []byte("")
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = w.Write(input)
-	if err != nil {
-		t.Error(err)
-	}
-	w.Close()
-
-	stdin := os.Stdin
-	// Restore stdin right after the test.
-	defer func() { os.Stdin = stdin }()
-	os.Stdin = r
-
+	defer userInput(t, "")()
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
 	assert.False(t, success)
@@ -191,6 +312,145 @@ func TestParseFlagsDeactivate(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "deactivate", command)
+}
+
+func TestParseFlagsMaintenance(t *testing.T) {
+	argUrl := "-u wss://localhost"
+	argCurPw := "-password " + trickyPassword
+	argSyncClock := "syncclock"
+	argSyncIp := "syncip"
+	argChangePw := "changepassword"
+	newPassword := trickyPassword + "123"
+	cmdBase := "./rpc maintenance"
+	ipCfgNoParams := IPConfiguration{
+		IpAddress: "192.168.1.1",
+		Netmask:   "255.255.255.0",
+	}
+	ipCfgWithParams := IPConfiguration{
+		IpAddress:    "10.20.30.40",
+		Netmask:      "255.0.0.0",
+		Gateway:      "10.0.0.0",
+		PrimaryDns:   "8.8.8.8",
+		SecondaryDns: "4.4.4.4",
+	}
+	ipCfgWithLookup := IPConfiguration{
+		IpAddress:    ipCfgNoParams.IpAddress,
+		Netmask:      ipCfgNoParams.Netmask,
+		Gateway:      "10.0.0.0",
+		PrimaryDns:   "1.2.3.4",
+		SecondaryDns: "5.6.7.8",
+	}
+	tests := map[string]struct {
+		cmdLine      string
+		wantResult   bool
+		wantRpsCmd   string
+		wantIPConfig IPConfiguration
+		userInput    string
+	}{
+		"should fail with usage - no additional arguments": {
+			cmdLine:    cmdBase,
+			wantResult: false,
+			wantRpsCmd: "",
+		},
+		"should fail - required websocket URL": {
+			cmdLine:    cmdBase + " " + argSyncClock,
+			wantResult: false,
+		},
+		"should fail - required amt password": {
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			wantResult: false,
+			wantRpsCmd: "",
+		},
+		"should fail - required task": {
+			cmdLine:    cmdBase + " " + argUrl,
+			wantResult: false,
+			wantRpsCmd: "",
+		},
+		"should pass - syncclock": {
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl + " " + argCurPw,
+			wantResult: true,
+			// translate arg from clock -> time
+			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
+		},
+		"should pass - syncip no params": {
+			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
+			wantResult:   true,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantIPConfig: ipCfgNoParams,
+		},
+		"should pass - syncip with params": {
+			cmdLine: cmdBase + " " +
+				argSyncIp +
+				" -staticip " + ipCfgWithParams.IpAddress +
+				" -netmask " + ipCfgWithParams.Netmask +
+				" -gateway " + ipCfgWithParams.Gateway +
+				" -primarydns " + ipCfgWithParams.PrimaryDns +
+				" -secondarydns " + ipCfgWithParams.SecondaryDns +
+				" " + argUrl + " " + argCurPw,
+			wantResult:   true,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantIPConfig: ipCfgWithParams,
+		},
+		"should pass - syncip with lookup": {
+			cmdLine: cmdBase + " " +
+				argSyncIp +
+				" -gateway " + ipCfgWithLookup.Gateway +
+				" -primarydns " + ipCfgWithLookup.PrimaryDns +
+				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
+				" " + argUrl + " " + argCurPw,
+			wantResult:   true,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantIPConfig: ipCfgWithLookup,
+		},
+		"should fail - syncip bad ip address": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
+			wantResult: false,
+			wantRpsCmd: "",
+		},
+		"should pass - change password to random value": {
+			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
+		},
+		"should pass - change password using static value": {
+			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+		},
+		"should pass - change password static value before other flags": {
+			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+		},
+		"should pass - change password static value after all flags": {
+			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+		},
+		"should pass - password user input": {
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
+			userInput:  trickyPassword,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			args := strings.Fields(tc.cmdLine)
+			if tc.userInput != "" {
+				defer userInput(t, tc.userInput)()
+			}
+			flags := NewFlags(args)
+			flags.amtCommand.PTHI = MockPTHICommands{}
+			flags.netEnumerator = testNetEnumerator
+			gotCommand, gotResult := flags.ParseFlags()
+			assert.Equal(t, tc.wantResult, gotResult)
+			assert.Equal(t, "maintenance", gotCommand)
+			assert.Equal(t, tc.wantRpsCmd, flags.Command)
+			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)
+		})
+	}
 }
 
 func TestParseFlagsAMTInfo(t *testing.T) {
@@ -275,7 +535,9 @@ func TestLookupEnvOrString_Default(t *testing.T) {
 }
 func TestLookupEnvOrString_Env(t *testing.T) {
 	args := []string{"./rpc", ""}
-	os.Setenv("URL", "wss://localhost")
+	if err := os.Setenv("URL", "wss://localhost"); err != nil {
+		t.Error(err)
+	}
 	flags := NewFlags(args)
 	result := flags.lookupEnvOrString("URL", "")
 	assert.Equal(t, "wss://localhost", result)
@@ -289,7 +551,10 @@ func TestLookupEnvOrBool_Default(t *testing.T) {
 }
 func TestLookupEnvOrBool_Env(t *testing.T) {
 	args := []string{"./rpc", ""}
-	os.Setenv("SKIP_CERT_CHECK", "true")
+
+	if err := os.Setenv("SKIP_CERT_CHECK", "true"); err != nil {
+		t.Error(err)
+	}
 	flags := NewFlags(args)
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, true, result)
@@ -297,7 +562,9 @@ func TestLookupEnvOrBool_Env(t *testing.T) {
 
 func TestLookupEnvOrBool_EnvError(t *testing.T) {
 	args := []string{"./rpc", ""}
-	os.Setenv("SKIP_CERT_CHECK", "notparsable")
+	if err := os.Setenv("SKIP_CERT_CHECK", "notparsable"); err != nil {
+		t.Error(err)
+	}
 	flags := NewFlags(args)
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, false, result)

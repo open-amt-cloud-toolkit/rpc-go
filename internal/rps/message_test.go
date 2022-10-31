@@ -173,7 +173,6 @@ func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
 }
 
 func TestCreateActivationResponse(t *testing.T) {
-
 	result := p.CreateMessageResponse([]byte("123"))
 	assert.Equal(t, "response", result.Method)
 	assert.Equal(t, "key", result.APIKey)
@@ -182,5 +181,25 @@ func TestCreateActivationResponse(t *testing.T) {
 	assert.NotEmpty(t, result.Payload)
 	assert.Equal(t, utils.ProtocolVersion, result.ProtocolVersion)
 	assert.Equal(t, utils.ProjectVersion, result.AppVersion)
+}
 
+func TestCreateMessageRequestIPConfiguration(t *testing.T) {
+	flags := rpc.Flags{
+		IpConfiguration: rpc.IPConfiguration{
+			IpAddress:    "192.168.1.1",
+			Netmask:      "255.255.0.0",
+			Gateway:      "192.168.1.0",
+			PrimaryDns:   "8.8.8.8",
+			SecondaryDns: "1.2.3.4",
+		},
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
 }
