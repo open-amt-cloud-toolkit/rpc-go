@@ -40,19 +40,20 @@ type StatusMessage struct {
 	TLSConfiguration string `json:"TLSConfiguration,omitempty"`
 }
 
-// MessagePayload struct is used for the initial request to RPS to activate a device
+// MessagePayload struct is used for the initial request to RPS to activate or manage a device
 type MessagePayload struct {
-	Version           string   `json:"ver"`
-	Build             string   `json:"build"`
-	SKU               string   `json:"sku"`
-	UUID              string   `json:"uuid"`
-	Username          string   `json:"username"`
-	Password          string   `json:"password"`
-	CurrentMode       int      `json:"currentMode"`
-	Hostname          string   `json:"hostname"`
-	FQDN              string   `json:"fqdn"`
-	Client            string   `json:"client"`
-	CertificateHashes []string `json:"certHashes"`
+	Version           string              `json:"ver"`
+	Build             string              `json:"build"`
+	SKU               string              `json:"sku"`
+	UUID              string              `json:"uuid"`
+	Username          string              `json:"username"`
+	Password          string              `json:"password"`
+	CurrentMode       int                 `json:"currentMode"`
+	Hostname          string              `json:"hostname"`
+	FQDN              string              `json:"fqdn"`
+	Client            string              `json:"client"`
+	CertificateHashes []string            `json:"certHashes"`
+	IPConfiguration   rpc.IPConfiguration `json:"ipConfiguration"`
 }
 
 func NewPayload() Payload {
@@ -143,6 +144,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 	if err != nil {
 		return message, err
 	}
+	payload.IPConfiguration = flags.IpConfiguration
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
@@ -157,6 +159,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 		}
 		payload.Password = flags.Password
 	}
+
 	//convert struct to json
 	data, err := json.Marshal(payload)
 	if err != nil {
