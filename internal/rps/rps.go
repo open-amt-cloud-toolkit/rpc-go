@@ -133,7 +133,6 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 		if err == nil {
 			log.Error(statusMessage.Status)
 		} else {
-			log.Error(err)
 			log.Error(activation.Message)
 		}
 		return nil
