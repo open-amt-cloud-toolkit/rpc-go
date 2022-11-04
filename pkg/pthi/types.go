@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package pthi is responsible for communicating with the PTHI
 package pthi
 
 const GET_REQUEST_SIZE uint32 = 12
@@ -121,48 +123,64 @@ const STOP_CONFIGURATION_RESPONSE = 0x480005e
 const GET_UUID_REQUEST = 0x400005c
 const GET_UUID_RESPONSE = 0x480005c
 
+// AMTUnicodeString ...
 type AMTUnicodeString struct {
 	Length uint16
 	String [UNICODE_STRING_LEN]uint8
 }
+
+// AMTVersionType ...
 type AMTVersionType struct {
 	Description AMTUnicodeString
 	Version     AMTUnicodeString
 }
 
+// Version ...
 type Version struct {
 	MajorNumber uint8
 	MinorNumber uint8
 }
+
+// CodeVersions ...
 type CodeVersions struct {
 	BiosVersion   [BIOS_VERSION_LEN]uint8
 	VersionsCount uint32
 	Versions      [VERSIONS_NUMBER]AMTVersionType
 }
 
+// CommandFormat ...
 type CommandFormat struct {
 	val uint32
 	// fields [3]uint32
 }
+
+// MessageHeader ...
 type MessageHeader struct {
 	Version  Version
 	Reserved uint16
 	Command  CommandFormat
 	Length   uint32
 }
+
+// ResponseMessageHeader ...
 type ResponseMessageHeader struct {
 	Header MessageHeader
 	Status uint32
 }
+
+// GetCodeVersionsResponse ...
 type GetCodeVersionsResponse struct {
 	Header      ResponseMessageHeader
 	CodeVersion CodeVersions
 }
 
+// GetPKIFQDNSuffixResponse ...
 type GetPKIFQDNSuffixResponse struct {
 	Header ResponseMessageHeader
 	Suffix AMTANSIString
 }
+
+// AMTANSIString ...
 type AMTANSIString struct {
 	Length uint16
 	Buffer [1000]uint8
@@ -177,46 +195,61 @@ type AMTANSIString struct {
 type GetRequest struct {
 	Header MessageHeader
 }
+
+// GetUUIDResponse ...
 type GetUUIDResponse struct {
 	Header ResponseMessageHeader
 	UUID   [16]uint8
 }
 
+// GetControlModeResponse ...
 type GetControlModeResponse struct {
 	Header ResponseMessageHeader
 	State  uint32
 }
+
+// LocalSystemAccount ...
 type LocalSystemAccount struct {
 	Username [CFG_MAX_ACL_USER_LENGTH]uint8
 	Password [CFG_MAX_ACL_USER_LENGTH]uint8
 }
 
+// GetLocalSystemAccountRequest ...
 type GetLocalSystemAccountRequest struct {
 	Header   MessageHeader
 	Reserved [40]uint8
 }
+
+// GetLocalSystemAccountResponse ...
 type GetLocalSystemAccountResponse struct {
 	Header  ResponseMessageHeader
 	Account LocalSystemAccount
 }
+
+// GetLANInterfaceSettingsRequest ...
 type GetLANInterfaceSettingsRequest struct {
 	Header         MessageHeader
 	InterfaceIndex uint32
 }
+
+// GetLANInterfaceSettingsResponse ...
 type GetLANInterfaceSettingsResponse struct {
 	Header      ResponseMessageHeader
 	Enabled     uint32
 	Ipv4Address uint32
 	DhcpEnabled uint32
-	DhcpIpMode  uint8
+	DhcpIPMode  uint8
 	LinkStatus  uint8
 	MacAddress  [6]uint8
 }
 
+// AMTHashHandles ...
 type AMTHashHandles struct {
 	Length  uint32
 	Handles [CERT_HASH_MAX_NUMBER]uint32
 }
+
+// CertHashEntry ...
 type CertHashEntry struct {
 	IsDefault       uint32
 	IsActive        uint32
@@ -225,21 +258,25 @@ type CertHashEntry struct {
 	Name            AMTANSIString
 }
 
+// GetHashHandlesResponse ...
 type GetHashHandlesResponse struct {
 	Header      ResponseMessageHeader
 	HashHandles AMTHashHandles
 }
 
+// GetCertHashEntryRequest ...
 type GetCertHashEntryRequest struct {
 	Header     MessageHeader
 	HashHandle uint32
 }
 
+// GetCertHashEntryResponse ...
 type GetCertHashEntryResponse struct {
 	Header ResponseMessageHeader
 	Hash   CertHashEntry
 }
 
+// GetRemoteAccessConnectionStatusResponse status struct
 type GetRemoteAccessConnectionStatusResponse struct {
 	Header        ResponseMessageHeader
 	NetworkStatus uint32

@@ -36,14 +36,14 @@ func echo(w http.ResponseWriter, r *http.Request) {
 }
 
 var testServer *httptest.Server
-var testUrl string
+var testURL string
 
 func init() {
 	// Create test server with the echo handler.
 	testServer = httptest.NewServer(http.HandlerFunc(echo))
 	// defer testServer.Close()
 	// Convert http to ws
-	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
+	testURL = "ws" + strings.TrimPrefix(testServer.URL, "http")
 }
 
 //func TestPrepareInitialMessage(t *testing.T) {
@@ -55,14 +55,14 @@ func init() {
 //	assert.NoError(t, err)
 //}
 func TestConnect(t *testing.T) {
-	server := NewAMTActivationServer(testUrl)
+	server := NewAMTActivationServer(testURL)
 	err := server.Connect(true)
 	defer server.Close()
 	assert.NoError(t, err)
 }
 func TestSend(t *testing.T) {
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 
 	err := server.Connect(true)
@@ -77,7 +77,7 @@ func TestSend(t *testing.T) {
 
 func TestListen(t *testing.T) {
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 
 	err := server.Connect(true)
@@ -106,7 +106,7 @@ func TestProcessMessageHeartbeat(t *testing.T) {
 		"method": "heartbeat_request"
 	}`
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 	server.Connect(true)
 	decodedMessage := server.ProcessMessage([]byte(activation))
@@ -120,7 +120,7 @@ func TestProcessMessageSuccess(t *testing.T) {
 		"message": "{\"status\":\"ok\", \"network\":\"configured\", \"ciraConnection\":\"configured\"}"
 	}`
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 	server.Connect(true)
 	decodedMessage := server.ProcessMessage([]byte(activation))
@@ -133,7 +133,7 @@ func TestProcessMessageUnformattedSuccess(t *testing.T) {
 		"message": "configured"
 	}`
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 	server.Connect(true)
 	decodedMessage := server.ProcessMessage([]byte(activation))
@@ -147,7 +147,7 @@ func TestProcessMessageError(t *testing.T) {
 		"message": "can't do it"
 	}`
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 	server.Connect(true)
 	decodedMessage := server.ProcessMessage([]byte(activation))
@@ -162,7 +162,7 @@ func TestProcessMessageForLMS(t *testing.T) {
 		"payload": "eyJzdGF0dXMiOiJvayIsICJuZXR3b3JrIjoiY29uZmlndXJlZCIsICJjaXJhQ29ubmVjdGlvbiI6ImNvbmZpZ3VyZWQifQ=="
 	}`
 	server := AMTActivationServer{
-		URL: testUrl,
+		URL: testURL,
 	}
 	server.Connect(true)
 	decodedMessage := server.ProcessMessage([]byte(activation))

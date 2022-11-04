@@ -44,7 +44,16 @@ jobs:
       - uses: codecov/codecov-action@v1.0.14
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         name: Upload Coverage Results
-        
+      
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run go lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: latest
+
       # Runs a single command using the runners shell
       - name: build go
         if: ${{ matrix.os == 'windows-2019' }}

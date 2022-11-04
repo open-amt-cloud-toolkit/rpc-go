@@ -35,17 +35,17 @@ func TestProcessChannelOpenFailure(t *testing.T) {
 		assert.Error(t, err)
 		assert.False(t, status)
 	}()
-	ProcessChannelOpenFailure(data, session)
+	processChannelOpenFailure(data, session)
 }
 func TestProcessChannelWindowAdjust(t *testing.T) {
 	data := []byte{0x01}
 	session := &LMESession{}
-	ProcessChannelWindowAdjust(data, session)
+	processChannelWindowAdjust(data, session)
 }
 func TestProcessChannelClose(t *testing.T) {
 	data := []byte{0x01}
 	session := &LMESession{}
-	result := ProcessChannelClose(data, session)
+	result := processChannelClose(data, session)
 	assert.NotNil(t, result)
 }
 func TestProcessGlobalRequest(t *testing.T) {
@@ -57,7 +57,7 @@ func TestProcessGlobalRequest(t *testing.T) {
 		0x00, 0x00, 0x00,
 		0x00, 0x00, 0x42, 0x60}
 
-	result := ProcessGlobalRequest(data)
+	result := processGlobalRequest(data)
 	assert.NotNil(t, result)
 }
 func TestProcessChannelData(t *testing.T) {
@@ -72,14 +72,14 @@ func TestProcessChannelData(t *testing.T) {
 	go func() {
 		<-timer.C
 	}()
-	ProcessChannelData(data, session)
+	processChannelData(data, session)
 
 }
 func TestProcessServiceRequestWhenAUTH(t *testing.T) {
 	data := []byte{0x01, 0x00, 0x00, 0x00, 0x12, 0x61, 0x75, 0x74, 0x68, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}
 	hi := int(0x12)
 	println(hi)
-	result := ProcessServiceRequest(data)
+	result := processServiceRequest(data)
 	assert.NotNil(t, result)
 	assert.Equal(t, uint8(0x6), result.MessageType) // APF_SERVICE_ACCEPT
 	assert.Equal(t, uint32(0x12), result.ServiceNameLength)
@@ -90,7 +90,7 @@ func TestProcessServiceRequestWhenPWFD(t *testing.T) {
 	data := []byte{0x01, 0x00, 0x00, 0x00, 0x12, 0x70, 0x66, 0x77, 0x64, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}
 	hi := int(0x12)
 	println(hi)
-	result := ProcessServiceRequest(data)
+	result := processServiceRequest(data)
 	assert.NotNil(t, result)
 	assert.Equal(t, uint8(0x6), result.MessageType) // APF_SERVICE_ACCEPT
 	assert.Equal(t, uint32(0x12), result.ServiceNameLength)
@@ -107,11 +107,11 @@ func TestProcessChannelOpenConfirmation(t *testing.T) {
 		<-statusChannel
 		println("Hello, status  is done")
 	}()
-	ProcessChannelOpenConfirmation(data, session)
+	processChannelOpenConfirmation(data, session)
 }
 func TestProcessProtocolVersion(t *testing.T) {
 	data := []byte{0x01}
-	result := ProcessProtocolVersion(data)
+	result := processProtocolVersion(data)
 	assert.NotNil(t, result)
 }
 
@@ -125,7 +125,7 @@ func TestProtocolVersion(t *testing.T) {
 	assert.NotNil(t, result)
 }
 func TestTcpForwardReplySuccess(t *testing.T) {
-	result := TcpForwardReplySuccess(16992)
+	result := TCPForwardReplySuccess(16992)
 	assert.NotNil(t, result)
 }
 func TestChannelOpen(t *testing.T) {
@@ -133,11 +133,11 @@ func TestChannelOpen(t *testing.T) {
 	assert.NotNil(t, result)
 }
 func TestChannelOpenReplySuccess(t *testing.T) {
-	result := ChannelOpenReplySuccess(0, 1)
+	result := channelOpenReplySuccess(0, 1)
 	assert.NotNil(t, result)
 }
 func TestChannelOpenReplyFailure(t *testing.T) {
-	result := ChannelOpenReplyFailure(0, 1)
+	result := channelOpenReplyFailure(0, 1)
 	assert.NotNil(t, result)
 }
 func TestChannelClose(t *testing.T) {
@@ -150,6 +150,6 @@ func TestChannelData(t *testing.T) {
 	assert.NotNil(t, result)
 }
 func TestChannelWindowAdjust(t *testing.T) {
-	result := ChannelWindowAdjust(0, 32)
+	result := channelWindowAdjust(0, 32)
 	assert.NotNil(t, result)
 }

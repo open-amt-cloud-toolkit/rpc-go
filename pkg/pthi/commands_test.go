@@ -16,7 +16,7 @@ import (
 type MockHECICommands struct{}
 
 var message []byte
-var numBytes uint32 = GET_REQUEST_SIZE
+var numBytes = GET_REQUEST_SIZE
 
 func (c *MockHECICommands) Init(useLME bool) error { return nil }
 func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
@@ -41,8 +41,8 @@ func init() {
 
 func TestSend(t *testing.T) {
 	numBytes = 54
-	bin_buf := apf.ChannelOpen(1)
-	err := pthi.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	binBuf := apf.ChannelOpen(1)
+	err := pthi.Send(binBuf.Bytes(), uint32(binBuf.Len()))
 	assert.NoError(t, err)
 }
 func TestReceive(t *testing.T) {
@@ -63,9 +63,9 @@ func TestGetGUID(t *testing.T) {
 		Header: ResponseMessageHeader{},
 		UUID:   [16]uint8{1, 2, 3, 4},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	// Run function and test cases
 	result, err := pthi.GetUUID()
@@ -79,9 +79,9 @@ func TestGetControlMode(t *testing.T) {
 		Header: ResponseMessageHeader{},
 		State:  3,
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetControlMode()
 	assert.NoError(t, err)
@@ -97,9 +97,9 @@ func TestGetCodeVersions(t *testing.T) {
 			VersionsCount: 1,
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetCodeVersions()
 	assert.NoError(t, err)
@@ -117,9 +117,9 @@ func TestGetDNSSuffix(t *testing.T) {
 			Buffer: [1000]uint8{1, 2, 3, 4},
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetDNSSuffix()
 	assert.NoError(t, err)
@@ -136,9 +136,9 @@ func TestEnumerateHashHandles(t *testing.T) {
 			Handles: [CERT_HASH_MAX_NUMBER]uint32{0},
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 	result, err := pthi.enumerateHashHandles()
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(1), result.Length)
@@ -159,9 +159,9 @@ func TestGetCertificateHashes(t *testing.T) { // Needs more work
 			},
 		},
 	}
-	var bin_buf2 bytes.Buffer
-	binary.Write(&bin_buf2, binary.LittleEndian, prepareMessage2)
-	message = bin_buf2.Bytes()
+	var binBuf2 bytes.Buffer
+	binary.Write(&binBuf2, binary.LittleEndian, prepareMessage2)
+	message = binBuf2.Bytes()
 
 	result, err := pthi.GetCertificateHashes(AMTHashHandles{Length: 1})
 	assert.NoError(t, err)
@@ -185,9 +185,9 @@ func TestGetRemoteAccessConnectionStatus(t *testing.T) {
 			Buffer: [1000]uint8{1, 2, 3, 4},
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetRemoteAccessConnectionStatus()
 	assert.NoError(t, err)
@@ -205,13 +205,13 @@ func TestGetLANInterfaceSettings(t *testing.T) {
 		Enabled:     1,
 		Ipv4Address: 1020,
 		DhcpEnabled: 0,
-		DhcpIpMode:  0,
+		DhcpIPMode:  0,
 		LinkStatus:  1,
 		MacAddress:  [6]uint8{1, 2, 3, 4, 5, 6},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetLANInterfaceSettings(true)
 	assert.NoError(t, err)
@@ -219,7 +219,7 @@ func TestGetLANInterfaceSettings(t *testing.T) {
 	assert.Equal(t, int(result.Enabled), 1)
 	assert.Equal(t, int(result.Ipv4Address), 1020)
 	assert.Equal(t, int(result.DhcpEnabled), 0)
-	assert.Equal(t, int(result.DhcpIpMode), 0)
+	assert.Equal(t, int(result.DhcpIPMode), 0)
 	assert.Equal(t, int(result.LinkStatus), 1)
 	assert.Equal(t, result.MacAddress, [6]uint8{1, 2, 3, 4, 5, 6})
 }
@@ -233,9 +233,9 @@ func TestGetLocalSystemAccount(t *testing.T) {
 			Password: [CFG_MAX_ACL_USER_LENGTH]uint8{8, 7, 6, 5},
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
-	message = bin_buf.Bytes()
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, prepareMessage)
+	message = binBuf.Bytes()
 
 	result, err := pthi.GetLocalSystemAccount()
 	assert.NoError(t, err)

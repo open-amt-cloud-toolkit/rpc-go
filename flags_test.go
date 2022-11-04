@@ -61,16 +61,16 @@ func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSys
 func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterface pthi.GetLANInterfaceSettingsResponse, err error) {
 	if useWireless {
 		return pthi.GetLANInterfaceSettingsResponse{}, nil
-	} else {
-		return pthi.GetLANInterfaceSettingsResponse{
-			Enabled:     1,
-			Ipv4Address: 0,
-			DhcpEnabled: 1,
-			DhcpIpMode:  2,
-			LinkStatus:  1,
-			MacAddress:  [6]uint8{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
-		}, nil
 	}
+	return pthi.GetLANInterfaceSettingsResponse{
+		Enabled:     1,
+		Ipv4Address: 0,
+		DhcpEnabled: 1,
+		DhcpIPMode:  2,
+		LinkStatus:  1,
+		MacAddress:  [6]uint8{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
+	}, nil
+
 }
 
 var testNetEnumerator = NetEnumerator{
@@ -96,22 +96,22 @@ var testNetEnumerator = NetEnumerator{
 	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
 		if i.Name == "errTest01" {
 			return nil, errors.New("test message")
-		} else {
-			return []net.Addr{
-				&net.IPNet{
-					IP:   net.ParseIP("127.0.0.1"),
-					Mask: net.CIDRMask(8, 32),
-				},
-				&net.IPNet{
-					IP:   net.ParseIP("::1234:5678"),
-					Mask: net.CIDRMask(64, 128),
-				},
-				&net.IPNet{
-					IP:   net.ParseIP("192.168.1.1"),
-					Mask: net.CIDRMask(24, 32),
-				},
-			}, nil
 		}
+		return []net.Addr{
+			&net.IPNet{
+				IP:   net.ParseIP("127.0.0.1"),
+				Mask: net.CIDRMask(8, 32),
+			},
+			&net.IPNet{
+				IP:   net.ParseIP("::1234:5678"),
+				Mask: net.CIDRMask(64, 128),
+			},
+			&net.IPNet{
+				IP:   net.ParseIP("192.168.1.1"),
+				Mask: net.CIDRMask(24, 32),
+			},
+		}, nil
+
 	},
 }
 
@@ -315,30 +315,30 @@ func TestParseFlagsDeactivate(t *testing.T) {
 }
 
 func TestParseFlagsMaintenance(t *testing.T) {
-	argUrl := "-u wss://localhost"
+	argURL := "-u wss://localhost"
 	argCurPw := "-password " + trickyPassword
 	argSyncClock := "syncclock"
-	argSyncIp := "syncip"
+	argSyncIP := "syncip"
 	argChangePw := "changepassword"
 	newPassword := trickyPassword + "123"
 	cmdBase := "./rpc maintenance"
 	ipCfgNoParams := IPConfiguration{
-		IpAddress: "192.168.1.1",
+		IPAddress: "192.168.1.1",
 		Netmask:   "255.255.255.0",
 	}
 	ipCfgWithParams := IPConfiguration{
-		IpAddress:    "10.20.30.40",
+		IPAddress:    "10.20.30.40",
 		Netmask:      "255.0.0.0",
 		Gateway:      "10.0.0.0",
-		PrimaryDns:   "8.8.8.8",
-		SecondaryDns: "4.4.4.4",
+		PrimaryDNS:   "8.8.8.8",
+		SecondaryDNS: "4.4.4.4",
 	}
 	ipCfgWithLookup := IPConfiguration{
-		IpAddress:    ipCfgNoParams.IpAddress,
+		IPAddress:    ipCfgNoParams.IPAddress,
 		Netmask:      ipCfgNoParams.Netmask,
 		Gateway:      "10.0.0.0",
-		PrimaryDns:   "1.2.3.4",
-		SecondaryDns: "5.6.7.8",
+		PrimaryDNS:   "1.2.3.4",
+		SecondaryDNS: "5.6.7.8",
 	}
 	tests := map[string]struct {
 		cmdLine      string
@@ -357,78 +357,78 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantResult: false,
 		},
 		"should fail - required amt password": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argURL,
 			wantResult: false,
 			wantRpsCmd: "",
 		},
 		"should fail - required task": {
-			cmdLine:    cmdBase + " " + argUrl,
+			cmdLine:    cmdBase + " " + argURL,
 			wantResult: false,
 			wantRpsCmd: "",
 		},
 		"should pass - syncclock": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argURL + " " + argCurPw,
 			wantResult: true,
 			// translate arg from clock -> time
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 		},
 		"should pass - syncip no params": {
-			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
+			cmdLine:      cmdBase + " " + argSyncIP + " " + argURL + " " + argCurPw,
 			wantResult:   true,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIP,
 			wantIPConfig: ipCfgNoParams,
 		},
 		"should pass - syncip with params": {
 			cmdLine: cmdBase + " " +
-				argSyncIp +
-				" -staticip " + ipCfgWithParams.IpAddress +
+				argSyncIP +
+				" -staticip " + ipCfgWithParams.IPAddress +
 				" -netmask " + ipCfgWithParams.Netmask +
 				" -gateway " + ipCfgWithParams.Gateway +
-				" -primarydns " + ipCfgWithParams.PrimaryDns +
-				" -secondarydns " + ipCfgWithParams.SecondaryDns +
-				" " + argUrl + " " + argCurPw,
+				" -primarydns " + ipCfgWithParams.PrimaryDNS +
+				" -secondarydns " + ipCfgWithParams.SecondaryDNS +
+				" " + argURL + " " + argCurPw,
 			wantResult:   true,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIP,
 			wantIPConfig: ipCfgWithParams,
 		},
 		"should pass - syncip with lookup": {
 			cmdLine: cmdBase + " " +
-				argSyncIp +
+				argSyncIP +
 				" -gateway " + ipCfgWithLookup.Gateway +
-				" -primarydns " + ipCfgWithLookup.PrimaryDns +
-				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
-				" " + argUrl + " " + argCurPw,
+				" -primarydns " + ipCfgWithLookup.PrimaryDNS +
+				" -secondarydns " + ipCfgWithLookup.SecondaryDNS +
+				" " + argURL + " " + argCurPw,
 			wantResult:   true,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
+			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIP,
 			wantIPConfig: ipCfgWithLookup,
 		},
 		"should fail - syncip bad ip address": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + argSyncIP + " -staticip 322.299.0.0 " + argURL + " " + argCurPw,
 			wantResult: false,
 			wantRpsCmd: "",
 		},
 		"should pass - change password to random value": {
-			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + argChangePw + " " + argURL + " " + argCurPw,
 			wantResult: true,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
 		},
 		"should pass - change password using static value": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argURL + " " + argCurPw,
 			wantResult: true,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - change password static value before other flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argURL + " " + argCurPw,
 			wantResult: true,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - change password static value after all flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
+			cmdLine:    cmdBase + " " + argChangePw + " " + argURL + " " + argCurPw + " -static " + newPassword,
 			wantResult: true,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - password user input": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			cmdLine:    cmdBase + " " + argSyncClock + " " + argURL,
 			wantResult: true,
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 			userInput:  trickyPassword,
@@ -448,7 +448,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, "maintenance", gotCommand)
 			assert.Equal(t, tc.wantRpsCmd, flags.Command)
-			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)
+			assert.Equal(t, tc.wantIPConfig, flags.IPConfiguration)
 		})
 	}
 }
@@ -459,7 +459,7 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "amtinfo", command)
-	assert.Equal(t, false, flags.JsonOutput)
+	assert.Equal(t, false, flags.JSONOutput)
 }
 
 func TestParseFlagsAMTInfoJSON(t *testing.T) {
@@ -468,7 +468,7 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "amtinfo", command)
-	assert.Equal(t, true, flags.JsonOutput)
+	assert.Equal(t, true, flags.JSONOutput)
 }
 func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
@@ -476,7 +476,7 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "amtinfo", command)
-	assert.Equal(t, false, flags.JsonOutput)
+	assert.Equal(t, false, flags.JSONOutput)
 }
 func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
@@ -484,7 +484,7 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "amtinfo", command)
-	assert.Equal(t, false, flags.JsonOutput)
+	assert.Equal(t, false, flags.JSONOutput)
 }
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
@@ -499,7 +499,7 @@ func TestParseFlagsVersion(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "version", command)
-	assert.Equal(t, false, flags.JsonOutput)
+	assert.Equal(t, false, flags.JSONOutput)
 }
 
 func TestParseFlagsVersionJSON(t *testing.T) {
@@ -508,7 +508,7 @@ func TestParseFlagsVersionJSON(t *testing.T) {
 	command, result := flags.ParseFlags()
 	assert.False(t, result)
 	assert.Equal(t, "version", command)
-	assert.Equal(t, true, flags.JsonOutput)
+	assert.Equal(t, true, flags.JSONOutput)
 }
 
 func TestParseFlagsNone(t *testing.T) {

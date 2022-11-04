@@ -2,6 +2,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
 package rpc
 
 import (
@@ -27,11 +28,11 @@ type NetEnumerator struct {
 }
 
 type IPConfiguration struct {
-	IpAddress    string `json:"ipAddress"`
+	IPAddress    string `json:"ipAddress"`
 	Netmask      string `json:"netmask"`
 	Gateway      string `json:"gateway"`
-	PrimaryDns   string `json:"primaryDns"`
-	SecondaryDns string `json:"secondaryDns"`
+	PrimaryDNS   string `json:"primaryDns"`
+	SecondaryDNS string `json:"secondaryDns"`
 }
 
 // Flags holds data received from the command line
@@ -47,7 +48,7 @@ type Flags struct {
 	LMSPort                             string
 	SkipCertCheck                       bool
 	Verbose                             bool
-	JsonOutput                          bool
+	JSONOutput                          bool
 	RandomPassword                      bool
 	StaticPassword                      string
 	Password                            string
@@ -62,14 +63,14 @@ type Flags struct {
 	versionCommand                      *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
-	IpConfiguration                     IPConfiguration
+	IPConfiguration                     IPConfiguration
 }
 
 func NewFlags(args []string) *Flags {
 	flags := &Flags{}
 	flags.commandLineArgs = args
 	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ContinueOnError)
-	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+	flags.amtInfoCommand.BoolVar(&flags.JSONOutput, "json", false, "json output")
 
 	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ContinueOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ContinueOnError)
@@ -80,7 +81,7 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
-	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+	flags.versionCommand.BoolVar(&flags.JSONOutput, "json", false, "json output")
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
@@ -165,7 +166,7 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port (default 16992)")
 		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
 		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
-		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+		fs.BoolVar(&f.JSONOutput, "json", false, "JSON output")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	}
 }
@@ -233,18 +234,18 @@ func (f *Flags) handleMaintenanceSyncIP() string {
 	f.amtMaintenanceSyncIPCommand.Func(
 		"staticip",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
-		validateIP(&f.IpConfiguration.IpAddress))
+		validateIP(&f.IPConfiguration.IPAddress))
 	f.amtMaintenanceSyncIPCommand.Func(
 		"netmask",
 		"Network mask to be assigned to AMT - if not specified, the Network mask of the active OS newtork interface is used",
-		validateIP(&f.IpConfiguration.Netmask))
-	f.amtMaintenanceSyncIPCommand.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
-	f.amtMaintenanceSyncIPCommand.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
-	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+		validateIP(&f.IPConfiguration.Netmask))
+	f.amtMaintenanceSyncIPCommand.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IPConfiguration.Gateway))
+	f.amtMaintenanceSyncIPCommand.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IPConfiguration.PrimaryDNS))
+	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IPConfiguration.SecondaryDNS))
 
 	if err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return ""
-	} else if len(f.IpConfiguration.IpAddress) != 0 {
+	} else if len(f.IPConfiguration.IPAddress) != 0 {
 		return "--syncip"
 	}
 
@@ -261,7 +262,7 @@ func (f *Flags) handleMaintenanceSyncIP() string {
 	}
 
 	for _, i := range ifaces {
-		if len(f.IpConfiguration.IpAddress) != 0 {
+		if len(f.IPConfiguration.IPAddress) != 0 {
 			break
 		}
 		if i.HardwareAddr.String() != amtLanIfc.MACAddress {
@@ -275,13 +276,13 @@ func (f *Flags) handleMaintenanceSyncIP() string {
 			if ipnet, ok := address.(*net.IPNet); ok &&
 				ipnet.IP.To4() != nil &&
 				!ipnet.IP.IsLoopback() {
-				f.IpConfiguration.IpAddress = ipnet.IP.String()
-				f.IpConfiguration.Netmask = net.IP(ipnet.Mask).String()
+				f.IPConfiguration.IPAddress = ipnet.IP.String()
+				f.IPConfiguration.Netmask = net.IP(ipnet.Mask).String()
 			}
 		}
 	}
 
-	if len(f.IpConfiguration.IpAddress) == 0 {
+	if len(f.IPConfiguration.IPAddress) == 0 {
 		log.Errorf("static ip address not found")
 		return ""
 	}
@@ -405,7 +406,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	}
 
 	defaultFlagCount := 2
-	if f.JsonOutput {
+	if f.JSONOutput {
 		defaultFlagCount = defaultFlagCount + 1
 	}
 	if len(f.commandLineArgs) == defaultFlagCount {
@@ -431,7 +432,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				log.Error(err)
 			}
 			dataStruct["amt"] = result
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("Version			: " + result)
 			}
 		}
@@ -442,7 +443,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["buildNumber"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("Build Number		: " + result)
 			}
 		}
@@ -453,7 +454,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["sku"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("SKU			: " + result)
 			}
 		}
@@ -464,7 +465,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["uuid"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("UUID			: " + result)
 			}
 		}
@@ -475,7 +476,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["controlMode"] = utils.InterpretControlMode(result)
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("Control Mode		: " + string(utils.InterpretControlMode(result)))
 			}
 		}
@@ -486,7 +487,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["dnsSuffix"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("DNS Suffix		: " + string(result))
 			}
 			result, err = amtCommand.GetOSDNSSuffix()
@@ -495,7 +496,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["dnsSuffixOS"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				fmt.Println("DNS Suffix (OS)		: " + result)
 			}
 		}
@@ -505,7 +506,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				log.Error(err)
 			}
 			dataStruct["hostnameOS"] = result
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("Hostname (OS)		: " + string(result))
 			}
 		}
@@ -517,7 +518,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["ras"] = result
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("RAS Network      	: " + result.NetworkStatus)
 				println("RAS Remote Status	: " + result.RemoteStatus)
 				println("RAS Trigger      	: " + result.RemoteTrigger)
@@ -531,7 +532,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["wiredAdapter"] = wired
 
-			if !f.JsonOutput && wired.MACAddress != "00:00:00:00:00:00" {
+			if !f.JSONOutput && wired.MACAddress != "00:00:00:00:00:00" {
 				println("---Wired Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
 				println("DHCP Mode    		: " + wired.DHCPMode)
@@ -546,7 +547,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 			dataStruct["wirelessAdapter"] = wireless
 
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("---Wireless Adapter---")
 				println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
 				println("DHCP Mode    		: " + wireless.DHCPMode)
@@ -565,7 +566,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				certs[v.Name] = v
 			}
 			dataStruct["certificateHashes"] = certs
-			if !f.JsonOutput {
+			if !f.JSONOutput {
 				println("Certificate Hashes	:")
 				for _, v := range result {
 					print(v.Name + " (")
@@ -580,7 +581,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 				}
 			}
 		}
-		if f.JsonOutput {
+		if f.JSONOutput {
 			outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
 			output := string(outBytes)
 			if err != nil {
@@ -597,13 +598,13 @@ func (f *Flags) handleVersionCommand() bool {
 		return false
 	}
 
-	if !f.JsonOutput {
+	if !f.JSONOutput {
 		println(strings.ToUpper(utils.ProjectName))
 		println("Version " + utils.ProjectVersion)
 		println("Protocol " + utils.ProtocolVersion)
 	}
 
-	if f.JsonOutput {
+	if f.JSONOutput {
 		dataStruct := make(map[string]interface{})
 
 		projectName := strings.ToUpper(utils.ProjectName)

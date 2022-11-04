@@ -14,8 +14,8 @@ import (
 
 type MockPTHICommands struct{}
 
-var flag bool = false
-var flag1 bool = false
+var flag = false
+var flag1 = false
 
 func (c MockPTHICommands) Open(useLME bool) error {
 	if flag == true {
@@ -76,20 +76,20 @@ func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterfac
 			Enabled:     0,
 			Ipv4Address: 0,
 			DhcpEnabled: 1,
-			DhcpIpMode:  0,
+			DhcpIPMode:  0,
 			LinkStatus:  0,
 			MacAddress:  [6]uint8{0, 0, 0, 0, 0, 0},
 		}, nil
-	} else {
-		return pthi.GetLANInterfaceSettingsResponse{
-			Enabled:     1,
-			Ipv4Address: 0,
-			DhcpEnabled: 1,
-			DhcpIpMode:  2,
-			LinkStatus:  1,
-			MacAddress:  [6]uint8{7, 7, 7, 7, 7, 7},
-		}, nil
 	}
+	return pthi.GetLANInterfaceSettingsResponse{
+		Enabled:     1,
+		Ipv4Address: 0,
+		DhcpEnabled: 1,
+		DhcpIPMode:  2,
+		LinkStatus:  1,
+		MacAddress:  [6]uint8{7, 7, 7, 7, 7, 7},
+	}, nil
+
 }
 func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSystemAccountResponse, err error) {
 	return pthi.GetLocalSystemAccountResponse{

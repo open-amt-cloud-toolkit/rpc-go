@@ -79,9 +79,9 @@ func TestSendMessage(t *testing.T) {
 			Length: 0,
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	size, err := h.SendMessage(bin_buf.Bytes(), nil)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	size, err := h.SendMessage(binBuf.Bytes(), nil)
 	assert.Greater(t, size, commandSize)
 	assert.NoError(t, err)
 }
@@ -105,9 +105,9 @@ func TestReceiveMessage(t *testing.T) {
 			Length: 0,
 		},
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	size, err := h.SendMessage(bin_buf.Bytes(), nil)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	size, err := h.SendMessage(binBuf.Bytes(), nil)
 	assert.Greater(t, size, commandSize)
 	assert.NoError(t, err)
 

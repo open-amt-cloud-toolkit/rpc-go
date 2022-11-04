@@ -5,6 +5,7 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+// Package heci is responsible for communication with the heci driver through OS specific calls
 package heci
 
 import (

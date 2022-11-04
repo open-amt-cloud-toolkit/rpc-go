@@ -70,7 +70,7 @@ func handleFlags(args []string) (*rpc.Flags, bool) {
 		}
 	}
 
-	if flags.JsonOutput {
+	if flags.JSONOutput {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else {
 		log.SetFormatter(&log.TextFormatter{

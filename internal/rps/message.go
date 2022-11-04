@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package rps is responsible for communication with and processing data with RPS
 package rps
 
 import (
@@ -144,7 +146,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 	if err != nil {
 		return message, err
 	}
-	payload.IPConfiguration = flags.IpConfiguration
+	payload.IPConfiguration = flags.IPConfiguration
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {

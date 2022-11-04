@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2022
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package client handles the main flow of the program and excuting the specified command
 package client
 
 import (

@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2022
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package lm handles all communcation with either Local Management Service (LMS)  or Local Management Engine (LME)
 package lm
 
 import (
@@ -44,11 +46,11 @@ func (lme *LMEConnection) Initialize() error {
 		return err
 	}
 
-	var bin_buf bytes.Buffer
+	var binBuf bytes.Buffer
 	protocolVersion := apf.ProtocolVersion(1, 0, 9)
-	binary.Write(&bin_buf, binary.BigEndian, protocolVersion)
+	binary.Write(&binBuf, binary.BigEndian, protocolVersion)
 
-	err = lme.execute(bin_buf)
+	err = lme.execute(binBuf)
 	if err != nil {
 		log.Error(err)
 		return err
@@ -61,8 +63,8 @@ func (lme *LMEConnection) Connect() error {
 	log.Debug("Sending APF_CHANNEL_OPEN")
 	lme.ourChannel = ((lme.ourChannel + 1) % 32)
 
-	bin_buf := apf.ChannelOpen(lme.ourChannel)
-	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	binBuf := apf.ChannelOpen(lme.ourChannel)
+	err := lme.Command.Send(binBuf.Bytes(), uint32(binBuf.Len()))
 	if err != nil {
 		lme.retries = lme.retries + 1
 		if lme.retries < 3 && (err.Error() == "no such device" || err.Error() == "The device is not connected.") {
@@ -85,15 +87,15 @@ func (lme *LMEConnection) Connect() error {
 // Send writes data to LMS TCP Socket
 func (lme *LMEConnection) Send(data []byte) error {
 	log.Debug("sending message to LME")
-	var bin_buf bytes.Buffer
+	var binBuf bytes.Buffer
 
 	channelData := apf.ChannelData(lme.Session.SenderChannel, data)
-	binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
-	binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
-	binary.Write(&bin_buf, binary.BigEndian, channelData.DataLength)
-	binary.Write(&bin_buf, binary.BigEndian, channelData.Data)
+	binary.Write(&binBuf, binary.BigEndian, channelData.MessageType)
+	binary.Write(&binBuf, binary.BigEndian, channelData.RecipientChannel)
+	binary.Write(&binBuf, binary.BigEndian, channelData.DataLength)
+	binary.Write(&binBuf, binary.BigEndian, channelData.Data)
 	lme.Session.TXWindow -= lme.Session.TXWindow // hmmm
-	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	err := lme.Command.Send(binBuf.Bytes(), uint32(binBuf.Len()))
 	if err != nil {
 		return err
 	}
@@ -101,9 +103,9 @@ func (lme *LMEConnection) Send(data []byte) error {
 	return nil
 }
 
-func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
+func (lme *LMEConnection) execute(binBuf bytes.Buffer) error {
 	for {
-		result, err := lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+		result, err := lme.Command.Call(binBuf.Bytes(), uint32(binBuf.Len()))
 		if err != nil && (err.Error() == "empty response from AMT" || err.Error() == "no such device") {
 			log.Warn(err.Error())
 			log.Warn("Retrying...")
@@ -111,8 +113,8 @@ func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
 		} else if err != nil {
 			return err
 		}
-		bin_buf = apf.Process(result, lme.Session)
-		if bin_buf.Len() == 0 {
+		binBuf = apf.Process(result, lme.Session)
+		if binBuf.Len() == 0 {
 			log.Debug("done EXECUTING.........")
 			break
 		}
@@ -127,7 +129,7 @@ func (lme *LMEConnection) Listen() {
 		<-lme.Session.Timer.C
 		lme.Session.DataBuffer <- lme.Session.Tempdata
 		lme.Session.Tempdata = []byte{}
-		var bin_buf bytes.Buffer
+		var binBuf bytes.Buffer
 		// var windowAdjust apf.APF_CHANNEL_WINDOW_ADJUST_MESSAGE
 		// if lme.Session.RXWindow > 1024 { // TODO: Check this
 		// 	windowAdjust = apf.ChannelWindowAdjust(lme.Session.RecipientChannel, lme.Session.RXWindow)
@@ -138,10 +140,10 @@ func (lme *LMEConnection) Listen() {
 		// }
 
 		channelData := apf.ChannelClose(lme.Session.SenderChannel)
-		binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
-		binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
+		binary.Write(&binBuf, binary.BigEndian, channelData.MessageType)
+		binary.Write(&binBuf, binary.BigEndian, channelData.RecipientChannel)
 
-		lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
+		lme.Command.Send(binBuf.Bytes(), uint32(binBuf.Len()))
 		lme.Session.Status <- true
 	}()
 	for {

@@ -1,5 +1,6 @@
 package heci
 
+// Interface ...
 type Interface interface {
 	Init(useLME bool) error
 	GetBufferSize() uint32
@@ -8,12 +9,14 @@ type Interface interface {
 	Close()
 }
 
+// MEIConnectClientData ...
 type MEIConnectClientData struct {
 	MaxMessageLength uint32
 	ProtocolVersion  uint8
 	Reserved         [3]uint8
 }
 
+// CMEIConnectClientData ...
 type CMEIConnectClientData struct {
 	data [16]byte
 }

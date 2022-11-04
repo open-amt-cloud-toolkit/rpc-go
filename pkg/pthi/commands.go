@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package pthi is responsible for communicating with the PTHI
 package pthi
 
 import (
@@ -91,7 +93,7 @@ func (pthi Command) Receive() (result []byte, bytesRead uint32, err error) {
 	return readBuffer, bytesRead, nil
 }
 
-func CreateRequestHeader(command uint32, length uint32) MessageHeader {
+func createRequestHeader(command uint32, length uint32) MessageHeader {
 	return MessageHeader{
 		Version: Version{
 			MajorNumber: 1,
@@ -107,11 +109,11 @@ func CreateRequestHeader(command uint32, length uint32) MessageHeader {
 
 func (pthi Command) GetCodeVersions() (GetCodeVersionsResponse, error) {
 	command := GetRequest{
-		Header: CreateRequestHeader(CODE_VERSIONS_REQUEST, 0),
+		Header: createRequestHeader(CODE_VERSIONS_REQUEST, 0),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		return GetCodeVersionsResponse{}, err
 	}
@@ -126,11 +128,11 @@ func (pthi Command) GetCodeVersions() (GetCodeVersionsResponse, error) {
 
 func (pthi Command) GetUUID() (uuid string, err error) {
 	command := GetRequest{
-		Header: CreateRequestHeader(GET_UUID_REQUEST, 0),
+		Header: createRequestHeader(GET_UUID_REQUEST, 0),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		return "", err
 	}
@@ -144,13 +146,14 @@ func (pthi Command) GetUUID() (uuid string, err error) {
 	return string(([]byte)(response.UUID[:])), nil
 }
 
+// GetControlMode Gets the current control mode.
 func (pthi Command) GetControlMode() (state int, err error) {
 	command := GetRequest{
-		Header: CreateRequestHeader(GET_CONTROL_MODE_REQUEST, 0),
+		Header: createRequestHeader(GET_CONTROL_MODE_REQUEST, 0),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		return -1, err
 	}
@@ -176,13 +179,14 @@ func readHeaderResponse(header *bytes.Buffer) ResponseMessageHeader {
 	return response
 }
 
+// GetDNSSuffix implements the PKI - FQDN - Suffix command.
 func (pthi Command) GetDNSSuffix() (suffix string, err error) {
 	command := GetRequest{
-		Header: CreateRequestHeader(GET_PKI_FQDN_SUFFIX_REQUEST, 0),
+		Header: createRequestHeader(GET_PKI_FQDN_SUFFIX_REQUEST, 0),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		return "", err
 	}
@@ -204,11 +208,11 @@ func (pthi Command) GetDNSSuffix() (suffix string, err error) {
 func (pthi Command) enumerateHashHandles() (AMTHashHandles, error) {
 	// Enumerate a list of hash handles to request from
 	enumerateCommand := GetRequest{
-		Header: CreateRequestHeader(ENUMERATE_HASH_HANDLES_REQUEST, 0),
+		Header: createRequestHeader(ENUMERATE_HASH_HANDLES_REQUEST, 0),
 	}
-	var EnumerateBin_buf bytes.Buffer
-	binary.Write(&EnumerateBin_buf, binary.LittleEndian, enumerateCommand)
-	enumerateResult, err := pthi.Call(EnumerateBin_buf.Bytes(), GET_REQUEST_SIZE)
+	var enumerateBinBuf bytes.Buffer
+	binary.Write(&enumerateBinBuf, binary.LittleEndian, enumerateCommand)
+	enumerateResult, err := pthi.Call(enumerateBinBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		return AMTHashHandles{}, err
 	}
@@ -221,6 +225,8 @@ func (pthi Command) enumerateHashHandles() (AMTHashHandles, error) {
 	binary.Read(enumerateBuf2, binary.LittleEndian, &enumerateResponse.HashHandles.Handles)
 	return enumerateResponse.HashHandles, nil
 }
+
+// GetCertificateHashes Gets the certificate hashes for the given AMTHashHandles.
 func (pthi Command) GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryList []CertHashEntry, err error) {
 	if hashHandles.Length == 0 {
 		hashHandles, err = pthi.enumerateHashHandles()
@@ -232,12 +238,12 @@ func (pthi Command) GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryL
 	for i := 0; i < int(hashHandles.Length); i++ {
 		commandSize := (uint32)(16)
 		command := GetCertHashEntryRequest{
-			Header:     CreateRequestHeader(GET_CERTHASH_ENTRY_REQUEST, 4),
+			Header:     createRequestHeader(GET_CERTHASH_ENTRY_REQUEST, 4),
 			HashHandle: hashHandles.Handles[i],
 		}
-		var bin_buf bytes.Buffer
-		binary.Write(&bin_buf, binary.LittleEndian, command)
-		result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+		var binBuf bytes.Buffer
+		binary.Write(&binBuf, binary.LittleEndian, command)
+		result, err := pthi.Call(binBuf.Bytes(), commandSize)
 		if err != nil {
 			emptyHashList := []CertHashEntry{}
 			return emptyHashList, err
@@ -262,11 +268,11 @@ func (pthi Command) GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryL
 
 func (pthi Command) GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessConnectionStatusResponse, err error) {
 	command := GetRequest{
-		Header: CreateRequestHeader(GET_REMOTE_ACCESS_CONNECTION_STATUS_REQUEST, 0),
+		Header: createRequestHeader(GET_REMOTE_ACCESS_CONNECTION_STATUS_REQUEST, 0),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), GET_REQUEST_SIZE)
 	if err != nil {
 		emptyResponse := GetRemoteAccessConnectionStatusResponse{}
 		return emptyResponse, err
@@ -288,15 +294,15 @@ func (pthi Command) GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessC
 func (pthi Command) GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error) {
 	commandSize := (uint32)(16)
 	command := GetLANInterfaceSettingsRequest{
-		Header:         CreateRequestHeader(GET_LAN_INTERFACE_SETTINGS_REQUEST, 4),
+		Header:         createRequestHeader(GET_LAN_INTERFACE_SETTINGS_REQUEST, 4),
 		InterfaceIndex: 0,
 	}
 	if useWireless {
 		command.InterfaceIndex = 1
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), commandSize)
 	if err != nil {
 		emptySettings := GetLANInterfaceSettingsResponse{}
 		return emptySettings, err
@@ -309,7 +315,7 @@ func (pthi Command) GetLANInterfaceSettings(useWireless bool) (LANInterface GetL
 	binary.Read(buf2, binary.LittleEndian, &response.Enabled)
 	binary.Read(buf2, binary.LittleEndian, &response.Ipv4Address)
 	binary.Read(buf2, binary.LittleEndian, &response.DhcpEnabled)
-	binary.Read(buf2, binary.LittleEndian, &response.DhcpIpMode)
+	binary.Read(buf2, binary.LittleEndian, &response.DhcpIPMode)
 	binary.Read(buf2, binary.LittleEndian, &response.LinkStatus)
 	binary.Read(buf2, binary.LittleEndian, &response.MacAddress)
 
@@ -319,11 +325,11 @@ func (pthi Command) GetLANInterfaceSettings(useWireless bool) (LANInterface GetL
 func (pthi Command) GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error) {
 	commandSize := (uint32)(52)
 	command := GetLocalSystemAccountRequest{
-		Header: CreateRequestHeader(GET_LOCAL_SYSTEM_ACCOUNT_REQUEST, 40),
+		Header: createRequestHeader(GET_LOCAL_SYSTEM_ACCOUNT_REQUEST, 40),
 	}
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+	var binBuf bytes.Buffer
+	binary.Write(&binBuf, binary.LittleEndian, command)
+	result, err := pthi.Call(binBuf.Bytes(), commandSize)
 	if err != nil {
 		emptyAccount := GetLocalSystemAccountResponse{}
 		return emptyAccount, err

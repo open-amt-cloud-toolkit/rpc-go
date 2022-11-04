@@ -2,6 +2,8 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package amt is used for executing calls against the PTHI/HECI driver and transforming the data to be returned
 package amt
 
 import (
@@ -17,23 +19,23 @@ import (
 
 //TODO: Ensure pointers are freed properly throughout this file
 
-// AMTUnicodeString ...
-type AMTUnicodeString struct {
+// UnicodeString ...
+type UnicodeString struct {
 	Length uint16
 	String [20]uint8 //[UNICODE_STRING_LEN]
 }
 
-// AMTVersionType ...
-type AMTVersionType struct {
-	Description AMTUnicodeString
-	Version     AMTUnicodeString
+// VersionType ...
+type VersionType struct {
+	Description UnicodeString
+	Version     UnicodeString
 }
 
 // CodeVersions ...
 type CodeVersions struct {
 	BiosVersion   [65]uint8 //[BIOS_VERSION_LEN]
 	VersionsCount uint32
-	Versions      [50]AMTVersionType //[VERSIONS_NUMBER]
+	Versions      [50]VersionType //[VERSIONS_NUMBER]
 }
 
 // InterfaceSettings ...
@@ -109,9 +111,8 @@ func (amt AMTCommand) Initialize() (bool, error) {
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
 			return false, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
-		} else {
-			return false, errors.New("unable to initialize")
 		}
+		return false, errors.New("unable to initialize")
 	}
 
 	defer amt.PTHI.Close()
@@ -191,9 +192,9 @@ func (amt AMTCommand) GetOSDNSSuffix() (string, error) {
 		if v.HardwareAddr.String() == lanResult.MACAddress {
 			addrs, _ := v.Addrs()
 			for _, a := range addrs {
-				networkIp, ok := a.(*net.IPNet)
-				if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
-					ip := networkIp.IP.String()
+				networkIP, ok := a.(*net.IPNet)
+				if ok && !networkIP.IP.IsLoopback() && networkIP.IP.To4() != nil {
+					ip := networkIP.IP.String()
 					suffix, _ := net.LookupAddr(ip)
 					if len(suffix) > 0 {
 						hostname, _ := os.Hostname()
@@ -306,7 +307,7 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 		settings.LinkStatus = "up"
 	}
 
-	if result.DhcpIpMode == 1 {
+	if result.DhcpIPMode == 1 {
 		settings.DHCPMode = "active"
 	}
 

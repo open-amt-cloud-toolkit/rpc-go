@@ -2,8 +2,11 @@
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
+
+// Package utils ...
 package utils
 
+// InterpretControlMode ...
 func InterpretControlMode(mode int) string {
 	switch mode {
 	case 0:
@@ -17,6 +20,7 @@ func InterpretControlMode(mode int) string {
 	}
 }
 
+// InterpretHashAlgorithm ...
 func InterpretHashAlgorithm(hashAlgorithm int) (hashSize int, algorithm string) {
 	switch hashAlgorithm {
 	case 0: // MD5
@@ -38,6 +42,7 @@ func InterpretHashAlgorithm(hashAlgorithm int) (hashSize int, algorithm string) 
 	return
 }
 
+// InterpretAMTNetworkConnectionStatus ...
 func InterpretAMTNetworkConnectionStatus(status int) string {
 	switch status {
 	case 0:
@@ -50,6 +55,8 @@ func InterpretAMTNetworkConnectionStatus(status int) string {
 		return "unknown"
 	}
 }
+
+// InterpretRemoteAccessConnectionStatus ...
 func InterpretRemoteAccessConnectionStatus(status int) string {
 	switch status {
 	case 0:
@@ -62,6 +69,8 @@ func InterpretRemoteAccessConnectionStatus(status int) string {
 		return "unknown"
 	}
 }
+
+// InterpretRemoteAccessTrigger ...
 func InterpretRemoteAccessTrigger(status int) string {
 	switch status {
 	case 0:

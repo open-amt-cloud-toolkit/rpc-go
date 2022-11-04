@@ -21,9 +21,9 @@ import (
 type MockAMT struct{}
 
 var mebxDNSSuffix string
-var osDNSSuffix string = "osdns"
-var controlMode int = 0
-var err error = nil
+var osDNSSuffix = "osdns"
+var controlMode int
+var err error
 
 func (c MockAMT) Initialize() (bool, error) {
 	return true, nil
@@ -185,12 +185,12 @@ func TestCreateActivationResponse(t *testing.T) {
 
 func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	flags := rpc.Flags{
-		IpConfiguration: rpc.IPConfiguration{
-			IpAddress:    "192.168.1.1",
+		IPConfiguration: rpc.IPConfiguration{
+			IPAddress:    "192.168.1.1",
 			Netmask:      "255.255.0.0",
 			Gateway:      "192.168.1.0",
-			PrimaryDns:   "8.8.8.8",
-			SecondaryDns: "1.2.3.4",
+			PrimaryDNS:   "8.8.8.8",
+			SecondaryDNS: "1.2.3.4",
 		},
 	}
 	result, createErr := p.CreateMessageRequest(flags)
@@ -201,5 +201,5 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	msgPayload := MessagePayload{}
 	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
 	assert.NoError(t, jsonErr)
-	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
+	assert.Equal(t, flags.IPConfiguration, msgPayload.IPConfiguration)
 }
