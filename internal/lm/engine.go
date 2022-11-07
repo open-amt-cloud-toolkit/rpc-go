@@ -59,7 +59,12 @@ func (lme *LMEConnection) Initialize() error {
 // Connect initializes connection to LME via MEI Driver
 func (lme *LMEConnection) Connect() error {
 	log.Debug("Sending APF_CHANNEL_OPEN")
-	lme.ourChannel = ((lme.ourChannel + 1) % 32)
+	channel := ((lme.ourChannel + 1) % 32)
+	if channel == 0 {
+		lme.ourChannel = 1
+	} else {
+		lme.ourChannel = channel
+	}
 
 	bin_buf := apf.ChannelOpen(lme.ourChannel)
 	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))

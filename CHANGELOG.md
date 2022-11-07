@@ -8,7 +8,9 @@
 - **maintenance:** add subcommands for syncip, syncclock, and changepassword
 
 ### Fix
+- channel recipient channel should not be 0
 - remove extra log.error statement
+
 
 <a name="v2.3.0"></a>
 ## v2.3.0 - 2022-10-05
