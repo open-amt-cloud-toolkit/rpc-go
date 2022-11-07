@@ -1,3 +1,17 @@
+<a name="v2.4.0"></a>
+## [v2.4.0] - 2022-11-07
+
+### Build
+- bump to v2.4.0
+
+### Feat
+- **maintenance:** add subcommands for syncip, syncclock, and changepassword
+
+### Fix
+- channel recipient channel should not be 0
+- remove extra log.error statement
+
+
 <a name="v2.3.0"></a>
 ## v2.3.0 - 2022-10-05
 
