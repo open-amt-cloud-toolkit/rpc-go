@@ -19,8 +19,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const FILE_DEVICE_HECI = 0x8000
-const METHOD_BUFFERED = 0
+const (
+	FILE_DEVICE_HECI = 0x8000
+	METHOD_BUFFERED  = 0
+)
 
 func ctl_code(device_type, function, method, access uint32) uint32 {
 	return (device_type << 16) | (access << 14) | (function << 2) | method
@@ -237,8 +239,8 @@ func (heci *Driver) SendMessage(buffer []byte, done *uint32) (bytesWritten uint3
 	}
 	return *done, nil
 }
-func (heci *Driver) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 
+func (heci *Driver) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 	var overlapped windows.Overlapped
 	overlapped.HEvent, err = windows.CreateEvent(nil, 0, 0, nil)
 	defer windows.CloseHandle(overlapped.HEvent)

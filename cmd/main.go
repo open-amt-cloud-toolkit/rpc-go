@@ -6,6 +6,7 @@ package main
 
 import (
 	"os"
+
 	"rpc"
 	"rpc/internal/amt"
 	"rpc/internal/client"
@@ -51,7 +52,7 @@ func runRPC(args []string) (int, error) {
 }
 
 func handleFlags(args []string) (*rpc.Flags, bool) {
-	//process flags
+	// process flags
 	flags := rpc.NewFlags(args)
 	_, result := flags.ParseFlags()
 	if !result {

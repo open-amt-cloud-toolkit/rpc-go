@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+
 	"rpc/pkg/heci"
 )
 
@@ -68,6 +69,7 @@ func (pthi Command) Call(command []byte, commandSize uint32) (result []byte, err
 	}
 	return readBuffer, nil
 }
+
 func (pthi Command) Send(command []byte, commandSize uint32) (err error) {
 	bytesWritten, err := pthi.Heci.SendMessage(command, &commandSize)
 	if err != nil {
@@ -79,6 +81,7 @@ func (pthi Command) Send(command []byte, commandSize uint32) (err error) {
 	}
 	return nil
 }
+
 func (pthi Command) Receive() (result []byte, bytesRead uint32, err error) {
 	size := pthi.Heci.GetBufferSize()
 
@@ -221,6 +224,7 @@ func (pthi Command) enumerateHashHandles() (AMTHashHandles, error) {
 	binary.Read(enumerateBuf2, binary.LittleEndian, &enumerateResponse.HashHandles.Handles)
 	return enumerateResponse.HashHandles, nil
 }
+
 func (pthi Command) GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryList []CertHashEntry, err error) {
 	if hashHandles.Length == 0 {
 		hashHandles, err = pthi.enumerateHashHandles()

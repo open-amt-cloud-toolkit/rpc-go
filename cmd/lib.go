@@ -10,9 +10,10 @@ package main
 import "C"
 
 import (
+	"strings"
+
 	log "github.com/sirupsen/logrus"
 	"rpc/pkg/utils"
-	"strings"
 )
 
 //export rpcCheckAccess
@@ -31,7 +32,7 @@ func rpcExec(Input *C.char, Output **C.char) int {
 		return accessStatus
 	}
 
-	//create argument array from input string
+	// create argument array from input string
 	inputString := C.GoString(Input)
 	args := strings.Fields(inputString)
 	args = append([]string{"rpc"}, args...)

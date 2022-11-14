@@ -50,6 +50,7 @@ func InterpretAMTNetworkConnectionStatus(status int) string {
 		return "unknown"
 	}
 }
+
 func InterpretRemoteAccessConnectionStatus(status int) string {
 	switch status {
 	case 0:
@@ -62,6 +63,7 @@ func InterpretRemoteAccessConnectionStatus(status int) string {
 		return "unknown"
 	}
 }
+
 func InterpretRemoteAccessTrigger(status int) string {
 	switch status {
 	case 0:

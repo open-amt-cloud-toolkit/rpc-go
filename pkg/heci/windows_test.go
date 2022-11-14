@@ -22,7 +22,6 @@ func TestInit(t *testing.T) {
 
 	assert.Equal(t, h.GUID, guid)
 	assert.Equal(t, h.PTHIGUID, pthiguid)
-
 }
 
 func TestFindDevices(t *testing.T) {

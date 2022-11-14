@@ -24,7 +24,6 @@ type LMSConnection struct {
 }
 
 func NewLMSConnection(address string, port string, data chan []byte, errors chan error) *LMSConnection {
-
 	lms := &LMSConnection{
 		address: address,
 		port:    port,
@@ -33,6 +32,7 @@ func NewLMSConnection(address string, port string, data chan []byte, errors chan
 	}
 	return lms
 }
+
 func (lms *LMSConnection) Initialize() error {
 	return errors.New("not implemented")
 }
@@ -88,7 +88,6 @@ func (lms *LMSConnection) Listen() {
 	for {
 
 		n, err := lms.Connection.Read(tmp)
-
 		if err != nil {
 			if err != io.EOF && !strings.ContainsAny(err.Error(), "i/o timeout") {
 				log.Println("read error:", err)

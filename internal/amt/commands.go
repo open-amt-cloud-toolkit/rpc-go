@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"rpc/pkg/pthi"
-	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	"rpc/pkg/pthi"
+	"rpc/pkg/utils"
 )
 
-//TODO: Ensure pointers are freed properly throughout this file
+// TODO: Ensure pointers are freed properly throughout this file
 
 // AMTUnicodeString ...
 type AMTUnicodeString struct {
@@ -42,7 +43,7 @@ type InterfaceSettings struct {
 	LinkStatus  string `json:"linkStatus"`
 	DHCPEnabled bool   `json:"dhcpEnabled"`
 	DHCPMode    string `json:"dhcpMode"`
-	IPAddress   string `json:"ipAddress"` //net.IP
+	IPAddress   string `json:"ipAddress"` // net.IP
 	MACAddress  string `json:"macAddress"`
 }
 
@@ -105,7 +106,6 @@ func NewAMTCommand() AMTCommand {
 func (amt AMTCommand) Initialize() (bool, error) {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
-
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
 			return false, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
@@ -120,7 +120,6 @@ func (amt AMTCommand) Initialize() (bool, error) {
 
 // GetVersionDataFromME ...
 func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
-
 	err := amt.PTHI.Open(false)
 	if err != nil {
 		return "", err
@@ -165,7 +164,6 @@ func (amt AMTCommand) GetUUID() (string, error) {
 		hexValues[8] + hexValues[9] + "-" +
 		hexValues[10] + hexValues[11] + hexValues[12] + hexValues[13] + hexValues[14] + hexValues[15]
 	return uuidStr, nil
-
 }
 
 // GetControlMode ...

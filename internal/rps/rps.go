@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+
 	"rpc"
 
 	"github.com/gorilla/websocket"
@@ -144,7 +145,6 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	}
 	log.Trace("PAYLOAD:" + string(msgPayload))
 	return msgPayload
-
 }
 
 func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation Message) ([]byte, error) {

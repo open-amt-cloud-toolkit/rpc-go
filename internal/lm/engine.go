@@ -7,9 +7,10 @@ package lm
 import (
 	"bytes"
 	"encoding/binary"
+	"time"
+
 	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )

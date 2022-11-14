@@ -7,11 +7,12 @@ package client
 import (
 	"os"
 	"os/signal"
+	"syscall"
+
 	"rpc"
 	"rpc/internal/lm"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
-	"syscall"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -63,7 +64,6 @@ func NewExecutor(flags rpc.Flags) (Executor, error) {
 }
 
 func (e Executor) MakeItSo(messageRequest rps.Message) {
-
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	rpsDataChannel := e.server.Listen()
@@ -85,7 +85,7 @@ func (e Executor) MakeItSo(messageRequest rps.Message) {
 		select {
 		case dataFromServer := <-rpsDataChannel:
 			shallIReturn := e.HandleDataFromRPS(dataFromServer)
-			if shallIReturn { //quits the loop -- we're either done or reached a point where we need to stop
+			if shallIReturn { // quits the loop -- we're either done or reached a point where we need to stop
 				return
 			}
 		case <-interrupt:
@@ -93,7 +93,6 @@ func (e Executor) MakeItSo(messageRequest rps.Message) {
 			return
 		}
 	}
-
 }
 
 func (e Executor) HandleInterrupt() {
@@ -135,7 +134,7 @@ func (e Executor) HandleDataFromRPS(dataFromServer []byte) bool {
 		<-e.status
 		log.Trace("Channel open confirmation received")
 	} else {
-		//with LMS we open/close websocket on every request, so setup close for when we're done handling LMS data
+		// with LMS we open/close websocket on every request, so setup close for when we're done handling LMS data
 		defer e.localManagement.Close()
 	}
 

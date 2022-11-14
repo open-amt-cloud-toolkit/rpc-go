@@ -9,9 +9,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"rpc/pkg/pthi"
 	"strings"
 	"testing"
+
+	"rpc/pkg/pthi"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -140,6 +141,7 @@ func TestNewFlags(t *testing.T) {
 	flags := NewFlags(args)
 	assert.NotNil(t, flags)
 }
+
 func TestPrintUsage(t *testing.T) {
 	executable := filepath.Base(os.Args[0])
 	args := []string{executable}
@@ -188,6 +190,7 @@ func TestHandleActivateCommandNoFlags(t *testing.T) {
 	success := flags.handleActivateCommand()
 	assert.False(t, success)
 }
+
 func TestHandleActivateCommand(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password"}
 	flags := NewFlags(args)
@@ -201,6 +204,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "localhost", flags.LMSAddress)
 	assert.Equal(t, "16992", flags.LMSPort)
 }
+
 func TestHandleActivateCommandWithLMS(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}
 	flags := NewFlags(args)
@@ -213,8 +217,8 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 	assert.Equal(t, "1.1.1.1", flags.LMSAddress)
 	assert.Equal(t, "99", flags.LMSPort)
 }
-func TestHandleActivateCommandWithENV(t *testing.T) {
 
+func TestHandleActivateCommandWithENV(t *testing.T) {
 	if err := os.Setenv("DNS_SUFFIX", "envdnssuffix.com"); err != nil {
 		t.Error(err)
 	}
@@ -264,6 +268,7 @@ func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 	success := flags.handleDeactivateCommand()
 	assert.False(t, success)
 }
+
 func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
 	expected := "deactivate --password password"
@@ -273,6 +278,7 @@ func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	assert.True(t, success)
 	assert.Equal(t, expected, flags.Command)
 }
+
 func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
 	defer userInput(t, "")()
@@ -280,6 +286,7 @@ func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
 	success := flags.handleDeactivateCommand()
 	assert.False(t, success)
 }
+
 func TestHandleDeactivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "--password", "password"}
 
@@ -287,6 +294,7 @@ func TestHandleDeactivateCommandNoURL(t *testing.T) {
 	success := flags.handleDeactivateCommand()
 	assert.False(t, success)
 }
+
 func TestHandleDeactivateCommand(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password"}
 	expected := "deactivate --password password"
@@ -296,6 +304,7 @@ func TestHandleDeactivateCommand(t *testing.T) {
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
 }
+
 func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password", "-f"}
 	expected := "deactivate --password password -f"
@@ -470,6 +479,7 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, true, flags.JsonOutput)
 }
+
 func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
 	flags := NewFlags(args)
@@ -478,6 +488,7 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
+
 func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
 	flags := NewFlags(args)
@@ -486,6 +497,7 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
+
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
@@ -493,6 +505,7 @@ func TestParseFlagsActivate(t *testing.T) {
 	assert.False(t, result)
 	assert.Equal(t, "activate", command)
 }
+
 func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
 	flags := NewFlags(args)
@@ -533,6 +546,7 @@ func TestLookupEnvOrString_Default(t *testing.T) {
 	result := flags.lookupEnvOrString("URL", "")
 	assert.Equal(t, "", result)
 }
+
 func TestLookupEnvOrString_Env(t *testing.T) {
 	args := []string{"./rpc", ""}
 	if err := os.Setenv("URL", "wss://localhost"); err != nil {
@@ -549,6 +563,7 @@ func TestLookupEnvOrBool_Default(t *testing.T) {
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, false, result)
 }
+
 func TestLookupEnvOrBool_Env(t *testing.T) {
 	args := []string{"./rpc", ""}
 

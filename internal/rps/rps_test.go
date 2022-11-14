@@ -35,8 +35,10 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var testServer *httptest.Server
-var testUrl string
+var (
+	testServer *httptest.Server
+	testUrl    string
+)
 
 func init() {
 	// Create test server with the echo handler.
@@ -46,20 +48,13 @@ func init() {
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 }
 
-//func TestPrepareInitialMessage(t *testing.T) {
-//	flags := rpc.Flags{
-//		Command: "method",
-//	}
-//	message, err := PrepareInitialMessage(&flags)
-//	assert.NotNil(t, message)
-//	assert.NoError(t, err)
-//}
 func TestConnect(t *testing.T) {
 	server := NewAMTActivationServer(testUrl)
 	err := server.Connect(true)
 	defer server.Close()
 	assert.NoError(t, err)
 }
+
 func TestSend(t *testing.T) {
 	server := AMTActivationServer{
 		URL: testUrl,
@@ -72,7 +67,6 @@ func TestSend(t *testing.T) {
 		Status: "test",
 	}
 	server.Send(message)
-
 }
 
 func TestListen(t *testing.T) {
@@ -127,6 +121,7 @@ func TestProcessMessageSuccess(t *testing.T) {
 
 	assert.Nil(t, decodedMessage)
 }
+
 func TestProcessMessageUnformattedSuccess(t *testing.T) {
 	activation := `{
 		"method": "success",

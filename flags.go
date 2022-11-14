@@ -12,10 +12,11 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"rpc/internal/amt"
-	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	"rpc/internal/amt"
+	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -92,12 +93,11 @@ func NewFlags(args []string) *Flags {
 
 // ParseFlags is used for understanding the command line flags
 func (f *Flags) ParseFlags() (string, bool) {
-
 	if len(f.commandLineArgs) > 1 {
 		switch f.commandLineArgs[1] {
 		case "amtinfo":
 			f.handleAMTInfo(f.amtInfoCommand)
-			return "amtinfo", false //we want to exit the program
+			return "amtinfo", false // we want to exit the program
 		case "activate":
 			success := f.handleActivateCommand()
 			return "activate", success
@@ -117,8 +117,8 @@ func (f *Flags) ParseFlags() (string, bool) {
 	}
 	f.printUsage()
 	return "", false
-
 }
+
 func (f *Flags) printUsage() string {
 	executable := filepath.Base(os.Args[0])
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
@@ -158,7 +158,7 @@ func (f *Flags) printMaintenanceUsage() string {
 
 func (f *Flags) setupCommonFlags() {
 	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand, f.amtMaintenanceCommand, f.amtMaintenanceChangePasswordCommand, f.amtMaintenanceSyncClockCommand, f.amtMaintenanceSyncIPCommand} {
-		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
+		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") // required
 		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
 		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
 		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address (default localhost). Can be used to change location of LMS for debugging.")
@@ -171,8 +171,7 @@ func (f *Flags) setupCommonFlags() {
 }
 
 func (f *Flags) handleMaintenanceCommand() bool {
-
-	//validation section
+	// validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
 		return false
@@ -313,6 +312,7 @@ func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {
 	}
 	return defaultVal
 }
+
 func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	if val, ok := os.LookupEnv(key); ok {
 		parsedVal, err := strconv.ParseBool(val)
@@ -388,6 +388,7 @@ func (f *Flags) handleDeactivateCommand() bool {
 	}
 	return true
 }
+
 func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	amtInfoVerPtr := amtInfoCommand.Bool("ver", false, "BIOS Version")
 	amtInfoBldPtr := amtInfoCommand.Bool("bld", false, "Build Number")
@@ -592,7 +593,6 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 }
 
 func (f *Flags) handleVersionCommand() bool {
-
 	if err := f.versionCommand.Parse(f.commandLineArgs[2:]); err != nil {
 		return false
 	}

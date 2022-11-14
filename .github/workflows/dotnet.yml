@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  rpc-library-build:
     runs-on: ubuntu-latest
 
     steps:

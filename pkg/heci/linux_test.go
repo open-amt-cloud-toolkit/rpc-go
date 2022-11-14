@@ -39,6 +39,7 @@ func TestHeciInit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(5120), h.bufferSize)
 }
+
 func TestHeciInitLME(t *testing.T) {
 	h := Driver{}
 	err := h.Init(true)
@@ -47,12 +48,14 @@ func TestHeciInitLME(t *testing.T) {
 	assert.Equal(t, uint8(4), h.protocolVersion)
 	assert.Equal(t, uint32(8192), h.bufferSize)
 }
+
 func TestHeciInitError(t *testing.T) {
 	h := Driver{}
 	err := h.Init(true)
 	defer h.Close()
 	assert.Error(t, err)
 }
+
 func TestGetBufferSize(t *testing.T) {
 	h := Driver{}
 	h.bufferSize = uint32(10)
@@ -85,6 +88,7 @@ func TestSendMessage(t *testing.T) {
 	assert.Greater(t, size, commandSize)
 	assert.NoError(t, err)
 }
+
 func TestReceiveMessage(t *testing.T) {
 	h := Driver{}
 	err := h.Init(false)

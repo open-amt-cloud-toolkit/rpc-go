@@ -7,16 +7,19 @@ package pthi
 import (
 	"bytes"
 	"encoding/binary"
-	"rpc/pkg/apf"
 	"testing"
+
+	"rpc/pkg/apf"
 
 	"github.com/stretchr/testify/assert"
 )
 
 type MockHECICommands struct{}
 
-var message []byte
-var numBytes uint32 = GET_REQUEST_SIZE
+var (
+	message  []byte
+	numBytes uint32 = GET_REQUEST_SIZE
+)
 
 func (c *MockHECICommands) Init(useLME bool) error { return nil }
 func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
@@ -24,6 +27,7 @@ func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessage
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	return numBytes, nil
 }
+
 func (c *MockHECICommands) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
 	for i := 0; i < len(message) && i < len(buffer); i++ {
 		buffer[i] = message[i]
@@ -45,6 +49,7 @@ func TestSend(t *testing.T) {
 	err := pthi.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
 	assert.NoError(t, err)
 }
+
 func TestReceive(t *testing.T) {
 	numBytes = 54
 
@@ -53,8 +58,8 @@ func TestReceive(t *testing.T) {
 	assert.Greater(t, n, uint32(0))
 	assert.NoError(t, err)
 }
-func TestGetGUID(t *testing.T) {
 
+func TestGetGUID(t *testing.T) {
 	// Call function will check that numBytes equals the command size
 	numBytes = GET_REQUEST_SIZE
 
@@ -73,6 +78,7 @@ func TestGetGUID(t *testing.T) {
 	assert.NotEmpty(t, result)
 	assert.Equal(t, "\x01\x02\x03\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", result)
 }
+
 func TestGetControlMode(t *testing.T) {
 	numBytes = GET_REQUEST_SIZE
 	prepareMessage := GetControlModeResponse{
@@ -87,8 +93,8 @@ func TestGetControlMode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 3, result)
 }
-func TestGetCodeVersions(t *testing.T) {
 
+func TestGetCodeVersions(t *testing.T) {
 	numBytes = GET_REQUEST_SIZE
 	prepareMessage := GetCodeVersionsResponse{
 		Header: ResponseMessageHeader{},
@@ -242,5 +248,4 @@ func TestGetLocalSystemAccount(t *testing.T) {
 	assert.NotEmpty(t, result)
 	assert.Equal(t, result.Account.Username, [CFG_MAX_ACL_USER_LENGTH]uint8{1, 2, 3, 4})
 	assert.Equal(t, result.Account.Password, [CFG_MAX_ACL_USER_LENGTH]uint8{8, 7, 6, 5})
-
 }

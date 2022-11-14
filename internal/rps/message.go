@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
 	"rpc"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
@@ -127,7 +128,6 @@ func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayloa
 	}
 
 	return payload, nil
-
 }
 
 // CreateMessageRequest is used for assembling the message to request activation of a device
@@ -160,7 +160,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 		payload.Password = flags.Password
 	}
 
-	//convert struct to json
+	// convert struct to json
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return message, err

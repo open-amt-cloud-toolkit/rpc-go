@@ -61,6 +61,7 @@ func ProcessChannelWindowAdjust(data []byte, session *LMESession) {
 	session.TXWindow += adjustMessage.BytesToAdd
 	log.Tracef("%+v", adjustMessage)
 }
+
 func ProcessChannelClose(data []byte, session *LMESession) APF_CHANNEL_CLOSE_MESSAGE {
 	closeMessage := APF_CHANNEL_CLOSE_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -71,6 +72,7 @@ func ProcessChannelClose(data []byte, session *LMESession) APF_CHANNEL_CLOSE_MES
 	close := ChannelClose(closeMessage.RecipientChannel)
 	return close
 }
+
 func ProcessGlobalRequest(data []byte) interface{} {
 	genericHeader := APF_GENERIC_HEADER{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -108,6 +110,7 @@ func ProcessGlobalRequest(data []byte) interface{} {
 	}
 	return reply
 }
+
 func ProcessChannelData(data []byte, session *LMESession) {
 	channelData := APF_CHANNEL_DATA_MESSAGE{}
 	buf2 := bytes.NewBuffer(data)
@@ -118,8 +121,8 @@ func ProcessChannelData(data []byte, session *LMESession) {
 	session.RXWindow = channelData.DataLength
 	dataBuffer := make([]byte, channelData.DataLength)
 	binary.Read(buf2, binary.BigEndian, &dataBuffer)
-	//log.Debug("received APF_CHANNEL_DATA - " + fmt.Sprint(channelData.DataLength))
-	//log.Tracef("%+v", channelData)
+	// log.Debug("received APF_CHANNEL_DATA - " + fmt.Sprint(channelData.DataLength))
+	// log.Tracef("%+v", channelData)
 
 	session.Tempdata = append(session.Tempdata, dataBuffer[:channelData.DataLength]...)
 	// var windowAdjust APF_CHANNEL_WINDOW_ADJUST_MESSAGE
@@ -135,8 +138,9 @@ func ProcessChannelData(data []byte, session *LMESession) {
 	// }
 	// // log.Tracef("%+v", session)
 	// return windowAdjust
-	//return windowAdjust
+	// return windowAdjust
 }
+
 func ProcessServiceRequest(data []byte) APF_SERVICE_ACCEPT_MESSAGE {
 	service := 0
 	message := APF_SERVICE_REQUEST_MESSAGE{}
@@ -164,6 +168,7 @@ func ProcessServiceRequest(data []byte) APF_SERVICE_ACCEPT_MESSAGE {
 	}
 	return serviceAccept
 }
+
 func ProcessChannelOpenConfirmation(data []byte, session *LMESession) {
 	confirmationMessage := APF_CHANNEL_OPEN_CONFIRMATION_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -178,6 +183,7 @@ func ProcessChannelOpenConfirmation(data []byte, session *LMESession) {
 	session.TXWindow = confirmationMessage.InitialWindowSize
 	session.Status <- true
 }
+
 func ProcessChannelOpenFailure(data []byte, session *LMESession) {
 	channelOpenFailure := APF_CHANNEL_OPEN_FAILURE_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -186,6 +192,7 @@ func ProcessChannelOpenFailure(data []byte, session *LMESession) {
 	session.Status <- false
 	session.ErrorBuffer <- errors.New("error opening APF channel, reason code: " + fmt.Sprint(channelOpenFailure.ReasonCode))
 }
+
 func ProcessProtocolVersion(data []byte) APF_PROTOCOL_VERSION_MESSAGE {
 	message := APF_PROTOCOL_VERSION_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
@@ -239,7 +246,7 @@ func ChannelOpen(senderChannel int) bytes.Buffer {
 		MessageType:               APF_CHANNEL_OPEN,
 		ChannelTypeLength:         15,
 		ChannelType:               channelType,
-		SenderChannel:             uint32(senderChannel), //hmm
+		SenderChannel:             uint32(senderChannel), // hmm
 		Reserved:                  0xFFFFFFFF,
 		InitialWindowSize:         LME_RX_WINDOW_SIZE,
 		ConnectedAddressLength:    3,

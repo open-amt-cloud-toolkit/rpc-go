@@ -6,16 +6,19 @@ package amt
 
 import (
 	"errors"
-	"rpc/pkg/pthi"
 	"testing"
+
+	"rpc/pkg/pthi"
 
 	"github.com/stretchr/testify/assert"
 )
 
 type MockPTHICommands struct{}
 
-var flag bool = false
-var flag1 bool = false
+var (
+	flag  bool = false
+	flag1 bool = false
+)
 
 func (c MockPTHICommands) Open(useLME bool) error {
 	if flag == true {
@@ -30,6 +33,7 @@ func (c MockPTHICommands) Close() {}
 func (c MockPTHICommands) Call(command []byte, commandSize uint32) (result []byte, err error) {
 	return nil, nil
 }
+
 func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error) {
 	return pthi.GetCodeVersionsResponse{
 		CodeVersion: pthi.CodeVersions{
@@ -48,6 +52,7 @@ func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error
 		},
 	}, nil
 }
+
 func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 	return "\xd2?\x11\x1c%3\x94E\xa2rT\xb2\x03\x8b\xeb\a", nil
 }
@@ -62,6 +67,7 @@ func (c MockPTHICommands) GetCertificateHashes(hashHandles pthi.AMTHashHandles) 
 		IsDefault:       1,
 	}}, nil
 }
+
 func (c MockPTHICommands) GetRemoteAccessConnectionStatus() (RAStatus pthi.GetRemoteAccessConnectionStatusResponse, err error) {
 	return pthi.GetRemoteAccessConnectionStatusResponse{
 		NetworkStatus: 2,
@@ -70,6 +76,7 @@ func (c MockPTHICommands) GetRemoteAccessConnectionStatus() (RAStatus pthi.GetRe
 		MPSHostname:   pthi.AMTANSIString{Length: 4, Buffer: [1000]uint8{84, 101, 115, 116}},
 	}, nil
 }
+
 func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterface pthi.GetLANInterfaceSettingsResponse, err error) {
 	if useWireless {
 		return pthi.GetLANInterfaceSettingsResponse{
@@ -91,6 +98,7 @@ func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterfac
 		}, nil
 	}
 }
+
 func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSystemAccountResponse, err error) {
 	return pthi.GetLocalSystemAccountResponse{
 		Account: pthi.LocalSystemAccount{
@@ -106,27 +114,32 @@ func init() {
 	amt = AMTCommand{}
 	amt.PTHI = MockPTHICommands{}
 }
+
 func TestInitializeNoError(t *testing.T) {
 	result, err := amt.Initialize()
 	assert.NoError(t, err, result)
 }
+
 func TestInitializeMEIError(t *testing.T) {
 	flag = true
 	result, err := amt.Initialize()
 	assert.Error(t, err, result)
 	flag = false
 }
+
 func TestInitializeError(t *testing.T) {
 	flag1 = true
 	result, err := amt.Initialize()
 	assert.Error(t, err, result)
 	flag1 = false
 }
+
 func TestGetVersionDataFromME(t *testing.T) {
 	result, err := amt.GetVersionDataFromME("Flash")
 	assert.NoError(t, err)
 	assert.Equal(t, "11.8.55", result)
 }
+
 func TestGetVersionDataFromMEError(t *testing.T) {
 	result, err := amt.GetVersionDataFromME("")
 	assert.Error(t, err)
