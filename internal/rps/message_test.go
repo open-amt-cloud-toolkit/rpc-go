@@ -13,6 +13,7 @@ import (
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,7 +29,7 @@ var err error = nil
 func (c MockAMT) Initialize() (bool, error) {
 	return true, nil
 }
-func (c MockAMT) GetVersionDataFromME(key string) (string, error) { return "Version", nil }
+func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) { return "Version", nil }
 func (c MockAMT) GetUUID() (string, error)                        { return "123-456-789", nil }
 func (c MockAMT) GetUUIDV2() (string, error)                      { return "", nil }
 func (c MockAMT) GetControlMode() (int, error)                    { return controlMode, nil }
@@ -59,7 +60,7 @@ func init() {
 }
 func TestCreatePayload(t *testing.T) {
 	mebxDNSSuffix = "mebxdns"
-	result, err := p.createPayload("", "")
+	result, err := p.createPayload("", "", 0)
 	assert.Equal(t, "Version", result.Version)
 	assert.Equal(t, "Version", result.Build)
 	assert.Equal(t, "Version", result.SKU)
@@ -75,12 +76,12 @@ func TestCreatePayload(t *testing.T) {
 }
 func TestCreatePayloadWithOSDNSSuffix(t *testing.T) {
 	mebxDNSSuffix = ""
-	result, err := p.createPayload("", "")
+	result, err := p.createPayload("", "", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "osdns", result.FQDN)
 }
 func TestCreatePayloadWithDNSSuffix(t *testing.T) {
-	result, err := p.createPayload("vprodemo.com", "")
+	result, err := p.createPayload("vprodemo.com", "", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "vprodemo.com", result.FQDN)
 }
@@ -89,7 +90,7 @@ func TestCreatePayloadWithNODNSSuffix(t *testing.T) {
 	mebxDNSSuffix = ""
 	osDNSSuffix = ""
 	err = errors.New("Nope")
-	result, err := p.createPayload("", "")
+	result, err := p.createPayload("", "", 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "", result.FQDN)
 }

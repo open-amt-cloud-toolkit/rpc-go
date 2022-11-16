@@ -13,6 +13,7 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+	"time"
 )
 
 //TODO: Ensure pointers are freed properly throughout this file
@@ -71,7 +72,7 @@ type LocalSystemAccount struct {
 
 type Interface interface {
 	Initialize() (bool, error)
-	GetVersionDataFromME(key string) (string, error)
+	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
 	GetOSDNSSuffix() (string, error)
@@ -119,14 +120,28 @@ func (amt AMTCommand) Initialize() (bool, error) {
 }
 
 // GetVersionDataFromME ...
-func (amt AMTCommand) GetVersionDataFromME(key string) (string, error) {
-
-	err := amt.PTHI.Open(false)
-	if err != nil {
-		return "", err
+func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
+	err1 := amt.PTHI.Open(false)
+	if err1 != nil {
+		return "", err1
 	}
-
-	result, err := amt.PTHI.GetCodeVersions()
+	ticker := time.NewTicker(15 * time.Second)
+	startTime := time.Now()
+	var result, err = amt.PTHI.GetCodeVersions()
+	// retry upto flag AMTTimeoutDuration
+	if err != nil {
+	timeout: //label this for-select so we can break out of it when needed
+		for {
+			select {
+			case <-ticker.C:
+				result, err = amt.PTHI.GetCodeVersions()
+				if err == nil || time.Now().Sub(startTime) > amtTimeout { // if we didnt get an error OR we have tried for longer than specified timeout
+					ticker.Stop()
+					break timeout
+				}
+			}
+		}
+	}
 	amt.PTHI.Close()
 	if err != nil {
 		return "", err

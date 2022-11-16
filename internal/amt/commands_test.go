@@ -8,6 +8,7 @@ import (
 	"errors"
 	"rpc/pkg/pthi"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,6 +17,7 @@ type MockPTHICommands struct{}
 
 var flag bool = false
 var flag1 bool = false
+var returnError bool = false
 
 func (c MockPTHICommands) Open(useLME bool) error {
 	if flag == true {
@@ -31,23 +33,43 @@ func (c MockPTHICommands) Call(command []byte, commandSize uint32) (result []byt
 	return nil, nil
 }
 func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error) {
-	return pthi.GetCodeVersionsResponse{
-		CodeVersion: pthi.CodeVersions{
-			BiosVersion:   [65]uint8{84, 101, 115, 116},
-			VersionsCount: 1,
-			Versions: [50]pthi.AMTVersionType{{
-				Description: pthi.AMTUnicodeString{
-					Length: 5,
-					String: [20]uint8{70, 108, 97, 115, 104},
-				},
-				Version: pthi.AMTUnicodeString{
-					Length: 7,
-					String: [20]uint8{49, 49, 46, 56, 46, 53, 53},
-				},
-			}},
-		},
-	}, nil
+	if returnError == true {
+		return pthi.GetCodeVersionsResponse{
+			CodeVersion: pthi.CodeVersions{
+				BiosVersion:   [65]uint8{84, 101, 115, 116},
+				VersionsCount: 1,
+				Versions: [50]pthi.AMTVersionType{{
+					Description: pthi.AMTUnicodeString{
+						Length: 5,
+						String: [20]uint8{70, 108, 97, 115, 104},
+					},
+					Version: pthi.AMTUnicodeString{
+						Length: 7,
+						String: [20]uint8{49, 49, 46, 56, 46, 53, 53},
+					},
+				}},
+			},
+		}, errors.New("amt internal error")
+	} else {
+		return pthi.GetCodeVersionsResponse{
+			CodeVersion: pthi.CodeVersions{
+				BiosVersion:   [65]uint8{84, 101, 115, 116},
+				VersionsCount: 1,
+				Versions: [50]pthi.AMTVersionType{{
+					Description: pthi.AMTUnicodeString{
+						Length: 5,
+						String: [20]uint8{70, 108, 97, 115, 104},
+					},
+					Version: pthi.AMTUnicodeString{
+						Length: 7,
+						String: [20]uint8{49, 49, 46, 56, 46, 53, 53},
+					},
+				}},
+			},
+		}, nil
+	}
 }
+
 func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 	return "\xd2?\x11\x1c%3\x94E\xa2rT\xb2\x03\x8b\xeb\a", nil
 }
@@ -123,13 +145,27 @@ func TestInitializeError(t *testing.T) {
 	flag1 = false
 }
 func TestGetVersionDataFromME(t *testing.T) {
-	result, err := amt.GetVersionDataFromME("Flash")
+	result, err := amt.GetVersionDataFromME("Flash", 1*time.Second)
 	assert.NoError(t, err)
 	assert.Equal(t, "11.8.55", result)
 }
 func TestGetVersionDataFromMEError(t *testing.T) {
-	result, err := amt.GetVersionDataFromME("")
+	result, err := amt.GetVersionDataFromME("", 1*time.Second)
 	assert.Error(t, err)
+	assert.Equal(t, "", result)
+}
+
+func TestGetVersionDataFromMETimeout1sec(t *testing.T) {
+	returnError = true
+	result, err := amt.GetVersionDataFromME("", 1*time.Second)
+	assert.Equal(t, "amt internal error", err.Error())
+	assert.Equal(t, "", result)
+}
+
+func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
+	returnError = true
+	result, err := amt.GetVersionDataFromME("", 16*time.Second)
+	assert.Equal(t, "amt internal error", err.Error())
 	assert.Equal(t, "", result)
 }
 

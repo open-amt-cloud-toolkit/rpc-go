@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 const trickyPassword string = "!@#$%^&*(()-+="
@@ -191,6 +192,24 @@ func TestHandleActivateCommandNoFlags(t *testing.T) {
 func TestHandleActivateCommand(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password"}
 	flags := NewFlags(args)
+	var AMTTimeoutDuration time.Duration = 120000000000
+	expected := "activate --profile profileName"
+	success := flags.handleActivateCommand()
+	assert.True(t, success)
+	assert.Equal(t, "wss://localhost", flags.URL)
+	assert.Equal(t, "profileName", flags.Profile)
+	assert.Equal(t, expected, flags.Command)
+	assert.Equal(t, "Password", flags.Password)
+	assert.Equal(t, "localhost", flags.LMSAddress)
+	assert.Equal(t, "16992", flags.LMSPort)	
+	// 2m default
+	assert.Equal(t, AMTTimeoutDuration, flags.AMTTimeoutDuration)
+}
+
+func TestHandleActivateCommandWithTimeOut(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password", "-t", "2s"}
+	flags := NewFlags(args)
+	var AMTTimeoutDuration time.Duration = 2000000000
 	expected := "activate --profile profileName"
 	success := flags.handleActivateCommand()
 	assert.True(t, success)
@@ -200,6 +219,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "Password", flags.Password)
 	assert.Equal(t, "localhost", flags.LMSAddress)
 	assert.Equal(t, "16992", flags.LMSPort)
+	assert.Equal(t, AMTTimeoutDuration, flags.AMTTimeoutDuration)
 }
 func TestHandleActivateCommandWithLMS(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}

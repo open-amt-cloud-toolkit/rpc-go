@@ -16,6 +16,7 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -63,6 +64,7 @@ type Flags struct {
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
+	AMTTimeoutDuration                  time.Duration
 }
 
 func NewFlags(args []string) *Flags {
@@ -87,6 +89,7 @@ func NewFlags(args []string) *Flags {
 	flags.netEnumerator.Interfaces = net.Interfaces
 	flags.netEnumerator.InterfaceAddrs = (*net.Interface).Addrs
 	flags.setupCommonFlags()
+
 	return flags
 }
 
@@ -161,12 +164,13 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
 		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
 		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
-		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address (default localhost). Can be used to change location of LMS for debugging.")
-		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port (default 16992)")
+		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address. Can be used to change location of LMS for debugging.")
+		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port")
 		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
 		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
 	}
 }
 
@@ -426,7 +430,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	if amtInfoCommand.Parsed() {
 		amtCommand := amt.NewAMTCommand()
 		if *amtInfoVerPtr {
-			result, err := amtCommand.GetVersionDataFromME("AMT")
+			result, err := amtCommand.GetVersionDataFromME("AMT", f.AMTTimeoutDuration)
 			if err != nil {
 				log.Error(err)
 			}
@@ -436,7 +440,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoBldPtr {
-			result, err := amtCommand.GetVersionDataFromME("Build Number")
+			result, err := amtCommand.GetVersionDataFromME("Build Number", f.AMTTimeoutDuration)
 			if err != nil {
 				log.Error(err)
 			}
@@ -447,7 +451,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			}
 		}
 		if *amtInfoSkuPtr {
-			result, err := amtCommand.GetVersionDataFromME("Sku")
+			result, err := amtCommand.GetVersionDataFromME("Sku", f.AMTTimeoutDuration)
 			if err != nil {
 				log.Error(err)
 			}
