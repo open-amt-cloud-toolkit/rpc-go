@@ -12,6 +12,7 @@ import (
 	"rpc"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -63,22 +64,22 @@ func NewPayload() Payload {
 }
 
 // createPayload gathers data from ME to assemble required information for sending to the server
-func (p Payload) createPayload(dnsSuffix string, hostname string) (MessagePayload, error) {
+func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout time.Duration) (MessagePayload, error) {
 	payload := MessagePayload{}
 	var err error
 	wired, _ := p.AMT.GetLANInterfaceSettings(false)
 	if wired.LinkStatus != "up" {
 		log.Warn("link status is down, unable to active AMT in Admin Control Mode (ACM)")
 	}
-	payload.Version, err = p.AMT.GetVersionDataFromME("AMT")
+	payload.Version, err = p.AMT.GetVersionDataFromME("AMT", amtTimeout)
 	if err != nil {
 		return payload, err
 	}
-	payload.Build, err = p.AMT.GetVersionDataFromME("Build Number")
+	payload.Build, err = p.AMT.GetVersionDataFromME("Build Number", amtTimeout)
 	if err != nil {
 		return payload, err
 	}
-	payload.SKU, err = p.AMT.GetVersionDataFromME("Sku")
+	payload.SKU, err = p.AMT.GetVersionDataFromME("Sku", amtTimeout)
 	if err != nil {
 		return payload, err
 	}
@@ -140,7 +141,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 		Status:          "ok",
 		Message:         "ok",
 	}
-	payload, err := p.createPayload(flags.DNS, flags.Hostname)
+	payload, err := p.createPayload(flags.DNS, flags.Hostname, flags.AMTTimeoutDuration)
 	if err != nil {
 		return message, err
 	}
