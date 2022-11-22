@@ -52,13 +52,21 @@ Must be one of the following:
 
 Should be one of the following:
 Modules:
-* **common**: A change or addition to the common module
-* **tracker**: A change or addition to the tracker module
-* **server**: A change or addition to the server module
-* **msgs**: A change or addition to msgs module
-* **eval**: Any change to benchmark tools
-* **deps**: A change to any dependency or 3rd-party library
-* **all**: A change that affects all modules
+* **cli**: A change or addition to application interface
+* **config**: A change or addition to service configuration
+* **deps**: A change or addition to dependencies (primarily used by dependabot)
+* **deps-dev**: A change or addition to developer dependencies (primarily used by dependabot)
+* **docker**: A change or addition to docker file or composition
+* **gh-actions**: A change or addition to GitHub actions
+* **heci**: A change or addition to heci functionality
+* **lib**: A change or addition that affects RPC built as a library
+* **lme**: A change or addition to local management engine functionality
+* **lms**: A change or addition to local management service functionality
+* **lmx**: A change or addition to both lme and lms functionality
+* **pthi**: A change or addition to pthi functionality
+* **rps**: A change or addition to interactions with Remote Provisioning Server
+* **sample**: A change or addition to the sample application
+* **utils**: A change or addition to the utility functions
 * *no scope*:  If no scope is provided, it is assumed the PR does not apply to the above scopes
 
 ### Body
