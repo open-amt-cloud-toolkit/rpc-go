@@ -176,6 +176,8 @@ func TestPrintMaintenanceUsage(t *testing.T) {
 	usage = usage + "                 Example: " + executable + " maintenance changepassword -u wss://server/activate\n"
 	usage = usage + "  syncclock      Sync the host OS clock to AMT. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncclock -u wss://server/activate\n"
+	usage = usage + "  synchostname   Sync the hostname of the client to AMT. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance synchostname -u wss://server/activate\n"
 	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
 	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
@@ -201,7 +203,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, expected, flags.Command)
 	assert.Equal(t, "Password", flags.Password)
 	assert.Equal(t, "localhost", flags.LMSAddress)
-	assert.Equal(t, "16992", flags.LMSPort)	
+	assert.Equal(t, "16992", flags.LMSPort)
 	// 2m default
 	assert.Equal(t, AMTTimeoutDuration, flags.AMTTimeoutDuration)
 }
@@ -338,6 +340,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	argUrl := "-u wss://localhost"
 	argCurPw := "-password " + trickyPassword
 	argSyncClock := "syncclock"
+	argSyncHostname := "synchostname"
 	argSyncIp := "syncip"
 	argChangePw := "changepassword"
 	newPassword := trickyPassword + "123"
@@ -391,6 +394,11 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantResult: true,
 			// translate arg from clock -> time
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
+		},
+		"should pass - synchostname no params": {
+			cmdLine:    cmdBase + " " + argSyncHostname + " " + argUrl + " " + argCurPw,
+			wantResult: true,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname,
 		},
 		"should pass - syncip no params": {
 			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,

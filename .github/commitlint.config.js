@@ -10,7 +10,7 @@ module.exports = {
         'scope-enum': [
             2,
             'always',
-            ['lme', 'lms', 'lmx', 'utils', 'flags', 'rps', 'heci', 'pthi', 'sample', 'docker', 'deps', 'deps-dev', 'gh-actions', 'config']
+            ['lme', 'lms', 'lmx', 'utils', 'cli', 'rps', 'heci', 'pthi', 'sample', 'docker', 'deps', 'deps-dev', 'gh-actions', 'config']
         ]
     }
 }
