@@ -35,6 +35,11 @@ type IPConfiguration struct {
 	SecondaryDns string `json:"secondaryDns"`
 }
 
+type HostnameInfo struct {
+	DnsSuffixOS string `json:"dnsSuffixOS"`
+	Hostname    string `json:"hostname"`
+}
+
 // Flags holds data received from the command line
 type Flags struct {
 	commandLineArgs                     []string
@@ -59,11 +64,13 @@ type Flags struct {
 	amtMaintenanceCommand               *flag.FlagSet
 	amtMaintenanceSyncIPCommand         *flag.FlagSet
 	amtMaintenanceSyncClockCommand      *flag.FlagSet
+	amtMaintenanceSyncHostnameCommand   *flag.FlagSet
 	amtMaintenanceChangePasswordCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
+	HostnameInfo                        HostnameInfo
 	AMTTimeoutDuration                  time.Duration
 }
 
@@ -79,6 +86,7 @@ func NewFlags(args []string) *Flags {
 
 	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet("syncip", flag.ContinueOnError)
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
+	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
@@ -151,6 +159,8 @@ func (f *Flags) printMaintenanceUsage() string {
 	usage = usage + "                 Example: " + executable + " maintenance changepassword -u wss://server/activate\n"
 	usage = usage + "  syncclock      Sync the host OS clock to AMT. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncclock -u wss://server/activate\n"
+	usage = usage + "  synchostname   Sync the hostname of the client to AMT. AMT password is required\n"
+	usage = usage + "                 Example: " + executable + " maintenance synchostname -u wss://server/activate\n"
 	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
 	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
@@ -160,7 +170,14 @@ func (f *Flags) printMaintenanceUsage() string {
 }
 
 func (f *Flags) setupCommonFlags() {
-	for _, fs := range []*flag.FlagSet{f.amtActivateCommand, f.amtDeactivateCommand, f.amtMaintenanceCommand, f.amtMaintenanceChangePasswordCommand, f.amtMaintenanceSyncClockCommand, f.amtMaintenanceSyncIPCommand} {
+	for _, fs := range []*flag.FlagSet{
+		f.amtActivateCommand,
+		f.amtDeactivateCommand,
+		f.amtMaintenanceCommand,
+		f.amtMaintenanceChangePasswordCommand,
+		f.amtMaintenanceSyncClockCommand,
+		f.amtMaintenanceSyncHostnameCommand,
+		f.amtMaintenanceSyncIPCommand} {
 		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
 		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
 		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
@@ -186,6 +203,8 @@ func (f *Flags) handleMaintenanceCommand() bool {
 	switch f.commandLineArgs[2] {
 	case "syncclock":
 		task = f.handleMaintenanceSyncClock()
+	case "synchostname":
+		task = f.handleMaintenanceSyncHostname()
 	case "syncip":
 		task = f.handleMaintenanceSyncIP()
 	case "changepassword":
@@ -220,6 +239,26 @@ func (f *Flags) handleMaintenanceSyncClock() string {
 		return ""
 	}
 	return "--synctime"
+}
+
+func (f *Flags) handleMaintenanceSyncHostname() string {
+	var err error
+	if err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		return ""
+	}
+	amtCommand := amt.NewAMTCommand()
+	if f.HostnameInfo.DnsSuffixOS, err = amtCommand.GetOSDNSSuffix(); err != nil {
+		log.Error(err)
+	}
+	f.HostnameInfo.Hostname, err = os.Hostname()
+	if err != nil {
+		log.Error(err)
+		return ""
+	} else if f.HostnameInfo.Hostname == "" {
+		log.Error("OS hostname is not available")
+		return ""
+	}
+	return "--synchostname"
 }
 
 // wrap the flag.Func method signature with the assignment value

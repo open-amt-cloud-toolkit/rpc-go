@@ -29,13 +29,15 @@ var err error = nil
 func (c MockAMT) Initialize() (bool, error) {
 	return true, nil
 }
-func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) { return "Version", nil }
-func (c MockAMT) GetUUID() (string, error)                        { return "123-456-789", nil }
-func (c MockAMT) GetUUIDV2() (string, error)                      { return "", nil }
-func (c MockAMT) GetControlMode() (int, error)                    { return controlMode, nil }
-func (c MockAMT) GetControlModeV2() (int, error)                  { return controlMode, nil }
-func (c MockAMT) GetOSDNSSuffix() (string, error)                 { return osDNSSuffix, nil }
-func (c MockAMT) GetDNSSuffix() (string, error)                   { return mebxDNSSuffix, nil }
+func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
+	return "Version", nil
+}
+func (c MockAMT) GetUUID() (string, error)        { return "123-456-789", nil }
+func (c MockAMT) GetUUIDV2() (string, error)      { return "", nil }
+func (c MockAMT) GetControlMode() (int, error)    { return controlMode, nil }
+func (c MockAMT) GetControlModeV2() (int, error)  { return controlMode, nil }
+func (c MockAMT) GetOSDNSSuffix() (string, error) { return osDNSSuffix, nil }
+func (c MockAMT) GetDNSSuffix() (string, error)   { return mebxDNSSuffix, nil }
 func (c MockAMT) GetCertificateHashes() ([]amt.CertHashEntry, error) {
 	return []amt.CertHashEntry{}, nil
 }
@@ -203,4 +205,22 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
 	assert.NoError(t, jsonErr)
 	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
+}
+
+func TestCreateMessageRequestHostnameInfo(t *testing.T) {
+	flags := rpc.Flags{
+		HostnameInfo: rpc.HostnameInfo{
+			DnsSuffixOS: "os.test.com",
+			Hostname:    "test-hostname-012",
+		},
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, flags.HostnameInfo, msgPayload.HostnameInfo)
 }
