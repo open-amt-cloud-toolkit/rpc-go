@@ -70,7 +70,7 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 	var err error
 	wired, _ := p.AMT.GetLANInterfaceSettings(false)
 	if wired.LinkStatus != "up" {
-		log.Warn("link status is down, unable to active AMT in Admin Control Mode (ACM)")
+		log.Warn("link status is down, unable to activate AMT in Admin Control Mode (ACM)")
 	}
 	payload.Version, err = p.AMT.GetVersionDataFromME("AMT", amtTimeout)
 	if err != nil {
