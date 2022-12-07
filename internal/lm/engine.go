@@ -110,8 +110,7 @@ func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
 	for {
 		result, err := lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
 		if err != nil && (err.Error() == "empty response from AMT" || err.Error() == "no such device") {
-			log.Warn(err.Error())
-			log.Warn("Retrying...")
+			log.Warn("AMT Unavailable, retrying...")
 			break
 		} else if err != nil {
 			return err
