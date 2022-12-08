@@ -1,3 +1,22 @@
+
+<a name="v2.5.0"></a>
+## [v2.5.0] - 2022-12-08
+### Build
+- update version to 2.5.0, update changelog
+
+### Ci
+- pin .net core build
+- update actions/checkout to v3, update semantic
+- add azure board sync
+- add project sync to rpc-go
+
+### Feat
+- **AMTtimeout:** Handle wait if AMT is not ready
+- **cli:** sync hostname
+
+### Refactor
+- update log messages to be a bit more clear
+
 <a name="v2.4.0"></a>
 ## [v2.4.0] - 2022-11-07
 
