@@ -57,6 +57,7 @@ type MessagePayload struct {
 	CertificateHashes []string            `json:"certHashes"`
 	IPConfiguration   rpc.IPConfiguration `json:"ipConfiguration"`
 	HostnameInfo      rpc.HostnameInfo    `json:"hostnameInfo"`
+	NewPassword       string              `json:"newPassword"`
 }
 
 func NewPayload() Payload {
@@ -150,6 +151,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 	}
 	payload.IPConfiguration = flags.IpConfiguration
 	payload.HostnameInfo = flags.HostnameInfo
+	payload.NewPassword = flags.NewStaticPassword
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {

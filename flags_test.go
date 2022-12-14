@@ -424,11 +424,12 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		SecondaryDns: "5.6.7.8",
 	}
 	tests := map[string]struct {
-		cmdLine      string
-		wantResult   int
-		wantRpsCmd   string
-		wantIPConfig IPConfiguration
-		userInput    string
+		cmdLine               string
+		wantResult            int
+		wantRpsCmd            string
+		wantIPConfig          IPConfiguration
+		wantNewStaticPassword string
+		userInput             string
 	}{
 		// "should fail - required task": {
 		// 	cmdLine:    cmdBase + " " + argUrl,
@@ -498,22 +499,25 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		"should pass - change password to random value": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw,
 		},
 		"should pass - change password using static value": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+			cmdLine:               cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			wantResult:            utils.Success,
+			wantRpsCmd:            "maintenance -" + argCurPw + " --" + argChangePw,
+			wantNewStaticPassword: newPassword,
 		},
 		"should pass - change password static value before other flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+			cmdLine:               cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			wantResult:            utils.Success,
+			wantRpsCmd:            "maintenance -" + argCurPw + " --" + argChangePw,
+			wantNewStaticPassword: newPassword,
 		},
 		"should pass - change password static value after all flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
-			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+			cmdLine:               cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
+			wantResult:            utils.Success,
+			wantRpsCmd:            "maintenance -" + argCurPw + " --" + argChangePw,
+			wantNewStaticPassword: newPassword,
 		},
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
@@ -542,6 +546,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			assert.Equal(t, "maintenance", gotCommand)
 			assert.Equal(t, tc.wantRpsCmd, flags.Command)
 			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)
+			assert.Equal(t, tc.wantNewStaticPassword, flags.NewStaticPassword)
 		})
 	}
 }

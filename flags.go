@@ -56,7 +56,7 @@ type Flags struct {
 	Verbose                             bool
 	JsonOutput                          bool
 	RandomPassword                      bool
-	StaticPassword                      string
+	NewStaticPassword                   string
 	Password                            string
 	LogLevel                            string
 	Token                               string
@@ -220,7 +220,7 @@ func (f *Flags) handleMaintenanceCommand() (bool, int) {
 			return false, errCode
 		}
 	case "changepassword":
-		task = f.handleMaintenanceSyncChangePassword()
+		task = f.handleMaintenanceChangePassword()
 	default:
 		f.printMaintenanceUsage()
 	}
@@ -361,20 +361,17 @@ func (f *Flags) handleMaintenanceSyncIP() (string, int) {
 	return "--syncip", utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncChangePassword() string {
-	task := "--changepassword "
+func (f *Flags) handleMaintenanceChangePassword() string {
+	task := "--changepassword"
 	f.amtMaintenanceChangePasswordCommand.BoolVar(&f.RandomPassword, "random", true, "a new random password will be generated for AMT")
-	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
+	f.amtMaintenanceChangePasswordCommand.StringVar(&f.NewStaticPassword, "static", "", "specify a new password for AMT")
 	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtMaintenanceChangePasswordCommand.Usage()
 		return ""
 	}
-	if f.StaticPassword == "" && !f.RandomPassword {
+	if f.NewStaticPassword == "" && !f.RandomPassword {
 		f.amtMaintenanceChangePasswordCommand.Usage()
 		return ""
-	}
-	if f.StaticPassword != "" {
-		task += f.StaticPassword
 	}
 
 	return task
