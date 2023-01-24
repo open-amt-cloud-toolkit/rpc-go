@@ -32,7 +32,7 @@ func NewExecutor(flags rpc.Flags) (Executor, error) {
 	lmErrorChannel := make(chan error)
 
 	client := Executor{
-		server:          rps.NewAMTActivationServer(flags.URL),
+		server:          rps.NewAMTActivationServer(&flags),
 		localManagement: lm.NewLMSConnection(utils.LMSAddress, utils.LMSPort, lmDataChannel, lmErrorChannel),
 		data:            lmDataChannel,
 		errors:          lmErrorChannel,

@@ -8,6 +8,8 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"net/http"
+	"net/url"
 	"rpc"
 
 	"github.com/gorilla/websocket"
@@ -16,17 +18,18 @@ import (
 
 // AMTActivationServer struct represents the connection to RPS
 type AMTActivationServer struct {
-	URL  string
-	Conn *websocket.Conn
+	URL   string
+	Conn  *websocket.Conn
+	flags *rpc.Flags
 }
 
-func NewAMTActivationServer(url string) AMTActivationServer {
+func NewAMTActivationServer(flags *rpc.Flags) AMTActivationServer {
 	amtactivationserver := AMTActivationServer{
-		URL: url,
+		URL:   flags.URL,
+		flags: flags,
 	}
 	return amtactivationserver
 }
-
 func PrepareInitialMessage(flags *rpc.Flags) (Message, error) {
 	payload := NewPayload()
 	return payload.CreateMessageRequest(*flags)
@@ -35,13 +38,26 @@ func PrepareInitialMessage(flags *rpc.Flags) (Message, error) {
 // Connect is used to connect to the RPS Server
 func (amt *AMTActivationServer) Connect(skipCertCheck bool) error {
 	log.Info("connecting to ", amt.URL)
+	log.Info(amt.URL)
 	var err error
-	dialer := websocket.Dialer{
+	websocketDialer := websocket.Dialer{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: skipCertCheck,
 		},
 	}
-	amt.Conn, _, err = dialer.Dial(amt.URL, nil)
+	if amt.flags.Proxy != "" {
+		// Parse the URL of the proxy.
+		proxyURL, err := url.Parse(amt.flags.Proxy)
+		if err != nil {
+			panic(err)
+		}
+		websocketDialer.Proxy = func(*http.Request) (*url.URL, error) {
+			return proxyURL, nil
+		}
+	} else {
+		websocketDialer.Proxy = http.ProxyFromEnvironment
+	}
+	amt.Conn, _, err = websocketDialer.Dial(amt.URL, nil)
 	if err != nil {
 		return err
 	}
@@ -67,7 +83,7 @@ func (amt *AMTActivationServer) Send(data Message) error {
 		return err
 	}
 	log.Debug("sending message to RPS")
-	// log.Trace(string(data))
+
 	err = amt.Conn.WriteMessage(websocket.TextMessage, dataToSend)
 	if err != nil {
 		return err
@@ -79,11 +95,9 @@ func (amt *AMTActivationServer) Send(data Message) error {
 func (amt *AMTActivationServer) Listen() chan []byte {
 	log.Debug("listening to RPS...")
 	dataChannel := make(chan []byte)
-	// done := make(chan struct{})
 
 	go func(ch chan []byte) {
 		defer close(dataChannel)
-
 		for {
 			_, message, err := amt.Conn.ReadMessage()
 			if err != nil {
@@ -93,40 +107,35 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 			dataChannel <- message
 		}
 	}(dataChannel)
-
 	return dataChannel
 }
 
 // ProcessMessage inspects RPS messages, decodes the base64 payload from the server and relays it to LMS
 func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 	log.Debug("received messages from RPS")
-	// lms.Connect()
+
 	activation := Message{}
 	err := json.Unmarshal(message, &activation)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
-
 	if activation.Method == "heartbeat_request" {
 		heartbeat, _ := amt.GenerateHeartbeatResponse(activation)
 		return heartbeat
 	}
-
 	statusMessage := StatusMessage{}
 	if activation.Method == "success" {
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
 		if err != nil {
 			log.Error(err)
 			log.Info(activation.Message)
-
 		} else {
 			log.Info("Status: " + statusMessage.Status)
 			log.Info("Network: " + statusMessage.Network)
 			log.Info("CIRA: " + statusMessage.CIRAConnection)
 			log.Info("TLS: " + statusMessage.TLSConfiguration)
 		}
-
 		return nil
 	} else if activation.Method == "error" {
 		err := json.Unmarshal([]byte(activation.Message), &statusMessage)
@@ -137,16 +146,13 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 		}
 		return nil
 	}
-
 	msgPayload, err := base64.StdEncoding.DecodeString(activation.Payload)
 	if err != nil {
 		log.Error("unable to decode base64 payload from RPS")
 	}
 	log.Trace("PAYLOAD:" + string(msgPayload))
 	return msgPayload
-
 }
-
 func (amt *AMTActivationServer) GenerateHeartbeatResponse(activation Message) ([]byte, error) {
 	activation.Method = "heartbeat_response"
 	activation.Status = "success"
