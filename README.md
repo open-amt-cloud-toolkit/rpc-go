@@ -1,9 +1,9 @@
+# Remote Provisioning Client (RPC)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go)
 
-# Remote Provisioning Client (RPC) Beta
-<em>Used for activation, deactivation, maintenance, and status of an AMT device</em>
-
 > Disclaimer: Production viable releases are tagged and listed under 'Releases'. All other check-ins should be considered 'in-development' and should not be used in production
+
+Used for activation, deactivation, maintenance, and status of an AMT device
 
 ## Prerequisites 
 
