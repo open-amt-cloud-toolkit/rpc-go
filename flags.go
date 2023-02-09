@@ -58,6 +58,8 @@ type Flags struct {
 	StaticPassword                      string
 	Password                            string
 	LogLevel                            string
+	Token                               string
+	TenantID                            string
 	amtInfoCommand                      *flag.FlagSet
 	amtActivateCommand                  *flag.FlagSet
 	amtDeactivateCommand                *flag.FlagSet
@@ -186,6 +188,8 @@ func (f *Flags) setupCommonFlags() {
 		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
 		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+		fs.StringVar(&f.Token, "token", "", "JWT Token for Authorization")
+		fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
 	}
