@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
@@ -104,32 +105,32 @@ func NewFlags(args []string) *Flags {
 }
 
 // ParseFlags is used for understanding the command line flags
-func (f *Flags) ParseFlags() (string, bool) {
+func (f *Flags) ParseFlags() (string, int) {
 
 	if len(f.commandLineArgs) > 1 {
 		switch f.commandLineArgs[1] {
 		case "amtinfo":
 			f.handleAMTInfo(f.amtInfoCommand)
-			return "amtinfo", false //we want to exit the program
+			return "amtinfo", 0 //we want to exit the program
 		case "activate":
-			success := f.handleActivateCommand()
-			return "activate", success
+			result := f.handleActivateCommand()
+			return "activate", result
 		case "maintenance":
-			success := f.handleMaintenanceCommand()
-			return "maintenance", success
+			result := f.handleMaintenanceCommand()
+			return "maintenance", result
 		case "deactivate":
-			success := f.handleDeactivateCommand()
-			return "deactivate", success
+			result := f.handleDeactivateCommand()
+			return "deactivate", result
 		case "version":
 			f.handleVersionCommand()
-			return "version", false
+			return "version", 0
 		default:
 			f.printUsage()
-			return "", false
+			return "", utils.Success
 		}
 	}
 	f.printUsage()
-	return "", false
+	return "", utils.IncorrectCommandLineParameters
 
 }
 func (f *Flags) printUsage() string {
@@ -195,13 +196,15 @@ func (f *Flags) setupCommonFlags() {
 	}
 }
 
-func (f *Flags) handleMaintenanceCommand() bool {
+func (f *Flags) handleMaintenanceCommand() int {
 
 	//validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
-		return false
+		return utils.IncorrectCommandLineParameters
 	}
+
+	var err error
 
 	task := ""
 	switch f.commandLineArgs[2] {
@@ -210,19 +213,35 @@ func (f *Flags) handleMaintenanceCommand() bool {
 	case "synchostname":
 		task = f.handleMaintenanceSyncHostname()
 	case "syncip":
-		task = f.handleMaintenanceSyncIP()
+		task, err = f.handleMaintenanceSyncIP()
 	case "changepassword":
 		task = f.handleMaintenanceSyncChangePassword()
 	default:
 		f.printMaintenanceUsage()
 	}
-	if task == "" {
-		return false
+	if task == "" || err != nil {
+		// Parse the error message to find the problematic flag.
+		// The problematic flag is of the following format '-' followed by flag name and then a ':'
+		re := regexp.MustCompile(`-.*:`)
+		switch re.FindString(err.Error()) {
+		case "-netmask:":
+			return utils.MissingOrIncorrectNetworkMask
+		case "-staticip:":
+			return utils.MissingOrIncorrectStaticIP
+		case "-gateway:":
+			return utils.MissingOrIncorrectGateway
+		case "-primarydns:":
+			return utils.MissingOrIncorrectPrimaryDNS
+		case "-secondarydns:":
+			return utils.MissingOrIncorrectSecondaryDNS
+		default:
+			return utils.IncorrectCommandLineParameters
+		}
 	}
 	if f.URL == "" {
 		fmt.Print("\n-u flag is required and cannot be empty\n\n")
 		f.amtMaintenanceCommand.Usage()
-		return false
+		return utils.MissingOrIncorrectURL
 	}
 	if f.Password == "" {
 		fmt.Println("Please enter the current AMT Password: ")
@@ -230,12 +249,12 @@ func (f *Flags) handleMaintenanceCommand() bool {
 		if f.Password == "" || err != nil {
 			fmt.Print("\ncurrent AMT password is required and cannot be empty\n\n")
 			f.amtMaintenanceCommand.Usage()
-			return false
+			return utils.MissingOrIncorrectPassword
 		}
 	}
 
 	f.Command = fmt.Sprintf("maintenance --password %s %s", f.Password, task)
-	return true
+	return utils.Success
 }
 
 func (f *Flags) handleMaintenanceSyncClock() string {
@@ -276,7 +295,7 @@ func validateIP(assignee *string) func(string) error {
 	}
 }
 
-func (f *Flags) handleMaintenanceSyncIP() string {
+func (f *Flags) handleMaintenanceSyncIP() (string, error) {
 	f.amtMaintenanceSyncIPCommand.Func(
 		"staticip",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
@@ -290,21 +309,21 @@ func (f *Flags) handleMaintenanceSyncIP() string {
 	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
 
 	if err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		return ""
+		return "", err
 	} else if len(f.IpConfiguration.IpAddress) != 0 {
-		return "--syncip"
+		return "--syncip", err
 	}
 
 	amtLanIfc, err := f.amtCommand.GetLANInterfaceSettings(false)
 	if err != nil {
 		log.Error(err)
-		return ""
+		return "", err
 	}
 
 	ifaces, err := f.netEnumerator.Interfaces()
 	if err != nil {
 		log.Error(err)
-		return ""
+		return "", err
 	}
 
 	for _, i := range ifaces {
@@ -330,9 +349,9 @@ func (f *Flags) handleMaintenanceSyncIP() string {
 
 	if len(f.IpConfiguration.IpAddress) == 0 {
 		log.Errorf("static ip address not found")
-		return ""
+		return "", err
 	}
-	return "--syncip"
+	return "--syncip", err
 }
 
 func (f *Flags) handleMaintenanceSyncChangePassword() string {
@@ -372,51 +391,63 @@ func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func (f *Flags) handleActivateCommand() bool {
+func (f *Flags) handleActivateCommand() int {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
 
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
-		return false
+		return utils.IncorrectCommandLineParameters
 	}
 	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
-		return false
+		re := regexp.MustCompile(`: .*`)
+		switch re.FindString(err.Error()) {
+		case ": -d":
+			return utils.MissingDNSSuffix
+		case ": -p":
+			return utils.MissingProxyAddressAndPort
+		case ": -h":
+			return utils.MissingHostname
+		case ": -profile":
+			return utils.MissingOrIncorrectProfile
+		default:
+			return utils.IncorrectCommandLineParameters
+		}
 	}
 
 	if f.amtActivateCommand.Parsed() {
 		if f.URL == "" {
 			fmt.Println("-u flag is required and cannot be empty")
 			f.amtActivateCommand.Usage()
-			return false
+			return utils.MissingOrIncorrectURL
 		}
 		if f.Profile == "" {
 			fmt.Println("-profile flag is required and cannot be empty")
 			f.amtActivateCommand.Usage()
-			return false
+			return utils.MissingOrIncorrectProfile
 		}
 	}
 	f.Command = "activate --profile " + f.Profile
-	return true
+	return utils.Success
 }
 
-func (f *Flags) handleDeactivateCommand() bool {
+func (f *Flags) handleDeactivateCommand() int {
 	forcePtr := f.amtDeactivateCommand.Bool("f", false, "force deactivate even if device is not registered with a server")
 
 	if len(f.commandLineArgs) == 2 {
 		f.amtDeactivateCommand.PrintDefaults()
-		return false
+		return utils.IncorrectCommandLineParameters
 	}
 	if err := f.amtDeactivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
-		return false
+		return utils.IncorrectCommandLineParameters
 	}
 
 	if f.amtDeactivateCommand.Parsed() {
 		if f.URL == "" {
 			fmt.Println("-u flag is required and cannot be empty")
 			f.amtDeactivateCommand.Usage()
-			return false
+			return utils.MissingOrIncorrectURL
 		}
 		if f.Password == "" {
 			fmt.Println("Please enter AMT Password: ")
@@ -424,7 +455,7 @@ func (f *Flags) handleDeactivateCommand() bool {
 			// Taking input from user
 			_, err := fmt.Scanln(&password)
 			if password == "" || err != nil {
-				return false
+				return utils.MissingOrIncorrectPassword
 			}
 			f.Password = password
 		}
@@ -433,9 +464,9 @@ func (f *Flags) handleDeactivateCommand() bool {
 			f.Command = f.Command + " -f"
 		}
 	}
-	return true
+	return utils.Success
 }
-func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
+func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) int {
 	amtInfoVerPtr := amtInfoCommand.Bool("ver", false, "BIOS Version")
 	amtInfoBldPtr := amtInfoCommand.Bool("bld", false, "Build Number")
 	amtInfoSkuPtr := amtInfoCommand.Bool("sku", false, "Product SKU")
@@ -448,7 +479,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 	amtInfoHostnamePtr := amtInfoCommand.Bool("hostname", false, "OS Hostname")
 
 	if err := f.amtInfoCommand.Parse(f.commandLineArgs[2:]); err != nil {
-		return
+		return utils.IncorrectCommandLineParameters
 	}
 
 	defaultFlagCount := 2
@@ -636,12 +667,13 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) {
 			println(output)
 		}
 	}
+	return utils.Success
 }
 
-func (f *Flags) handleVersionCommand() bool {
+func (f *Flags) handleVersionCommand() int {
 
 	if err := f.versionCommand.Parse(f.commandLineArgs[2:]); err != nil {
-		return false
+		return utils.IncorrectCommandLineParameters
 	}
 
 	if !f.JsonOutput {
@@ -670,5 +702,5 @@ func (f *Flags) handleVersionCommand() bool {
 		println(output)
 	}
 
-	return true
+	return utils.Success
 }

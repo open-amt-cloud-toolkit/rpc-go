@@ -23,8 +23,8 @@ const AccessErrMsg = "Failed to execute due to access issues. " +
 func checkAccess() (int, error) {
 	amtCommand := amt.NewAMTCommand()
 	result, err := amtCommand.Initialize()
-	if !result || err != nil {
-		return utils.ErrAccess, err
+	if result != utils.Success || err != nil {
+		return utils.AmtNotDetected, err
 	}
 	return utils.Success, nil
 }
@@ -32,30 +32,30 @@ func checkAccess() (int, error) {
 func runRPC(args []string) (int, error) {
 	// process cli flags/env vars
 	flags, keepGoing := handleFlags(args)
-	if keepGoing == false {
-		return utils.Success, nil
+	if keepGoing != utils.Success {
+		return keepGoing, nil
 	}
 
 	startMessage, err := rps.PrepareInitialMessage(flags)
 	if err != nil {
-		return utils.ErrGeneralFailure, err
+		return utils.MissingOrIncorrectPassword, err
 	}
 
 	executor, err := client.NewExecutor(*flags)
 	if err != nil {
-		return utils.ErrGeneralFailure, err
+		return utils.ServerCerificateVerificationFailed, err
 	}
 
 	executor.MakeItSo(startMessage)
 	return utils.Success, nil
 }
 
-func handleFlags(args []string) (*rpc.Flags, bool) {
+func handleFlags(args []string) (*rpc.Flags, int) {
 	//process flags
 	flags := rpc.NewFlags(args)
 	_, result := flags.ParseFlags()
-	if !result {
-		return nil, false
+	if result != 0 {
+		return nil, result
 	}
 
 	if flags.Verbose {
@@ -78,7 +78,7 @@ func handleFlags(args []string) (*rpc.Flags, bool) {
 			FullTimestamp: true,
 		})
 	}
-	return flags, true
+	return flags, utils.Success
 }
 
 func main() {

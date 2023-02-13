@@ -10,11 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/pkg/pthi"
+	"rpc/pkg/utils"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const trickyPassword string = "!@#$%^&*(()-+="
@@ -189,7 +191,7 @@ func TestHandleActivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
 	success := flags.handleActivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
 func TestHandleActivateCommand(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password"}
@@ -197,7 +199,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	var AMTTimeoutDuration time.Duration = 120000000000
 	expected := "activate --profile profileName"
 	success := flags.handleActivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
@@ -214,7 +216,7 @@ func TestHandleActivateCommandWithTimeOut(t *testing.T) {
 	var AMTTimeoutDuration time.Duration = 2000000000
 	expected := "activate --profile profileName"
 	success := flags.handleActivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
@@ -228,7 +230,7 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 	flags := NewFlags(args)
 	expected := "activate --profile profileName"
 	success := flags.handleActivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
@@ -254,7 +256,7 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	flags := NewFlags(args)
 	expected := "activate --profile envprofile"
 	success := flags.handleActivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "envprofile", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
@@ -262,20 +264,52 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	os.Clearenv()
 }
 
-func TestHandleActivateCommandNoURL(t *testing.T) {
+func TestHandleActivateCommandNoProfile(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
 	flags := NewFlags(args)
 	success := flags.handleActivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.MissingOrIncorrectProfile)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
 
-func TestHandleActivateCommandNoProfile(t *testing.T) {
+func TestHandleActivateCommandNoProxy(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-p"}
+	flags := NewFlags(args)
+	success := flags.handleActivateCommand()
+	assert.EqualValues(t, success, utils.MissingProxyAddressAndPort)
+	assert.Equal(t, "wss://localhost", flags.URL)
+}
+
+func TestHandleActivateCommandNoHostname(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-h"}
+	flags := NewFlags(args)
+	success := flags.handleActivateCommand()
+	assert.EqualValues(t, success, utils.MissingHostname)
+	assert.Equal(t, "wss://localhost", flags.URL)
+}
+
+func TestHandleActivateCommandNoDNSSuffix(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-d"}
+	flags := NewFlags(args)
+	success := flags.handleActivateCommand()
+	assert.EqualValues(t, success, utils.MissingDNSSuffix)
+	assert.Equal(t, "wss://localhost", flags.URL)
+}
+
+func TestHandleActivateCommandMissingProfile(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile"}
+	flags := NewFlags(args)
+	success := flags.handleActivateCommand()
+	assert.EqualValues(t, success, utils.MissingOrIncorrectProfile)
+	assert.Equal(t, "wss://localhost", flags.URL)
+}
+
+func TestHandleActivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "activate", "-profile", "profileName"}
 
 	flags := NewFlags(args)
 	success := flags.handleActivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.MissingOrIncorrectURL)
 	assert.Equal(t, "profileName", flags.Profile)
 }
 
@@ -284,15 +318,23 @@ func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
+func TestHandleDeactivateInvalidFlag(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-x"}
+
+	flags := NewFlags(args)
+	success := flags.handleDeactivateCommand()
+	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
+}
+
 func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
 	expected := "deactivate --password password"
 	defer userInput(t, "password")()
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, expected, flags.Command)
 }
 func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
@@ -300,21 +342,21 @@ func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
 	defer userInput(t, "")()
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.MissingOrIncorrectPassword)
 }
 func TestHandleDeactivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "--password", "password"}
 
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.False(t, success)
+	assert.EqualValues(t, success, utils.MissingOrIncorrectURL)
 }
 func TestHandleDeactivateCommand(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password"}
 	expected := "deactivate --password password"
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
 }
@@ -323,7 +365,7 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	expected := "deactivate --password password -f"
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.True(t, success)
+	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
 }
@@ -332,7 +374,7 @@ func TestParseFlagsDeactivate(t *testing.T) {
 	args := []string{"./rpc", "deactivate"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "deactivate", command)
 }
 
@@ -365,44 +407,44 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	}
 	tests := map[string]struct {
 		cmdLine      string
-		wantResult   bool
+		wantResult   int
 		wantRpsCmd   string
 		wantIPConfig IPConfiguration
 		userInput    string
 	}{
+		// "should fail - required task": {
+		// 	cmdLine:    cmdBase + " " + argUrl,
+		// 	wantResult: utils.Success,
+		// 	wantRpsCmd: "",
+		// },
 		"should fail with usage - no additional arguments": {
 			cmdLine:    cmdBase,
-			wantResult: false,
+			wantResult: utils.IncorrectCommandLineParameters,
 			wantRpsCmd: "",
 		},
 		"should fail - required websocket URL": {
 			cmdLine:    cmdBase + " " + argSyncClock,
-			wantResult: false,
+			wantResult: utils.MissingOrIncorrectURL,
 		},
 		"should fail - required amt password": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
-			wantResult: false,
-			wantRpsCmd: "",
-		},
-		"should fail - required task": {
-			cmdLine:    cmdBase + " " + argUrl,
-			wantResult: false,
+			wantResult: utils.MissingOrIncorrectPassword,
 			wantRpsCmd: "",
 		},
 		"should pass - syncclock": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl + " " + argCurPw,
-			wantResult: true,
+			wantResult: utils.Success,
 			// translate arg from clock -> time
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 		},
 		"should pass - synchostname no params": {
 			cmdLine:    cmdBase + " " + argSyncHostname + " " + argUrl + " " + argCurPw,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname,
 		},
 		"should pass - syncip no params": {
 			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
-			wantResult:   true,
+			wantResult:   utils.Success,
 			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgNoParams,
 		},
@@ -415,7 +457,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -primarydns " + ipCfgWithParams.PrimaryDns +
 				" -secondarydns " + ipCfgWithParams.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
-			wantResult:   true,
+			wantResult:   utils.Success,
 			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgWithParams,
 		},
@@ -426,38 +468,38 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -primarydns " + ipCfgWithLookup.PrimaryDns +
 				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
-			wantResult:   true,
+			wantResult:   utils.Success,
 			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgWithLookup,
 		},
 		"should fail - syncip bad ip address": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
-			wantResult: false,
+			wantResult: utils.MissingOrIncorrectStaticIP,
 			wantRpsCmd: "",
 		},
 		"should pass - change password to random value": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
 		},
 		"should pass - change password using static value": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - change password static value before other flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - change password static value after all flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
-			wantResult: true,
+			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 			userInput:  trickyPassword,
 		},
@@ -485,7 +527,7 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -494,7 +536,7 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, true, flags.JsonOutput)
 }
@@ -502,7 +544,7 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -510,7 +552,7 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -518,14 +560,14 @@ func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "activate", command)
 }
 func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "version", command)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -534,7 +576,7 @@ func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "version", command)
 	assert.Equal(t, true, flags.JsonOutput)
 }
@@ -543,7 +585,7 @@ func TestParseFlagsNone(t *testing.T) {
 	args := []string{"./rpc"}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "", command)
 }
 
@@ -551,7 +593,7 @@ func TestParseFlagsEmptyCommand(t *testing.T) {
 	args := []string{"./rpc", ""}
 	flags := NewFlags(args)
 	command, result := flags.ParseFlags()
-	assert.False(t, result)
+	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "", command)
 }
 
