@@ -31,6 +31,7 @@ type Message struct {
 	Message         string `json:"message"`
 	Fqdn            string `json:"fqdn"`
 	Payload         string `json:"payload"`
+	TenantID        string `json:"tenantId"`
 }
 
 // Status Message is used for displaying and parsing status messages from RPS
@@ -141,6 +142,7 @@ func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
 		ProtocolVersion: utils.ProtocolVersion,
 		Status:          "ok",
 		Message:         "ok",
+		TenantID:        flags.TenantID,
 	}
 	payload, err := p.createPayload(flags.DNS, flags.Hostname, flags.AMTTimeoutDuration)
 	if err != nil {

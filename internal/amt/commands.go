@@ -71,7 +71,7 @@ type LocalSystemAccount struct {
 }
 
 type Interface interface {
-	Initialize() (bool, error)
+	Initialize() (int, error)
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
@@ -103,20 +103,20 @@ func NewAMTCommand() AMTCommand {
 }
 
 // Initialize determines if rpc is able to initialize the heci driver
-func (amt AMTCommand) Initialize() (bool, error) {
+func (amt AMTCommand) Initialize() (int, error) {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
 
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
-			return false, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
+			return utils.HECIDriverNotDetected, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
 		} else {
-			return false, errors.New("unable to initialize")
+			return utils.HECIDriverNotDetected, errors.New("unable to initialize")
 		}
 	}
 
 	defer amt.PTHI.Close()
-	return true, nil
+	return utils.Success, nil
 }
 
 // GetVersionDataFromME ...

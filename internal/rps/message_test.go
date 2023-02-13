@@ -26,8 +26,8 @@ var osDNSSuffix string = "osdns"
 var controlMode int = 0
 var err error = nil
 
-func (c MockAMT) Initialize() (bool, error) {
-	return true, nil
+func (c MockAMT) Initialize() (int, error) {
+	return utils.Success, nil
 }
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
 	return "Version", nil
