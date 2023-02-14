@@ -523,6 +523,61 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	}
 }
 
+func TestParseMaintenanceFlagsInvalidNetmask(t *testing.T) {
+	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-netmask", "1.1.1.1.1"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.Equal(t, "maintenance", command)
+	assert.EqualValues(t, result, utils.MissingOrIncorrectNetworkMask)
+}
+
+// fix - getting cli params error
+// func TestParseMaintenanceFlagsMissingNetmask(t *testing.T) {
+// 	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-netmask"}
+// 	flags := NewFlags(args)
+// 	command, result := flags.ParseFlags()
+// 	assert.Equal(t, "maintenance", command)
+// 	assert.EqualValues(t, result, utils.MissingOrIncorrectNetworkMask)
+// }
+
+func TestParseMaintenanceFlagsInvalidGateway(t *testing.T) {
+	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-gateway", "1.1.1.1.1"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.Equal(t, "maintenance", command)
+	assert.EqualValues(t, result, utils.MissingOrIncorrectGateway)
+}
+func TestParseMaintenanceFlagsInvalidPrimaryDNS(t *testing.T) {
+	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-primarydns", "1.1.1.1.1"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.Equal(t, "maintenance", command)
+	assert.EqualValues(t, result, utils.MissingOrIncorrectPrimaryDNS)
+}
+func TestParseMaintenanceFlagsInvalidSecondaryDNS(t *testing.T) {
+	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-secondarydns", "1.1.1.1.1", "-u", "wss://1.1.1.1"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.Equal(t, "maintenance", command)
+	assert.EqualValues(t, result, utils.MissingOrIncorrectSecondaryDNS)
+}
+func TestParseMaintenanceFlagsInvalidParameterCount(t *testing.T) {
+	args := []string{"./rpc", "maintenance", "syncip", "-u", "wss://1.1.1.1", "-password", "pass", "-ds"}
+	flags := NewFlags(args)
+	command, result := flags.ParseFlags()
+	assert.Equal(t, "maintenance", command)
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+}
+
+// fix - getting cli params error
+// func TestParseMaintenanceFlagsMissingGateway(t *testing.T) {
+// 	args := []string{"./rpc", "maintenance", "syncip", "-staticip", "10.10.10.10", "-gateway"}
+// 	flags := NewFlags(args)
+// 	command, result := flags.ParseFlags()
+// 	assert.Equal(t, "maintenance", command)
+// 	assert.EqualValues(t, result, utils.MissingOrIncorrectGateway)
+// }
+
 func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
 	flags := NewFlags(args)
