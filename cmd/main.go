@@ -31,9 +31,9 @@ func checkAccess() (int, error) {
 
 func runRPC(args []string) (int, error) {
 	// process cli flags/env vars
-	flags, keepGoing := handleFlags(args)
-	if keepGoing != utils.Success {
-		return keepGoing, nil
+	flags, keepgoing, status := handleFlags(args)
+	if !keepgoing {
+		return status, nil
 	}
 
 	startMessage, err := rps.PrepareInitialMessage(flags)
@@ -50,12 +50,12 @@ func runRPC(args []string) (int, error) {
 	return utils.Success, nil
 }
 
-func handleFlags(args []string) (*rpc.Flags, int) {
+func handleFlags(args []string) (*rpc.Flags, bool, int) {
 	//process flags
 	flags := rpc.NewFlags(args)
-	_, result := flags.ParseFlags()
-	if result != 0 {
-		return nil, result
+	_, keepgoing, result := flags.ParseFlags()
+	if !keepgoing {
+		return nil, false, result
 	}
 
 	if flags.Verbose {
@@ -78,7 +78,7 @@ func handleFlags(args []string) (*rpc.Flags, int) {
 			FullTimestamp: true,
 		})
 	}
-	return flags, utils.Success
+	return flags, true, utils.Success
 }
 
 func main() {

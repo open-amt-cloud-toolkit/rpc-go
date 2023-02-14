@@ -190,7 +190,8 @@ func TestPrintMaintenanceUsage(t *testing.T) {
 func TestHandleActivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.EqualValues(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
 func TestHandleActivateCommand(t *testing.T) {
@@ -198,7 +199,8 @@ func TestHandleActivateCommand(t *testing.T) {
 	flags := NewFlags(args)
 	var AMTTimeoutDuration time.Duration = 120000000000
 	expected := "activate --profile profileName"
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
@@ -215,7 +217,8 @@ func TestHandleActivateCommandWithTimeOut(t *testing.T) {
 	flags := NewFlags(args)
 	var AMTTimeoutDuration time.Duration = 2000000000
 	expected := "activate --profile profileName"
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
@@ -229,7 +232,8 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}
 	flags := NewFlags(args)
 	expected := "activate --profile profileName"
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
@@ -255,7 +259,8 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
 	flags := NewFlags(args)
 	expected := "activate --profile envprofile"
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "envprofile", flags.Profile)
@@ -267,7 +272,8 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 func TestHandleActivateCommandNoProfile(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingOrIncorrectProfile)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
@@ -275,7 +281,8 @@ func TestHandleActivateCommandNoProfile(t *testing.T) {
 func TestHandleActivateCommandNoProxy(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-p"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingProxyAddressAndPort)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
@@ -283,7 +290,8 @@ func TestHandleActivateCommandNoProxy(t *testing.T) {
 func TestHandleActivateCommandNoHostname(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-h"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingHostname)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
@@ -291,7 +299,8 @@ func TestHandleActivateCommandNoHostname(t *testing.T) {
 func TestHandleActivateCommandNoDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-d"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingDNSSuffix)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
@@ -299,7 +308,8 @@ func TestHandleActivateCommandNoDNSSuffix(t *testing.T) {
 func TestHandleActivateCommandMissingProfile(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile"}
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingOrIncorrectProfile)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
@@ -308,23 +318,25 @@ func TestHandleActivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "activate", "-profile", "profileName"}
 
 	flags := NewFlags(args)
-	success := flags.handleActivateCommand()
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingOrIncorrectURL)
 	assert.Equal(t, "profileName", flags.Profile)
 }
 
 func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "deactivate"}
-
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
 func TestHandleDeactivateInvalidFlag(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-x"}
 
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
 
@@ -333,7 +345,8 @@ func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	expected := "deactivate --password password"
 	defer userInput(t, "password")()
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, expected, flags.Command)
 }
@@ -341,21 +354,24 @@ func TestHandleDeactivateCommandNoPasswordPromptEmpy(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost"}
 	defer userInput(t, "")()
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingOrIncorrectPassword)
 }
 func TestHandleDeactivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "--password", "password"}
 
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.MissingOrIncorrectURL)
 }
 func TestHandleDeactivateCommand(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password"}
 	expected := "deactivate --password password"
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
@@ -364,7 +380,8 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password", "-f"}
 	expected := "deactivate --password password -f"
 	flags := NewFlags(args)
-	success := flags.handleDeactivateCommand()
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, true)
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
@@ -373,7 +390,8 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 func TestParseFlagsDeactivate(t *testing.T) {
 	args := []string{"./rpc", "deactivate"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "deactivate", command)
 }
@@ -514,7 +532,12 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			flags := NewFlags(args)
 			flags.amtCommand.PTHI = MockPTHICommands{}
 			flags.netEnumerator = testNetEnumerator
-			gotCommand, gotResult := flags.ParseFlags()
+			gotCommand, keepGoing, gotResult := flags.ParseFlags()
+			if gotResult == utils.Success {
+				assert.Equal(t, keepGoing, true)
+			} else {
+				assert.Equal(t, keepGoing, false)
+			}
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, "maintenance", gotCommand)
 			assert.Equal(t, tc.wantRpsCmd, flags.Command)
@@ -526,7 +549,8 @@ func TestParseFlagsMaintenance(t *testing.T) {
 func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
@@ -535,7 +559,8 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, true, flags.JsonOutput)
@@ -543,7 +568,8 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
@@ -551,7 +577,8 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "amtinfo", command)
 	assert.Equal(t, false, flags.JsonOutput)
@@ -559,14 +586,16 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "activate", command)
 }
 func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "version", command)
 	assert.Equal(t, false, flags.JsonOutput)
@@ -575,7 +604,8 @@ func TestParseFlagsVersion(t *testing.T) {
 func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "version", command)
 	assert.Equal(t, true, flags.JsonOutput)
@@ -584,7 +614,8 @@ func TestParseFlagsVersionJSON(t *testing.T) {
 func TestParseFlagsNone(t *testing.T) {
 	args := []string{"./rpc"}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "", command)
 }
@@ -592,7 +623,8 @@ func TestParseFlagsNone(t *testing.T) {
 func TestParseFlagsEmptyCommand(t *testing.T) {
 	args := []string{"./rpc", ""}
 	flags := NewFlags(args)
-	command, result := flags.ParseFlags()
+	command, keepGoing, result := flags.ParseFlags()
+	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, result, utils.Success)
 	assert.Equal(t, "", command)
 }
