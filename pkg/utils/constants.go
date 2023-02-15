@@ -22,14 +22,8 @@ const (
 	MPSServerMaxLength = 256
 
 	// Return Codes
-	// Success           = 0
-	// ErrGeneralFailure = -1
-	// ErrAccess         = -1
-
-	// AmtNotDetected = 3
-	// AmtNotReady    = 4
-
 	Success = 0
+
 	// (1-99) General Errors
 
 	// (1-19) Basic errors outside of Open AMT Cloud Toolkit
@@ -54,7 +48,9 @@ const (
 	MissingOrIncorrectSecondaryDNS     = 32 // Missing secondary DNS Suffix
 
 	// (70-99) Connection Errors
-	RPSAuthenticationFailed = 70 // RPS authentication failed
+	RPSAuthenticationFailed         = 70 // RPS authentication failed
+	AMTConnectionFailed             = 71
+	OSNetworkInterfacesLookupFailed = 72
 
 	// (100-149) Activation, and configuration errors
 	AMTAuthenticationFailed         = 100 // AMT authentication failed
