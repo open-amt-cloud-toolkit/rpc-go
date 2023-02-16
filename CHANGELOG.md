@@ -1,3 +1,27 @@
+<a name="v2.6.0"></a>
+## [v2.6.0] - 2023-02-16
+### Build
+- update version to 2.6.0, update changelog
+- **docker:** update golang base to 1.19
+
+### Ci
+- set os to 18.04
+- fix changelog job
+- add ossf action
+
+### Docs
+- align format to match other repositories
+- add ossf badge to readme
+
+### Feat
+- added flag tenantId
+- **rps:** added proxy support
+
+### Fix
+- proper processing of command line flags
+
+### Refactor
+- adds new return codes
 
 <a name="v2.5.0"></a>
 ## [v2.5.0] - 2022-12-08
