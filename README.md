@@ -1,13 +1,20 @@
 # Remote Provisioning Client (RPC)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go) [![Discord Shield](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=shield)](https://discord.gg/yrcMp2kDWh)
 
 > Disclaimer: Production viable releases are tagged and listed under 'Releases'. All other check-ins should be considered 'in-development' and should not be used in production
 
-Used for activation, deactivation, maintenance, and status of an AMT device
+RPC is used for activation, deactivation, maintenance, and status of an AMT device
+The Remote Provisioning Client (RPC) is an application that assists with activation, configuration, and maintenance of for Intel® AMT devices. RPC provides source code that must be compiled into a binary to run or library for integration with other client applications.
+
+<br><br>
+
+**For detailed documentation** about Getting Started or other features of the Open AMT Cloud Toolkit, see the [docs](https://open-amt-cloud-toolkit.github.io/docs/).
+
+<br>
 
 ## Prerequisites 
 
-1) Install GO https://golang.org/
+- [Golang](https://go.dev/dl/)
 
 ## Build
 
@@ -60,3 +67,17 @@ sudo ./rpc
 ```bash
 $ docker run --rm -it --device /dev/mei0 rpc-go:latest
 ```
+
+<br>
+
+## Additional Resources
+
+- For detailed documentation and Getting Started, [visit the docs site](https://open-amt-cloud-toolkit.github.io/docs).
+
+- Looking to contribute? [Find more information here about contribution guidelines and practices](.\CONTRIBUTING.md).
+
+- Find a bug? Or have ideas for new features? [Open a new Issue](https://github.com/open-amt-cloud-toolkit/rpc-go/issues).
+
+- Need additional support or want to get the latest news and events about Open AMT? Connect with the team directly through Discord.
+
+    [![Discord Banner 1](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=banner2)](https://discord.gg/yrcMp2kDWh)
