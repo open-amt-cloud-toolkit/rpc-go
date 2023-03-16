@@ -96,17 +96,17 @@ func (amt *AMTActivationServer) Listen() chan []byte {
 	log.Debug("listening to RPS...")
 	dataChannel := make(chan []byte)
 
-	go func(ch chan []byte) {
+	go func() {
 		defer close(dataChannel)
 		for {
 			_, message, err := amt.Conn.ReadMessage()
 			if err != nil {
 				log.Error("error:", err)
-				return
+				break
 			}
 			dataChannel <- message
 		}
-	}(dataChannel)
+	}()
 	return dataChannel
 }
 
