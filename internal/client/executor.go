@@ -101,13 +101,13 @@ func (e Executor) HandleInterrupt() {
 
 	// Cleanly close the connection by sending a close message and then
 	// waiting (with timeout) for the server to close the connection.
-	// err := e.localManagement.Close()
-	// if err != nil {
-	// 	log.Error("Connection close failed", err)
-	// 	return
-	// }
+	err := e.localManagement.Close()
+	if err != nil {
+		log.Error("Connection close failed", err)
+		return
+	}
 
-	err := e.server.Close()
+	err = e.server.Close()
 	if err != nil {
 		log.Error("Connection close failed", err)
 		return

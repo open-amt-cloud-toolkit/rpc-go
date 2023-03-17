@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -23,10 +22,11 @@ func Process(data []byte, session *LMESession) bytes.Buffer {
 		dataToSend = ProcessGlobalRequest(data)
 	case APF_CHANNEL_OPEN: // (90) Sent by Intel AMT when a channel needs to be open from Intel AMT. This is not common, but WSMAN events are a good example of channel coming from AMT.
 		log.Debug("received APF_CHANNEL_OPEN")
+		ProcessChannelOpen(data, session)
 	case APF_DISCONNECT: // (1) Intel AMT wants to completely disconnect. Not sure when this happens.
 		log.Debug("received APF_DISCONNECT")
 	case APF_SERVICE_REQUEST: // (5)
-		log.Debug("received APF SERVICE REQUEST")
+		log.Debug("received APF_SERVICE_REQUEST")
 		dataToSend = ProcessServiceRequest(data)
 	case APF_CHANNEL_OPEN_CONFIRMATION: // (91) Intel AMT confirmation to an APF_CHANNEL_OPEN request.
 		log.Debug("received APF_CHANNEL_OPEN_CONFIRMATION")
@@ -38,15 +38,20 @@ func Process(data []byte, session *LMESession) bytes.Buffer {
 		log.Debug("received APF_CHANNEL_CLOSE")
 		ProcessChannelClose(data, session)
 	case APF_CHANNEL_DATA: // (94) Intel AMT is sending data that we must relay into an LMS TCP connection.
-		ProcessChannelData(data, session)
+		log.Debug("received APF_CHANNEL_DATA")
+		adjustWindowMessage := ProcessChannelData(data, session)
+		if adjustWindowMessage.BytesToAdd > 0 {
+			dataToSend = adjustWindowMessage
+		}
 	case APF_CHANNEL_WINDOW_ADJUST: // 93
 		log.Debug("received APF_CHANNEL_WINDOW_ADJUST")
 		ProcessChannelWindowAdjust(data, session)
 	case APF_PROTOCOLVERSION: // 192
-		log.Debug("received APF PROTOCOL VERSION")
+		log.Debug("received APF_PROTOCOL_VERSION")
 		dataToSend = ProcessProtocolVersion(data)
 	case APF_USERAUTH_REQUEST: // 50
 	default:
+		log.Debug("received unknown APF type")
 	}
 	if dataToSend != nil {
 		binary.Write(&bin_buf, binary.BigEndian, dataToSend)
@@ -57,19 +62,28 @@ func Process(data []byte, session *LMESession) bytes.Buffer {
 func ProcessChannelWindowAdjust(data []byte, session *LMESession) {
 	adjustMessage := APF_CHANNEL_WINDOW_ADJUST_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
+
 	binary.Read(dataBuffer, binary.BigEndian, &adjustMessage)
 	session.TXWindow += adjustMessage.BytesToAdd
 	log.Tracef("%+v", adjustMessage)
+}
+func ProcessChannelOpen(data []byte, session *LMESession) APF_CHANNEL_OPEN_FAILURE_MESSAGE {
+	openMessage := APF_CHANNEL_OPEN_MESSAGE{}
+	dataBuffer := bytes.NewBuffer(data)
+	binary.Read(dataBuffer, binary.BigEndian, &openMessage)
+	log.Tracef("%+v", openMessage)
+	if string(openMessage.ChannelType[:openMessage.ChannelTypeLength]) == APF_OPEN_CHANNEL_REQUEST_DIRECT {
+		return ChannelOpenReplyFailure(openMessage.SenderChannel, OPEN_FAILURE_REASON_CONNECT_FAILED)
+	}
+	return APF_CHANNEL_OPEN_FAILURE_MESSAGE{}
 }
 func ProcessChannelClose(data []byte, session *LMESession) APF_CHANNEL_CLOSE_MESSAGE {
 	closeMessage := APF_CHANNEL_CLOSE_MESSAGE{}
 	dataBuffer := bytes.NewBuffer(data)
 	binary.Read(dataBuffer, binary.BigEndian, &closeMessage)
 	log.Tracef("%+v", closeMessage)
-	// session.DataBuffer <- session.Tempdata
-	// session.Tempdata = []byte{}
-	close := ChannelClose(closeMessage.RecipientChannel)
-	return close
+
+	return ChannelClose(closeMessage.RecipientChannel)
 }
 func ProcessGlobalRequest(data []byte) interface{} {
 	genericHeader := APF_GENERIC_HEADER{}
@@ -108,7 +122,7 @@ func ProcessGlobalRequest(data []byte) interface{} {
 	}
 	return reply
 }
-func ProcessChannelData(data []byte, session *LMESession) {
+func ProcessChannelData(data []byte, session *LMESession) APF_CHANNEL_WINDOW_ADJUST_MESSAGE {
 	channelData := APF_CHANNEL_DATA_MESSAGE{}
 	buf2 := bytes.NewBuffer(data)
 
@@ -118,24 +132,16 @@ func ProcessChannelData(data []byte, session *LMESession) {
 	session.RXWindow = channelData.DataLength
 	dataBuffer := make([]byte, channelData.DataLength)
 	binary.Read(buf2, binary.BigEndian, &dataBuffer)
-	//log.Debug("received APF_CHANNEL_DATA - " + fmt.Sprint(channelData.DataLength))
-	//log.Tracef("%+v", channelData)
-
+	// log.Tracef("%+v", channelData)
+	log.Tracef("%+v", string(dataBuffer))
+	log.Trace("PACKET: " + fmt.Sprint(session.Packet))
 	session.Tempdata = append(session.Tempdata, dataBuffer[:channelData.DataLength]...)
-	// var windowAdjust APF_CHANNEL_WINDOW_ADJUST_MESSAGE
-	// if session.RXWindow > 1024 { // TODO: Check this
-	// 	windowAdjust = ChannelWindowAdjust(channelData.RecipientChannel, session.RXWindow)
-	// 	session.RXWindow = 0
-	// }
-	session.Timer.Reset(3 * time.Second)
-	// var windowAdjust APF_CHANNEL_WINDOW_ADJUST_MESSAGE
-	// if session.RXWindow > 1024 { // TODO: Check this
-	// 	windowAdjust = ChannelWindowAdjust(channelData.RecipientChannel, session.RXWindow)
-	// 	session.RXWindow = 0
-	// }
-	// // log.Tracef("%+v", session)
-	// return windowAdjust
-	//return windowAdjust
+	if session.RXWindow > 1024 {
+		windowAdjust := ChannelWindowAdjust(channelData.RecipientChannel, session.RXWindow)
+		session.RXWindow = 0
+		return windowAdjust
+	}
+	return APF_CHANNEL_WINDOW_ADJUST_MESSAGE{}
 }
 func ProcessServiceRequest(data []byte) APF_SERVICE_ACCEPT_MESSAGE {
 	service := 0

@@ -6,6 +6,7 @@ package lm
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
@@ -126,44 +127,44 @@ func (lme *LMEConnection) execute(bin_buf bytes.Buffer) error {
 
 // Listen reads data from the LMS socket connection
 func (lme *LMEConnection) Listen() {
+	// Create a context with a 2-second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	go func() {
-		lme.Session.Timer = time.NewTimer(2 * time.Second)
-		<-lme.Session.Timer.C
+		lme.Session.Packet = 0
+		for {
+			result2, bytesRead, err2 := lme.Command.Receive()
+			if bytesRead == 0 || err2 != nil {
+				log.Trace("NO MORE DATA TO READ")
+				ctx.Done()
+				break
+			} else {
+				lme.Session.Packet = lme.Session.Packet + 1
+
+				result := apf.Process(result2, lme.Session)
+				if result.Len() != 0 {
+					err2 = lme.Command.Send(result.Bytes(), uint32(result.Len()))
+					if err2 != nil {
+						log.Error(err2)
+						ctx.Done()
+					}
+					log.Trace(result)
+				}
+			}
+		}
+	}()
+
+	<-ctx.Done() // Context is canceled or timed out
+	if len(lme.Session.Tempdata) > 0 {
 		lme.Session.DataBuffer <- lme.Session.Tempdata
 		lme.Session.Tempdata = []byte{}
 		var bin_buf bytes.Buffer
-		// var windowAdjust apf.APF_CHANNEL_WINDOW_ADJUST_MESSAGE
-		// if lme.Session.RXWindow > 1024 { // TODO: Check this
-		// 	windowAdjust = apf.ChannelWindowAdjust(lme.Session.RecipientChannel, lme.Session.RXWindow)
-		// 	lme.Session.RXWindow = 0
-		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.MessageType)
-		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.RecipientChannel)
-		// 	lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
-		// }
-
 		channelData := apf.ChannelClose(lme.Session.SenderChannel)
-		binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
-		binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
+		binary.Write(&bin_buf, binary.BigEndian, channelData)
 
 		lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
 		lme.Session.Status <- true
-	}()
-	for {
-
-		result2, bytesRead, err2 := lme.Command.Receive()
-		if bytesRead == 0 || err2 != nil {
-			log.Trace("NO MORE DATA TO READ")
-			break
-		} else {
-			result := apf.Process(result2, lme.Session)
-			if result.Len() != 0 {
-				err2 = lme.execute(result)
-				if err2 != nil {
-					log.Trace(err2)
-				}
-				log.Trace(result)
-			}
-		}
 	}
 }
 
@@ -171,8 +172,5 @@ func (lme *LMEConnection) Listen() {
 func (lme *LMEConnection) Close() error {
 	log.Debug("closing connection to lme")
 	lme.Command.Close()
-	if lme.Session.Timer != nil {
-		lme.Session.Timer.Stop()
-	}
 	return nil
 }

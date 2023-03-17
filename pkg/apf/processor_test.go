@@ -6,7 +6,6 @@ package apf
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,11 +41,48 @@ func TestProcessChannelWindowAdjust(t *testing.T) {
 	session := &LMESession{}
 	ProcessChannelWindowAdjust(data, session)
 }
-func TestProcessChannelClose(t *testing.T) {
-	data := []byte{0x01}
+
+func TestProcessChannelOpen(t *testing.T) {
+	channelType := [15]byte{}
+	copy(channelType[:], []byte(APF_OPEN_CHANNEL_REQUEST_DIRECT))
+	data := []byte{
+		0x00,                   // MessageType
+		0x00, 0x00, 0x00, 0x0C, // ChannelTypeLength
+	}
+	data = append(data, channelType[:]...) // ChannelType
+	data = append(data, []byte{
+		0x00, 0x00, 0x00, 0x01, // SenderChannel
+		0x00, 0x00, 0x00, 0x00, // InitialWindowSize
+		0x00, 0x00, 0x00, 0x00, // Reserved
+		0x00, 0x00, 0x00, 0x03, // ConnectedAddressLength
+		0x00, 0x00, 0x00, // ConnectedAddress
+		0x00, 0x00, 0x00, 0x00, // ConnectedPort
+		0x00, 0x00, 0x00, 0x03, // OriginatorIPAddressLength
+		0x00, 0x00, 0x00, // OriginatorIPAddress
+		0x00, 0x00, 0x00, 0x00, // OriginatorPort
+	}...)
 	session := &LMESession{}
+	expectedFailureMessage := APF_CHANNEL_OPEN_FAILURE_MESSAGE{
+		MessageType:      APF_CHANNEL_OPEN_FAILURE,
+		RecipientChannel: 1,
+		ReasonCode:       OPEN_FAILURE_REASON_CONNECT_FAILED,
+	}
+
+	result := ProcessChannelOpen(data, session)
+
+	assert.Equal(t, expectedFailureMessage, result, "Processed channel open failure message should match the expected value")
+}
+func TestProcessChannelClose(t *testing.T) {
+	data := []byte{0x00, 0x00, 0x00, 0x00, 0x01}
+	session := &LMESession{}
+	expectedCloseMessage := APF_CHANNEL_CLOSE_MESSAGE{
+		MessageType:      APF_CHANNEL_CLOSE,
+		RecipientChannel: 1,
+	}
+
 	result := ProcessChannelClose(data, session)
-	assert.NotNil(t, result)
+
+	assert.Equal(t, expectedCloseMessage, result, "Processed channel close message should match the expected value")
 }
 func TestProcessGlobalRequest(t *testing.T) {
 	data := []byte{0x01,
@@ -65,15 +101,9 @@ func TestProcessChannelData(t *testing.T) {
 		0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x01,
 	}
-	timer := time.NewTimer(time.Duration(2 * time.Second))
-	session := &LMESession{
-		Timer: timer,
-	}
-	go func() {
-		<-timer.C
-	}()
+	session := &LMESession{}
 	ProcessChannelData(data, session)
-
+	assert.Equal(t, 1, len(session.Tempdata))
 }
 func TestProcessServiceRequestWhenAUTH(t *testing.T) {
 	data := []byte{0x01, 0x00, 0x00, 0x00, 0x12, 0x61, 0x75, 0x74, 0x68, 0x40, 0x61, 0x6d, 0x74, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x6c, 0x2e, 0x63, 0x6f, 0x6d}
