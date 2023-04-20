@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019, ubuntu-18.04, ubuntu-20.04]
+        os: [windows-2019, windows-2022, ubuntu-22.04, ubuntu-20.04]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Test Converter and run tests
-        if: ${{ matrix.os == 'ubuntu-18.04' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: |
           export GOPATH="$HOME/go/"
           export PATH=$PATH:$GOPATH/bin
@@ -42,7 +42,7 @@ jobs:
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       
       - uses: codecov/codecov-action@v1.0.14
-        if: ${{ matrix.os == 'ubuntu-18.04' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         name: Upload Coverage Results
         
       # Runs a single command using the runners shell
@@ -57,7 +57,7 @@ jobs:
 
       - name: GitHub Upload Release Artifacts
         uses: actions/upload-artifact@v2
-        if: ${{ matrix.os == 'ubuntu-18.04' }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
         with:
           name: rpc-go-unit
           path: rpc-go-unit.xml
