@@ -405,6 +405,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	argChangePw := "changepassword"
 	newPassword := trickyPassword + "123"
 	cmdBase := "./rpc maintenance"
+
 	ipCfgNoParams := IPConfiguration{
 		IpAddress: "192.168.1.1",
 		Netmask:   "255.255.255.0",
@@ -430,13 +431,13 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		wantIPConfig IPConfiguration
 		userInput    string
 	}{
-		// "should fail - required task": {
-		// 	cmdLine:    cmdBase + " " + argUrl,
-		// 	wantResult: utils.Success,
-		// 	wantRpsCmd: "",
-		// },
 		"should fail with usage - no additional arguments": {
 			cmdLine:    cmdBase,
+			wantResult: utils.IncorrectCommandLineParameters,
+			wantRpsCmd: "",
+		},
+		"should fail with usage - unhandled task": {
+			cmdLine:    cmdBase + " someothertask",
 			wantResult: utils.IncorrectCommandLineParameters,
 			wantRpsCmd: "",
 		},
@@ -455,10 +456,25 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			// translate arg from clock -> time
 			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 		},
+		"should fail - syncclock bad param": {
+			cmdLine:    cmdBase + " " + argSyncClock + " -nope " + argUrl + " " + argCurPw,
+			wantResult: utils.IncorrectCommandLineParameters,
+			wantRpsCmd: "",
+		},
 		"should pass - synchostname no params": {
 			cmdLine:    cmdBase + " " + argSyncHostname + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname,
+		},
+		"should pass - task force flag": {
+			cmdLine:    cmdBase + " " + argSyncHostname + " -f " + argUrl + " " + argCurPw,
+			wantResult: utils.Success,
+			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname + " -f",
+		},
+		"should fail - synchostname bad param": {
+			cmdLine:    cmdBase + " " + argSyncHostname + " -nope " + argUrl + " " + argCurPw,
+			wantResult: utils.IncorrectCommandLineParameters,
+			wantRpsCmd: "",
 		},
 		"should pass - syncip no params": {
 			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
@@ -490,30 +506,60 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgWithLookup,
 		},
-		"should fail - syncip bad ip address": {
+		"should fail - syncip bad param": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -nope " + argUrl + " " + argCurPw,
+			wantResult: utils.IncorrectCommandLineParameters,
+			wantRpsCmd: "",
+		},
+		"should fail - syncip MissingOrIncorrectNetworkMask": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -netmask 322.299.0.0 " + argUrl + " " + argCurPw,
+			wantResult: utils.MissingOrIncorrectNetworkMask,
+			wantRpsCmd: "",
+		},
+		"should fail - syncip MissingOrIncorrectStaticIP": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectStaticIP,
 			wantRpsCmd: "",
 		},
-		"should pass - change password to random value": {
+		"should fail - syncip MissingOrIncorrectGateway": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -gateway 322.299.0.0 " + argUrl + " " + argCurPw,
+			wantResult: utils.MissingOrIncorrectGateway,
+			wantRpsCmd: "",
+		},
+		"should fail - syncip MissingOrIncorrectPrimaryDNS": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -primarydns 322.299.0.0 " + argUrl + " " + argCurPw,
+			wantResult: utils.MissingOrIncorrectPrimaryDNS,
+			wantRpsCmd: "",
+		},
+		"should fail - syncip MissingOrIncorrectSecondaryDNS": {
+			cmdLine:    cmdBase + " " + argSyncIp + " -secondarydns 322.299.0.0 " + argUrl + " " + argCurPw,
+			wantResult: utils.MissingOrIncorrectSecondaryDNS,
+			wantRpsCmd: "",
+		},
+		"should pass - changepassword to random value": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
 		},
-		"should pass - change password using static value": {
+		"should pass - changepassword using static value": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
-		"should pass - change password static value before other flags": {
+		"should pass - changepassword static value before other flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
-		"should pass - change password static value after all flags": {
+		"should pass - changepassword static value after all flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
 			wantResult: utils.Success,
 			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
+		},
+		"should fail - changepassword bad param": {
+			cmdLine:    cmdBase + " " + argChangePw + " -nope " + argUrl + " " + argCurPw,
+			wantResult: utils.IncorrectCommandLineParameters,
+			wantRpsCmd: "",
 		},
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,

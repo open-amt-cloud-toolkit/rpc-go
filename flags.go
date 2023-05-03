@@ -54,6 +54,7 @@ type Flags struct {
 	LMSPort                             string
 	SkipCertCheck                       bool
 	Verbose                             bool
+	Force                               bool
 	JsonOutput                          bool
 	RandomPassword                      bool
 	StaticPassword                      string
@@ -178,7 +179,6 @@ func (f *Flags) setupCommonFlags() {
 	for _, fs := range []*flag.FlagSet{
 		f.amtActivateCommand,
 		f.amtDeactivateCommand,
-		f.amtMaintenanceCommand,
 		f.amtMaintenanceChangePasswordCommand,
 		f.amtMaintenanceSyncClockCommand,
 		f.amtMaintenanceSyncHostnameCommand,
@@ -195,11 +195,13 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
+		if fs.Name() != "activate" {
+			fs.BoolVar(&f.Force, "f", false, "Force even if device is not registered with a server")
+		}
 	}
 }
 
 func (f *Flags) handleMaintenanceCommand() (bool, int) {
-
 	//validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
@@ -241,8 +243,10 @@ func (f *Flags) handleMaintenanceCommand() (bool, int) {
 			return false, utils.MissingOrIncorrectPassword
 		}
 	}
-
 	f.Command = fmt.Sprintf("maintenance --password %s %s", f.Password, task)
+	if f.Force {
+		f.Command = f.Command + " -f"
+	}
 	return true, utils.Success
 }
 
@@ -363,20 +367,13 @@ func (f *Flags) handleMaintenanceSyncIP() (string, int) {
 
 func (f *Flags) handleMaintenanceSyncChangePassword() string {
 	task := "--changepassword "
-	f.amtMaintenanceChangePasswordCommand.BoolVar(&f.RandomPassword, "random", true, "a new random password will be generated for AMT")
 	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
 	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtMaintenanceChangePasswordCommand.Usage()
-		return ""
-	}
-	if f.StaticPassword == "" && !f.RandomPassword {
-		f.amtMaintenanceChangePasswordCommand.Usage()
 		return ""
 	}
 	if f.StaticPassword != "" {
 		task += f.StaticPassword
 	}
-
 	return task
 }
 
@@ -442,8 +439,6 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 }
 
 func (f *Flags) handleDeactivateCommand() (bool, int) {
-	forcePtr := f.amtDeactivateCommand.Bool("f", false, "force deactivate even if device is not registered with a server")
-
 	if len(f.commandLineArgs) == 2 {
 		f.amtDeactivateCommand.PrintDefaults()
 		return false, utils.IncorrectCommandLineParameters
@@ -469,9 +464,12 @@ func (f *Flags) handleDeactivateCommand() (bool, int) {
 			f.Password = password
 		}
 		f.Command = "deactivate --password " + f.Password
-		if *forcePtr {
+		if f.Force {
 			f.Command = f.Command + " -f"
 		}
+		//if *forcePtr {
+		//	f.Command = f.Command + " -f"
+		//}
 	}
 	return true, utils.Success
 }
