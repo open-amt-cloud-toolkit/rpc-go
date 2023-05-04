@@ -29,7 +29,11 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
-
+      - name: Format
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi        
+      - name: Run go vet
+        run: go vet ./...
       - name: Install Test Converter and run tests
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: |

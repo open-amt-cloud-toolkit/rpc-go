@@ -44,7 +44,7 @@ const APF_DISCONNECT_AUTH_CANCELLED_BY_USER = 13
 const APF_DISCONNECT_NO_MORE_AUTH_METHODS_AVAILABLE = 14
 const APF_DISCONNECT_ILLEGAL_USER_NAME = 15
 
-//strings used in global messages
+// strings used in global messages
 const APF_GLOBAL_REQUEST_STR_TCP_FORWARD_REQUEST = "tcpip-forward"
 const APF_GLOBAL_REQUEST_STR_TCP_FORWARD_CANCEL_REQUEST = "cancel-tcpip-forward"
 const APF_GLOBAL_REQUEST_STR_UDP_SEND_TO = "udp-send-to@amt.intel.com"
