@@ -1,3 +1,30 @@
+<a name="2.7.0"></a>
+## [vNext] - 2023-05-04
+### Build
+- update version to 2.7.0, update changelogbuild: update version to 2.6.0, update changelog
+- update go to 1.20
+- **deps:** bump golang.org/x/sys from 0.5.0 to 0.6.0
+- **deps:** bump github.com/stretchr/testify from 1.8.1 to 1.8.2
+- **deps:** bump github.com/gorilla/websocket from 1.4.2 to 1.5.0
+- **deps:** bump github.com/sirupsen/logrus from 1.7.0 to 1.9.0
+- **deps:** bump github.com/stretchr/testify from 1.7.0 to 1.8.1
+- **deps:** bump golang.org/x/sys from 0.3.0 to 0.5.0
+
+### Ci
+- add go fmt and format code
+- update github runners
+- adds dependabot config
+- **deps:** bump codecov to 3.1.3 ([#119](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/119))
+
+### Docs
+- add discord info ([#111](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/111))
+
+### Feat
+- **utils:** add -f (force) flag
+
+### Fix
+- **rps:** rpc will exit instead of hang when connection fails to rps
+
 <a name="v2.6.0"></a>
 ## [v2.6.0] - 2023-02-16
 ### Build
