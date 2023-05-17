@@ -87,6 +87,20 @@ func TestGetControlMode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 3, result)
 }
+
+func TestUnprovision(t *testing.T) {
+	numBytes = GET_REQUEST_SIZE + 4
+	prepareMessage := UnprovisionResponse{
+		Header: ResponseMessageHeader{},
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
+	message = bin_buf.Bytes()
+
+	result, err := pthi.Unprovision()
+	assert.NoError(t, err)
+	assert.Equal(t, 0, result)
+}
 func TestGetCodeVersions(t *testing.T) {
 
 	numBytes = GET_REQUEST_SIZE

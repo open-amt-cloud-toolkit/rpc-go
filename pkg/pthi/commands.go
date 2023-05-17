@@ -27,6 +27,7 @@ type Interface interface {
 	GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessConnectionStatusResponse, err error)
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
 	GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error)
+	Unprovision() (mode int, err error)
 }
 
 func NewCommand() Command {
@@ -156,6 +157,26 @@ func (pthi Command) GetControlMode() (state int, err error) {
 	}
 	buf2 := bytes.NewBuffer(result)
 	response := GetControlModeResponse{
+		Header: readHeaderResponse(buf2),
+	}
+
+	binary.Read(buf2, binary.LittleEndian, &response.State)
+	return int(response.State), nil
+}
+
+func (pthi Command) Unprovision() (state int, err error) {
+	command := UnprovisionRequest{
+		Header: CreateRequestHeader(UNPROVISION_REQUEST, 4),
+		Mode:   0,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE+4) // Extra 4 bytes for the mode
+	if err != nil {
+		return -1, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response := UnprovisionResponse{
 		Header: readHeaderResponse(buf2),
 	}
 

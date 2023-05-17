@@ -25,6 +25,7 @@ var mebxDNSSuffix string
 var osDNSSuffix string = "osdns"
 var controlMode int = 0
 var err error = nil
+var mode int = 0
 
 func (c MockAMT) Initialize() (int, error) {
 	return utils.Success, nil
@@ -49,6 +50,9 @@ func (c MockAMT) GetLANInterfaceSettings(useWireless bool) (amt.InterfaceSetting
 }
 func (c MockAMT) GetLocalSystemAccount() (amt.LocalSystemAccount, error) {
 	return amt.LocalSystemAccount{Username: "Username", Password: "Password"}, nil
+}
+func (c MockAMT) Unprovision() (int, error) {
+	return mode, nil
 }
 
 var p Payload

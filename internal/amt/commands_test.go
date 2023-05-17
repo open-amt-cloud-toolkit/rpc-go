@@ -121,6 +121,7 @@ func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSys
 		},
 	}, nil
 }
+func (c MockPTHICommands) Unprovision() (state int, err error) { return 0, nil }
 
 var amt AMTCommand
 
@@ -232,4 +233,10 @@ func TestGetLocalSystemAccount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Test", result.Username)
 	assert.Equal(t, "Test", result.Password)
+}
+
+func TestUnprovision(t *testing.T) {
+	result, err := amt.Unprovision()
+	assert.NoError(t, err)
+	assert.Equal(t, 0, result)
 }

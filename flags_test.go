@@ -13,13 +13,16 @@ import (
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
-
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 const trickyPassword string = "!@#$%^&*(()-+="
+
+var mode = 0
+var result = 0
+var controlModeErr error = nil
 
 type MockPTHICommands struct{}
 
@@ -42,7 +45,7 @@ func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 }
 
 func (c MockPTHICommands) GetControlMode() (state int, err error) {
-	return 0, nil
+	return mode, controlModeErr
 }
 
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) {
@@ -74,6 +77,10 @@ func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterfac
 			MacAddress:  [6]uint8{0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F},
 		}, nil
 	}
+}
+
+func (c MockPTHICommands) Unprovision() (mode int, err error) {
+	return result, nil
 }
 
 var testNetEnumerator = NetEnumerator{
@@ -327,6 +334,7 @@ func TestHandleActivateCommandNoURL(t *testing.T) {
 func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "deactivate"}
 	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
 	keepGoing, success := flags.handleDeactivateCommand()
 	assert.Equal(t, keepGoing, false)
 	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
@@ -376,6 +384,15 @@ func TestHandleDeactivateCommand(t *testing.T) {
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
 }
+
+func TestHandleDeactivateCommandWithURLAndLocal(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password", "-local"}
+	flags := NewFlags(args)
+	keepGoing, success := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.EqualValues(t, success, utils.InvalidParameters)
+	assert.Equal(t, "wss://localhost", flags.URL)
+}
 func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password", "-f"}
 	expected := "deactivate --password password -f"
@@ -385,6 +402,64 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	assert.EqualValues(t, success, utils.Success)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
+}
+
+func TestHandleLocalDeactivationWithACM(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 2
+	result = 0
+	keepGoing, errCode := flags.handleLocalDeactivation()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, errCode, utils.UnableToDeactivate)
+}
+
+func TestHandleLocalDeactivation(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 1
+	result = 0
+	keepGoing, errCode := flags.handleLocalDeactivation()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, errCode, utils.Success)
+}
+
+func TestHandleDeactivateCommandWithGetControlModeError(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 1
+	result = 0
+	controlModeErr = errors.New("Failed to get control mode")
+	keepGoing, errCode := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, errCode, utils.DeactivationFailed)
+}
+
+func TestHandleLocalDeactivationwithUnprovisionError(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 1
+	result = -1
+	controlModeErr = nil
+	keepGoing, errCode := flags.handleLocalDeactivation()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, errCode, utils.DeactivationFailed)
+}
+
+func TestHandleDeactivationWithLocal(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 1
+	result = 0
+	controlModeErr = nil
+	keepGoing, errCode := flags.handleDeactivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, errCode, utils.Success)
 }
 
 func TestParseFlagsDeactivate(t *testing.T) {

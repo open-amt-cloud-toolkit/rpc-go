@@ -186,6 +186,17 @@ type GetControlModeResponse struct {
 	Header ResponseMessageHeader
 	State  uint32
 }
+
+type UnprovisionRequest struct {
+	Header MessageHeader
+	Mode   uint32
+}
+
+type UnprovisionResponse struct {
+	Header ResponseMessageHeader
+	State  uint32
+}
+
 type LocalSystemAccount struct {
 	Username [CFG_MAX_ACL_USER_LENGTH]uint8
 	Password [CFG_MAX_ACL_USER_LENGTH]uint8
