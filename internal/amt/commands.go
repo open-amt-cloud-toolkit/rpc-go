@@ -81,6 +81,7 @@ type Interface interface {
 	GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error)
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
 	GetLocalSystemAccount() (LocalSystemAccount, error)
+	Unprovision() (mode int, err error)
 }
 
 func ANSI2String(ansi pthi.AMTANSIString) string {
@@ -191,6 +192,21 @@ func (amt AMTCommand) GetControlMode() (int, error) {
 	}
 	defer amt.PTHI.Close()
 	result, err := amt.PTHI.GetControlMode()
+	if err != nil {
+		return -1, err
+	}
+
+	return result, nil
+}
+
+// Unprovision ...
+func (amt AMTCommand) Unprovision() (int, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return -1, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.Unprovision()
 	if err != nil {
 		return -1, err
 	}

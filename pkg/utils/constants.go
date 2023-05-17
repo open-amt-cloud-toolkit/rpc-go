@@ -46,6 +46,7 @@ const (
 	MissingOrIncorrectGateway          = 30 // Missing or incorrect gateway
 	MissingOrIncorrectPrimaryDNS       = 31 // Missing primary DNS Suffix
 	MissingOrIncorrectSecondaryDNS     = 32 // Missing secondary DNS Suffix
+	InvalidParameters                  = 33 // Invalid parameter combination
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         = 70 // RPS authentication failed
@@ -62,6 +63,8 @@ const (
 	WiFiConfigurationFailed         = 106 // WiFi configuration failed
 	AMTConfigurationFailed          = 107 // AMT features configuration failed
 	EightZeroTwoConfigurationFailed = 108 // 802.1x configuration failed
+	UnableToDeactivate              = 109 // Device is not in CCM mode
+	DeactivationFailed              = 110 // Deactivation Failed
 
 	// (150-199) Maintenance Errors
 	ClockSyncFailed    = 150 // Clock sync failed
