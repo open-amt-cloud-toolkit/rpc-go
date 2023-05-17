@@ -6,9 +6,9 @@ package main
 
 import (
 	"os"
-	"rpc"
 	"rpc/internal/amt"
 	"rpc/internal/client"
+	"rpc/internal/flags"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
 
@@ -50,9 +50,9 @@ func runRPC(args []string) (int, error) {
 	return utils.Success, nil
 }
 
-func handleFlags(args []string) (*rpc.Flags, bool, int) {
+func handleFlags(args []string) (*flags.Flags, bool, int) {
 	//process flags
-	flags := rpc.NewFlags(args)
+	flags := flags.NewFlags(args)
 	_, keepgoing, result := flags.ParseFlags()
 	if !keepgoing {
 		return nil, false, result

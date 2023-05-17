@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"rpc"
 	"rpc/internal/amt"
+	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"time"
 
@@ -44,19 +44,19 @@ type StatusMessage struct {
 
 // MessagePayload struct is used for the initial request to RPS to activate or manage a device
 type MessagePayload struct {
-	Version           string              `json:"ver"`
-	Build             string              `json:"build"`
-	SKU               string              `json:"sku"`
-	UUID              string              `json:"uuid"`
-	Username          string              `json:"username"`
-	Password          string              `json:"password"`
-	CurrentMode       int                 `json:"currentMode"`
-	Hostname          string              `json:"hostname"`
-	FQDN              string              `json:"fqdn"`
-	Client            string              `json:"client"`
-	CertificateHashes []string            `json:"certHashes"`
-	IPConfiguration   rpc.IPConfiguration `json:"ipConfiguration"`
-	HostnameInfo      rpc.HostnameInfo    `json:"hostnameInfo"`
+	Version           string                `json:"ver"`
+	Build             string                `json:"build"`
+	SKU               string                `json:"sku"`
+	UUID              string                `json:"uuid"`
+	Username          string                `json:"username"`
+	Password          string                `json:"password"`
+	CurrentMode       int                   `json:"currentMode"`
+	Hostname          string                `json:"hostname"`
+	FQDN              string                `json:"fqdn"`
+	Client            string                `json:"client"`
+	CertificateHashes []string              `json:"certHashes"`
+	IPConfiguration   flags.IPConfiguration `json:"ipConfiguration"`
+	HostnameInfo      flags.HostnameInfo    `json:"hostnameInfo"`
 }
 
 func NewPayload() Payload {
@@ -134,7 +134,7 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 }
 
 // CreateMessageRequest is used for assembling the message to request activation of a device
-func (p Payload) CreateMessageRequest(flags rpc.Flags) (Message, error) {
+func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	message := Message{
 		Method:          flags.Command,
 		APIKey:          "key",
