@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"rpc"
+	"rpc/internal/flags"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -20,17 +20,17 @@ import (
 type AMTActivationServer struct {
 	URL   string
 	Conn  *websocket.Conn
-	flags *rpc.Flags
+	flags *flags.Flags
 }
 
-func NewAMTActivationServer(flags *rpc.Flags) AMTActivationServer {
+func NewAMTActivationServer(flags *flags.Flags) AMTActivationServer {
 	amtactivationserver := AMTActivationServer{
 		URL:   flags.URL,
 		flags: flags,
 	}
 	return amtactivationserver
 }
-func PrepareInitialMessage(flags *rpc.Flags) (Message, error) {
+func PrepareInitialMessage(flags *flags.Flags) (Message, error) {
 	payload := NewPayload()
 	return payload.CreateMessageRequest(*flags)
 }

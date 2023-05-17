@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"rpc"
 	"rpc/internal/amt"
+	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
 	"time"
@@ -102,7 +102,7 @@ func TestCreatePayloadWithNODNSSuffix(t *testing.T) {
 }
 
 func TestCreateActivationRequestNoDNSSuffixProvided(t *testing.T) {
-	flags := rpc.Flags{
+	flags := flags.Flags{
 		Command: "method",
 	}
 	result, err := p.CreateMessageRequest(flags)
@@ -117,7 +117,7 @@ func TestCreateActivationRequestNoDNSSuffixProvided(t *testing.T) {
 }
 func TestCreateActivationRequestNoPasswordShouldPrompt(t *testing.T) {
 	controlMode = 1
-	flags := rpc.Flags{
+	flags := flags.Flags{
 		Command: "method",
 	}
 	input := []byte("password")
@@ -145,7 +145,7 @@ func TestCreateActivationRequestNoPasswordShouldPrompt(t *testing.T) {
 }
 func TestCreateActivationRequestWithPasswordShouldNotPrompt(t *testing.T) {
 	controlMode = 1
-	flags := rpc.Flags{
+	flags := flags.Flags{
 		Command:  "method",
 		Password: "password",
 	}
@@ -165,7 +165,7 @@ func TestCreateActivationRequestWithPasswordShouldNotPrompt(t *testing.T) {
 }
 
 func TestCreateActivationRequestWithDNSSuffix(t *testing.T) {
-	flags := rpc.Flags{
+	flags := flags.Flags{
 		Command: "method",
 		DNS:     "vprodemo.com",
 	}
@@ -191,8 +191,8 @@ func TestCreateActivationResponse(t *testing.T) {
 }
 
 func TestCreateMessageRequestIPConfiguration(t *testing.T) {
-	flags := rpc.Flags{
-		IpConfiguration: rpc.IPConfiguration{
+	flags := flags.Flags{
+		IpConfiguration: flags.IPConfiguration{
 			IpAddress:    "192.168.1.1",
 			Netmask:      "255.255.0.0",
 			Gateway:      "192.168.1.0",
@@ -212,8 +212,8 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 }
 
 func TestCreateMessageRequestHostnameInfo(t *testing.T) {
-	flags := rpc.Flags{
-		HostnameInfo: rpc.HostnameInfo{
+	flags := flags.Flags{
+		HostnameInfo: flags.HostnameInfo{
 			DnsSuffixOS: "os.test.com",
 			Hostname:    "test-hostname-012",
 		},

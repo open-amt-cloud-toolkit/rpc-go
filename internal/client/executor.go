@@ -7,7 +7,7 @@ package client
 import (
 	"os"
 	"os/signal"
-	"rpc"
+	"rpc/internal/flags"
 	"rpc/internal/lm"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
@@ -26,7 +26,7 @@ type Executor struct {
 	status          chan bool
 }
 
-func NewExecutor(flags rpc.Flags) (Executor, error) {
+func NewExecutor(flags flags.Flags) (Executor, error) {
 	// these are closed in the close function for each lm implementation
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
