@@ -1,5 +1,18 @@
+<a name="2.8.0"></a>
+## [2.8.0] - 2023-05-18
+### Build
+- update version to 2.8.0 and changelog
+- add tasks.json for vscode
+- add launch.json to gitignore
+- add various command templates for easy debugging in VSCode
+- **deps:** bump github.com/sirupsen/logrus from 1.9.1 to 1.9.2 ([#129](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/129))
+- **deps:** bump github.com/sirupsen/logrus from 1.9.0 to 1.9.1 ([#127](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/127))
+
+### Feat
+- deactivate a device in CCM from RPC
+
 <a name="2.7.0"></a>
-## [vNext] - 2023-05-04
+## [2.7.0] - 2023-05-04
 ### Build
 - update version to 2.7.0, update changelogbuild: update version to 2.6.0, update changelog
 - update go to 1.20
