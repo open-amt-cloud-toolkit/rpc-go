@@ -6,16 +6,18 @@ import (
 	"strings"
 )
 
-func (f *Flags) handleVersionCommand() int {
-
+func (f *Flags) handleVersionCommand() (string, int) {
+	output := ""
 	if err := f.versionCommand.Parse(f.commandLineArgs[2:]); err != nil {
-		return utils.IncorrectCommandLineParameters
+		return "", utils.IncorrectCommandLineParameters
 	}
 
 	if !f.JsonOutput {
-		println(strings.ToUpper(utils.ProjectName))
-		println("Version " + utils.ProjectVersion)
-		println("Protocol " + utils.ProtocolVersion)
+		output += strings.ToUpper(utils.ProjectName) + "\n"
+		output += "Version " + utils.ProjectVersion + "\n"
+		output += "Protocol " + utils.ProtocolVersion + "\n"
+
+		println(output)
 	}
 
 	if f.JsonOutput {
@@ -31,12 +33,12 @@ func (f *Flags) handleVersionCommand() int {
 		dataStruct["protocol"] = protocolVersion
 
 		outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
-		output := string(outBytes)
+		output = string(outBytes)
 		if err != nil {
 			output = err.Error()
 		}
 		println(output)
 	}
 
-	return utils.Success
+	return output, utils.Success
 }
