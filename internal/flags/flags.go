@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/internal/amt"
+	"rpc/internal/local"
 	"rpc/pkg/utils"
 	"strconv"
 	"time"
@@ -39,40 +40,44 @@ type HostnameInfo struct {
 
 // Flags holds data received from the command line
 type Flags struct {
-	commandLineArgs                     []string
-	URL                                 string
-	DNS                                 string
-	Hostname                            string
-	Proxy                               string
-	Command                             string
-	Profile                             string
-	LMSAddress                          string
-	LMSPort                             string
-	SkipCertCheck                       bool
-	Verbose                             bool
-	Force                               bool
-	JsonOutput                          bool
-	RandomPassword                      bool
-	Local                               bool
-	StaticPassword                      string
-	Password                            string
-	LogLevel                            string
-	Token                               string
-	TenantID                            string
-	amtInfoCommand                      *flag.FlagSet
-	amtActivateCommand                  *flag.FlagSet
-	amtDeactivateCommand                *flag.FlagSet
-	amtMaintenanceCommand               *flag.FlagSet
-	amtMaintenanceSyncIPCommand         *flag.FlagSet
-	amtMaintenanceSyncClockCommand      *flag.FlagSet
-	amtMaintenanceSyncHostnameCommand   *flag.FlagSet
-	amtMaintenanceChangePasswordCommand *flag.FlagSet
-	versionCommand                      *flag.FlagSet
-	amtCommand                          amt.AMTCommand
-	netEnumerator                       NetEnumerator
-	IpConfiguration                     IPConfiguration
-	HostnameInfo                        HostnameInfo
-	AMTTimeoutDuration                  time.Duration
+	commandLineArgs                      []string
+	URL                                  string
+	DNS                                  string
+	Hostname                             string
+	Proxy                                string
+	Command                              string
+	Profile                              string
+	LMSAddress                           string
+	LMSPort                              string
+	SkipCertCheck                        bool
+	Verbose                              bool
+	Force                                bool
+	JsonOutput                           bool
+	RandomPassword                       bool
+	Local                                bool
+	StaticPassword                       string
+	Password                             string
+	LogLevel                             string
+	Token                                string
+	TenantID                             string
+	UseLocal                             bool
+	configContent                        string
+	LocalConfig                          *local.Config
+	amtInfoCommand                       *flag.FlagSet
+	amtActivateCommand                   *flag.FlagSet
+	amtDeactivateCommand                 *flag.FlagSet
+	amtMaintenanceCommand                *flag.FlagSet
+	amtMaintenanceAddWiFiSettingsCommand *flag.FlagSet
+	amtMaintenanceSyncIPCommand          *flag.FlagSet
+	amtMaintenanceSyncClockCommand       *flag.FlagSet
+	amtMaintenanceSyncHostnameCommand    *flag.FlagSet
+	amtMaintenanceChangePasswordCommand  *flag.FlagSet
+	versionCommand                       *flag.FlagSet
+	amtCommand                           amt.AMTCommand
+	netEnumerator                        NetEnumerator
+	IpConfiguration                      IPConfiguration
+	HostnameInfo                         HostnameInfo
+	AMTTimeoutDuration                   time.Duration
 }
 
 func NewFlags(args []string) *Flags {
@@ -89,6 +94,7 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
 	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
+	flags.amtMaintenanceAddWiFiSettingsCommand = flag.NewFlagSet("addwifisettings", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
@@ -157,23 +163,26 @@ func (f *Flags) setupCommonFlags() {
 	for _, fs := range []*flag.FlagSet{
 		f.amtActivateCommand,
 		f.amtDeactivateCommand,
+		f.amtMaintenanceAddWiFiSettingsCommand,
 		f.amtMaintenanceChangePasswordCommand,
 		f.amtMaintenanceSyncClockCommand,
 		f.amtMaintenanceSyncHostnameCommand,
 		f.amtMaintenanceSyncIPCommand} {
-		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
-		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
-		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
+		if fs.Name() != "addiwfisettings" { // addwifisettings does not require remote settings since it is local
+			fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
+			fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
+			fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
+			fs.StringVar(&f.Token, "token", "", "JWT Token for Authorization")
+			fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
+		}
 		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address. Can be used to change location of LMS for debugging.")
 		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port")
 		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
 		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
-		fs.StringVar(&f.Token, "token", "", "JWT Token for Authorization")
-		fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
-		if fs.Name() != "activate" {
+		if fs.Name() != "activate" { // activate does not use the -f flag
 			fs.BoolVar(&f.Force, "f", false, "Force even if device is not registered with a server")
 		}
 	}
