@@ -1,0 +1,11 @@
+ieee801xConfig:
+  name: 'test' # friendly name (ex. Profile name)
+  authenticationMethod: 5 # wifi authentication method
+  encryptionMethod: 4 # wifi encryption method
+  clientCert: 'test'
+  caCert: 'test'
+  privateKey: 'test'
+  ssid: 'ssid' # wifi ssd
+  username: "test" # 8021x username
+  authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
+  priority: 1 

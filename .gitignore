@@ -8,4 +8,4 @@ coverage
 **/*.so
 **/*.dll
 **/*.h
-.vscode/launch.json
+**/launch.json

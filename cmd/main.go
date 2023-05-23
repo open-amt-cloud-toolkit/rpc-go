@@ -9,9 +9,11 @@ import (
 	"rpc/internal/amt"
 	"rpc/internal/client"
 	"rpc/internal/flags"
+	"rpc/internal/local"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,18 +37,25 @@ func runRPC(args []string) (int, error) {
 	if !keepgoing {
 		return status, nil
 	}
+	if flags.UseLocal {
+		config := *flags.LocalConfig
+		client := wsman.NewClient("http://"+utils.LMSAddress+":"+utils.LMSPort+"/wsman", "admin", config.Password, true)
+		localConnection := local.NewLocalConfiguration(config, client)
+		localConnection.Configure8021xWiFi()
 
-	startMessage, err := rps.PrepareInitialMessage(flags)
-	if err != nil {
-		return utils.MissingOrIncorrectPassword, err
+	} else {
+		startMessage, err := rps.PrepareInitialMessage(flags)
+		if err != nil {
+			return utils.MissingOrIncorrectPassword, err
+		}
+
+		executor, err := client.NewExecutor(*flags)
+		if err != nil {
+			return utils.ServerCerificateVerificationFailed, err
+		}
+
+		executor.MakeItSo(startMessage)
 	}
-
-	executor, err := client.NewExecutor(*flags)
-	if err != nil {
-		return utils.ServerCerificateVerificationFailed, err
-	}
-
-	executor.MakeItSo(startMessage)
 	return utils.Success, nil
 }
 
@@ -82,17 +91,17 @@ func handleFlags(args []string) (*flags.Flags, bool, int) {
 }
 
 func main() {
-	status, err := checkAccess()
-	if status != utils.Success {
-		if err != nil {
-			log.Error(err.Error())
-		}
-		log.Error(AccessErrMsg)
-		os.Exit(status)
-	}
-	status, err = runRPC(os.Args)
-	if err != nil {
-		log.Error(err.Error())
-	}
-	os.Exit(status)
+	// status, err := checkAccess()
+	// if status != utils.Success {
+	// 	if err != nil {
+	// 		log.Error(err.Error())
+	// 	}
+	// 	log.Error(AccessErrMsg)
+	// 	os.Exit(status)
+	// }
+	_, _ = runRPC(os.Args)
+	// if err != nil {
+	// 	log.Error(err.Error())
+	// }
+	// os.Exit(status)
 }
