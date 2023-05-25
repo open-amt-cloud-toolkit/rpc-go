@@ -1,3 +1,21 @@
+<a name="2.9.0"></a>
+## [2.9.0] - 2023-05-25
+### Build
+- update version and changelog for v2.9.0
+- **deps:** bump github.com/stretchr/testify from 1.8.2 to 1.8.3
+
+### Ci
+- add trivy container scan
+
+### Feat
+- **cli:** addwifisettings directly without cloud interaction
+
+### Refactor
+- **internal:** move each command to its own file
+
+### Test
+- move flag tests to respective files for better organization
+
 <a name="2.8.0"></a>
 ## [2.8.0] - 2023-05-18
 ### Build
