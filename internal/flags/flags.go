@@ -78,6 +78,8 @@ type Flags struct {
 	IpConfiguration                      IPConfiguration
 	HostnameInfo                         HostnameInfo
 	AMTTimeoutDuration                   time.Duration
+	FriendlyName                         string
+	FriendlyNameProvided                 bool
 }
 
 func NewFlags(args []string) *Flags {
