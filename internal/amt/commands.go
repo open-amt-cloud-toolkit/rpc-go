@@ -7,8 +7,6 @@ package amt
 import (
 	"errors"
 	"fmt"
-	"net"
-	"os"
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
 	"strconv"
@@ -212,33 +210,6 @@ func (amt AMTCommand) Unprovision() (int, error) {
 	}
 
 	return result, nil
-}
-
-// GetDNSSuffix ...
-func (amt AMTCommand) GetOSDNSSuffix() (string, error) {
-	lanResult, _ := amt.GetLANInterfaceSettings(false)
-	ifaces, _ := net.Interfaces()
-	for _, v := range ifaces {
-		if v.HardwareAddr.String() == lanResult.MACAddress {
-			addrs, _ := v.Addrs()
-			for _, a := range addrs {
-				networkIp, ok := a.(*net.IPNet)
-				if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
-					ip := networkIp.IP.String()
-					suffix, _ := net.LookupAddr(ip)
-					if len(suffix) > 0 {
-						hostname, _ := os.Hostname()
-						dnsSuffix := strings.Trim(suffix[0], hostname)
-						dnsSuffix = strings.TrimLeft(dnsSuffix, ".")
-						dnsSuffix = strings.TrimRight(dnsSuffix, ".")
-						return dnsSuffix, nil
-					}
-					return "", nil
-				}
-			}
-		}
-	}
-	return "", nil
 }
 
 func (amt AMTCommand) GetDNSSuffix() (string, error) {
