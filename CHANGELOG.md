@@ -1,3 +1,13 @@
+<a name="2.9.1"></a>
+## [2.9.1] - 2023-06-08
+### Build
+- update version and changelog to v2.9.1
+- **deps:** bump github.com/sirupsen/logrus from 1.9.2 to 1.9.3
+- **deps:** bump github.com/stretchr/testify from 1.8.3 to 1.8.4
+
+### Fix
+- **internal:** GetOSDnsSuffixOS bug with docker desktop
+
 <a name="2.9.0"></a>
 ## [2.9.0] - 2023-05-25
 ### Build
