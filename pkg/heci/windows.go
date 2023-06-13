@@ -32,6 +32,7 @@ type Driver struct {
 	GUID       windows.GUID
 	PTHIGUID   windows.GUID
 	LMEGUID    windows.GUID
+	WDGUID     windows.GUID
 	useLME     bool
 }
 
@@ -62,7 +63,13 @@ func (heci *Driver) Init(useLME bool) error {
 	if err != nil {
 		return err
 	}
+	
 	heci.PTHIGUID, err = windows.GUIDFromString("{12F80028-B4B7-4B2D-ACA8-46E0FF65814C}")
+	if err != nil {
+		return err
+	}
+	
+	heci.WDGUID, err = windows.GUIDFromString("{05B79A6F-4628-4D7F-899D-A91514CB32AB}")
 	if err != nil {
 		return err
 	}
