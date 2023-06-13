@@ -32,6 +32,7 @@ type Driver struct {
 	GUID       windows.GUID
 	PTHIGUID   windows.GUID
 	LMEGUID    windows.GUID
+	WDGUID     windows.GUID
 	useLME     bool
 }
 
@@ -50,7 +51,7 @@ func NewDriver() *Driver {
 }
 
 func (heci *Driver) Init(useLME bool) error {
-	var err error
+	var err, err2 error
 	heci.useLME = useLME
 
 	heci.LMEGUID, err = windows.GUIDFromString("{6733A4DB-0476-4E7B-B3AF-BCFC29BEE7A7}")
@@ -62,13 +63,22 @@ func (heci *Driver) Init(useLME bool) error {
 	if err != nil {
 		return err
 	}
+	
 	heci.PTHIGUID, err = windows.GUIDFromString("{12F80028-B4B7-4B2D-ACA8-46E0FF65814C}")
+	if err != nil {
+		return err
+	}
+	
+	heci.WDGUID, err = windows.GUIDFromString("{05B79A6F-4628-4D7F-899D-A91514CB32AB}")
 	if err != nil {
 		return err
 	}
 
 	// Find all devices that have our interface
 	err = heci.FindDevices(&heci.GUID)
+	
+	err2 = heci.FindWDDevices(&heci.WDGUID)
+	if err2 != nil {return err2}
 	return err
 }
 
@@ -135,7 +145,74 @@ func (heci *Driver) FindDevices(guid *windows.GUID) error {
 	if err != nil {
 		return err
 	}
+	
+	return nil
+}
 
+func (heci *Driver) FindWDDevices(guid *windows.GUID) error {
+	deviceInfo, err := setupapi.SetupDiGetClassDevs(guid, nil, 0, setupapi.DIGCF_PRESENT|setupapi.DIGCF_DEVICEINTERFACE)
+	if err != nil {
+		return err
+	}
+	if deviceInfo == syscall.InvalidHandle {
+		return errors.New("invalid handle")
+	}
+
+	interfaceData := setupapi.SpDevInterfaceData{}
+	interfaceData.CbSize = (uint32)(unsafe.Sizeof(interfaceData))
+	edi, err := setupapi.SetupDiEnumDeviceInterfaces(deviceInfo, nil, guid, 0, &interfaceData)
+	if err != nil {
+		return err
+	}
+	if edi == syscall.InvalidHandle {
+		return errors.New("invalid handle")
+	}
+
+	err = setupapi.SetupDiGetDeviceInterfaceDetail(deviceInfo, &interfaceData, nil, 0, &heci.bufferSize, nil)
+	if err != nil && heci.bufferSize == 0 {
+		return err
+	}
+	// if did == syscall.InvalidHandle {
+	// 	return errors.New("invalid handle")
+	// }
+	buf := make([]uint16, heci.bufferSize)
+	buf[0] = 8
+	err = setupapi.SetupDiGetDeviceInterfaceDetail(deviceInfo, &interfaceData, &buf[0], heci.bufferSize, nil, nil)
+	if err != nil {
+		return err
+	}
+	// if did2 == syscall.InvalidHandle {
+	// 	return errors.New("invalid handle")
+	// }
+	// ptr := (*uint16)(unsafe.Pointer(&deviceDetail.DevicePath))
+
+	const firstChar = 2
+	l := firstChar
+	for l < len(buf) && buf[l] != 0 {
+		l++
+	}
+
+	// fmt.Println(string(utf16.Decode(buf[firstChar:l])))
+	err = setupapi.SetupDiDestroyDeviceInfoList(deviceInfo)
+	if err != nil {
+		return err
+	}
+	heci.meiDevice, err = windows.CreateFile(&buf[2], windows.GENERIC_READ|windows.GENERIC_WRITE, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_OVERLAPPED, 0)
+
+	if err != nil {
+		return err
+	}
+
+	err = heci.GetHeciVersion()
+	if err != nil {
+		return err
+	}
+
+	err = heci.ConnectWDClient()
+	if err != nil {
+		return err
+	}
+	
 	return nil
 }
 
@@ -172,6 +249,27 @@ func (heci *Driver) ConnectHeciClient() error {
 	}
 
 	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&guid)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
+	if err != nil {
+		return err
+	}
+	buf2 := bytes.NewBuffer(propertiesPacked.data[:])
+	binary.Read(buf2, binary.LittleEndian, &properties)
+	heci.bufferSize = properties.MaxMessageLength
+
+	return nil
+}
+
+func (heci *Driver) ConnectWDClient() error {
+	properties := MEIConnectClientData{}
+	propertiesPacked := CMEIConnectClientData{}
+	propertiesSize := unsafe.Sizeof(propertiesPacked)
+	guidSize := unsafe.Sizeof(heci.WDGUID)
+	guid := heci.WDGUID
+	if heci.useLME {
+		guid = heci.LMEGUID
+	}
+
+	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x802, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&guid)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
 	if err != nil {
 		return err
 	}

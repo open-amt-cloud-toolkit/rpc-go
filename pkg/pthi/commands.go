@@ -22,6 +22,7 @@ type Interface interface {
 	GetCodeVersions() (GetCodeVersionsResponse, error)
 	GetUUID() (uuid string, err error)
 	GetControlMode() (state int, err error)
+	GetIsAMTEnabled() (state int, err error)
 	GetDNSSuffix() (suffix string, err error)
 	GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryList []CertHashEntry, err error)
 	GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessConnectionStatusResponse, err error)
@@ -162,6 +163,29 @@ func (pthi Command) GetControlMode() (state int, err error) {
 
 	binary.Read(buf2, binary.LittleEndian, &response.State)
 	return int(response.State), nil
+}
+
+func (pthi Command) GetIsAMTEnabled() (state int, err error) {
+	command := GetSiIsChangeToAMTEnabledRequest{
+		Command: 0x5,
+		ByteCount: 0x2,
+		SubCommand: 0x51,
+		VersionNumber: 0x10,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	//result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	if err != nil {
+		return -1, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response := GetSiIsChangeToAMTEnabledResponse{
+	
+	}
+
+	binary.Read(buf2, binary.LittleEndian, &response.ChangeEnabledResponse.Enabled)
+	return int(response.ChangeEnabledResponse.Enabled), nil
 }
 
 func (pthi Command) Unprovision() (state int, err error) {

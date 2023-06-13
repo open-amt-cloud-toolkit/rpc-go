@@ -121,6 +121,9 @@ const STOP_CONFIGURATION_RESPONSE = 0x480005e
 const GET_UUID_REQUEST = 0x400005c
 const GET_UUID_RESPONSE = 0x480005c
 
+const STATE_INDEPENNDENCE_IsChangeToAMTEnabled_CMD = 0x5
+const STATE_INDEPENNDENCE_IsChangeToAMTEnabled_SUBCMD = 0x51
+
 type AMTUnicodeString struct {
 	Length uint16
 	String [UNICODE_STRING_LEN]uint8
@@ -257,4 +260,22 @@ type GetRemoteAccessConnectionStatusResponse struct {
 	RemoteStatus  uint32
 	RemoteTrigger uint32
 	MPSHostname   AMTANSIString
+}
+
+type SiIsChangeEnabledResponse struct {
+	Enabled					uint8
+	CurrentOperationalState	uint8
+	Reserved				uint8
+	IsNewInterfaceVersion	uint8
+}
+
+type GetSiIsChangeToAMTEnabledRequest struct {
+	Command			uint8
+	ByteCount		uint8
+	SubCommand		uint8
+	VersionNumber	uint8
+}
+
+type GetSiIsChangeToAMTEnabledResponse struct {
+	ChangeEnabledResponse SiIsChangeEnabledResponse
 }

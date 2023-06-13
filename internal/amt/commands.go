@@ -291,6 +291,14 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 		return emptySettings, err
 	}
 	defer amt.PTHI.Close()
+	var result2, err2 = amt.PTHI.GetIsAMTEnabled()
+	if err2 != nil {
+		return emptySettings, err
+	}
+	if result2 == 0 {
+		return emptySettings, err
+	}
+
 	result, err := amt.PTHI.GetLANInterfaceSettings(useWireless)
 	if err != nil {
 		return emptySettings, err
