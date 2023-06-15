@@ -155,6 +155,24 @@ func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration)
 	return "", errors.New(key + " Not Found")
 }
 
+func (amt AMTCommand) GetIsAMTEnabled() (bool, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return false, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetIsAMTEnabled()
+	if err != nil {
+		return false, err
+	}
+	response := pthi.StateIndependenceIsChangeEnabledResponse{}
+	response.Enabled = result & 1                        // can i change it?
+	response.CurrentOperationalState = (result >> 1) & 1 // is it currently enabled
+	response.Reserved = (result >> 2) & 0x1F
+	response.IsNewInterfaceVersion = (result >> 7) & 1
+	return response.CurrentOperationalState == uint8(1), nil
+}
+
 // GetUUID ...
 func (amt AMTCommand) GetUUID() (string, error) {
 	err := amt.PTHI.Open(false)
