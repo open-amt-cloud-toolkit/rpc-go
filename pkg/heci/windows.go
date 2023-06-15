@@ -63,22 +63,24 @@ func (heci *Driver) Init(useLME bool) error {
 	if err != nil {
 		return err
 	}
-	
+
 	heci.PTHIGUID, err = windows.GUIDFromString("{12F80028-B4B7-4B2D-ACA8-46E0FF65814C}")
 	if err != nil {
 		return err
 	}
-	
+
 	heci.WDGUID, err = windows.GUIDFromString("{05B79A6F-4628-4D7F-899D-A91514CB32AB}")
 	if err != nil {
 		return err
 	}
 
 	// Find all devices that have our interface
-	err = heci.FindDevices(&heci.GUID)
-	
+	// err = heci.FindDevices(&heci.GUID)
+
 	err2 = heci.FindWDDevices(&heci.WDGUID)
-	if err2 != nil {return err2}
+	if err2 != nil {
+		return err2
+	}
 	return err
 }
 
@@ -145,12 +147,12 @@ func (heci *Driver) FindDevices(guid *windows.GUID) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
 func (heci *Driver) FindWDDevices(guid *windows.GUID) error {
-	deviceInfo, err := setupapi.SetupDiGetClassDevs(guid, nil, 0, setupapi.DIGCF_PRESENT|setupapi.DIGCF_DEVICEINTERFACE)
+	deviceInfo, err := setupapi.SetupDiGetClassDevs(&heci.GUID, nil, 0, setupapi.DIGCF_PRESENT|setupapi.DIGCF_DEVICEINTERFACE)
 	if err != nil {
 		return err
 	}
@@ -160,7 +162,7 @@ func (heci *Driver) FindWDDevices(guid *windows.GUID) error {
 
 	interfaceData := setupapi.SpDevInterfaceData{}
 	interfaceData.CbSize = (uint32)(unsafe.Sizeof(interfaceData))
-	edi, err := setupapi.SetupDiEnumDeviceInterfaces(deviceInfo, nil, guid, 0, &interfaceData)
+	edi, err := setupapi.SetupDiEnumDeviceInterfaces(deviceInfo, nil, &heci.GUID, 0, &interfaceData)
 	if err != nil {
 		return err
 	}
@@ -212,7 +214,7 @@ func (heci *Driver) FindWDDevices(guid *windows.GUID) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -265,11 +267,11 @@ func (heci *Driver) ConnectWDClient() error {
 	propertiesSize := unsafe.Sizeof(propertiesPacked)
 	guidSize := unsafe.Sizeof(heci.WDGUID)
 	guid := heci.WDGUID
-	if heci.useLME {
-		guid = heci.LMEGUID
-	}
+	// if heci.useLME {
+	// 	guid = heci.LMEGUID
+	// }
 
-	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x802, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&guid)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
+	err := heci.doIoctl(ctl_code(FILE_DEVICE_HECI, 0x801, METHOD_BUFFERED, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE), (*byte)(unsafe.Pointer(&guid)), (uint32)(guidSize), (*byte)(unsafe.Pointer(&propertiesPacked.data)), (uint32)(propertiesSize))
 	if err != nil {
 		return err
 	}

@@ -262,20 +262,16 @@ type GetRemoteAccessConnectionStatusResponse struct {
 	MPSHostname   AMTANSIString
 }
 
-type SiIsChangeEnabledResponse struct {
-	Enabled					uint8
-	CurrentOperationalState	uint8
-	Reserved				uint8
-	IsNewInterfaceVersion	uint8
+type StateIndependenceIsChangeEnabledResponse struct {
+	Enabled                 uint8
+	CurrentOperationalState uint8
+	Reserved                uint8
+	IsNewInterfaceVersion   uint8
 }
 
-type GetSiIsChangeToAMTEnabledRequest struct {
-	Command			uint8
-	ByteCount		uint8
-	SubCommand		uint8
-	VersionNumber	uint8
-}
-
-type GetSiIsChangeToAMTEnabledResponse struct {
-	ChangeEnabledResponse SiIsChangeEnabledResponse
+type GetStateIndependenceIsChangeToAMTEnabledRequest struct {
+	Command       uint8
+	ByteCount     uint8
+	SubCommand    uint8
+	VersionNumber uint8
 }

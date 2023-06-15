@@ -73,6 +73,9 @@ func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error
 func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 	return "\xd2?\x11\x1c%3\x94E\xa2rT\xb2\x03\x8b\xeb\a", nil
 }
+func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
+	return uint8(2), nil
+}
 func (c MockPTHICommands) GetControlMode() (state int, err error)   { return 0, nil }
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) { return "Test", nil }
 func (c MockPTHICommands) GetCertificateHashes(hashHandles pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
@@ -168,6 +171,11 @@ func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
 	result, err := amt.GetVersionDataFromME("", 16*time.Second)
 	assert.Equal(t, "amt internal error", err.Error())
 	assert.Equal(t, "", result)
+}
+func TestGetIsAMTEnabled(t *testing.T) {
+	result, err := amt.GetIsAMTEnabled()
+	assert.NoError(t, err)
+	assert.True(t, result)
 }
 
 func TestGetGUID(t *testing.T) {
