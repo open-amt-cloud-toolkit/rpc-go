@@ -73,11 +73,6 @@ func (heci *Driver) Init(useLME bool) error {
 		return err
 	}
 
-	heci.WDGUID, err = windows.GUIDFromString("{05B79A6F-4628-4D7F-899D-A91514CB32AB}")
-	if err != nil {
-		return err
-	}
-
 	// Find all devices that have our interface
 	// err = heci.FindDevices(&heci.GUID)
 
