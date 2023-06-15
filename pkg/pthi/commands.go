@@ -38,7 +38,7 @@ func NewCommand() Command {
 }
 
 func (pthi Command) Open(useLME bool) error {
-	err := pthi.Heci.Init(useLME)
+	err := pthi.Heci.Init(useLME, false)
 	if err != nil {
 		return err
 	}
@@ -167,9 +167,9 @@ func (pthi Command) GetControlMode() (state int, err error) {
 
 func (pthi Command) GetIsAMTEnabled() (state int, err error) {
 	command := GetSiIsChangeToAMTEnabledRequest{
-		Command: 0x5,
-		ByteCount: 0x2,
-		SubCommand: 0x51,
+		Command:       0x5,
+		ByteCount:     0x2,
+		SubCommand:    0x51,
 		VersionNumber: 0x10,
 	}
 	var bin_buf bytes.Buffer
@@ -180,9 +180,7 @@ func (pthi Command) GetIsAMTEnabled() (state int, err error) {
 		return -1, err
 	}
 	buf2 := bytes.NewBuffer(result)
-	response := GetSiIsChangeToAMTEnabledResponse{
-	
-	}
+	response := GetSiIsChangeToAMTEnabledResponse{}
 
 	binary.Read(buf2, binary.LittleEndian, &response.ChangeEnabledResponse.Enabled)
 	return int(response.ChangeEnabledResponse.Enabled), nil

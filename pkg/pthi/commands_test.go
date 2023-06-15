@@ -18,8 +18,8 @@ type MockHECICommands struct{}
 var message []byte
 var numBytes uint32 = GET_REQUEST_SIZE
 
-func (c *MockHECICommands) Init(useLME bool) error { return nil }
-func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
+func (c *MockHECICommands) Init(useLME bool, useWD bool) error { return nil }
+func (c *MockHECICommands) GetBufferSize() uint32              { return 5120 } // MaxMessageLength
 
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	return numBytes, nil

@@ -27,7 +27,9 @@ type MockPTHICommands struct{}
 func (c MockPTHICommands) Open(bool) error {
 	return nil
 }
-
+func (c MockPTHICommands) GetIsAMTEnabled() (state int, err error) {
+	return 0, nil
+}
 func (c MockPTHICommands) Close() {}
 
 func (c MockPTHICommands) Call([]byte, uint32) (result []byte, err error) {

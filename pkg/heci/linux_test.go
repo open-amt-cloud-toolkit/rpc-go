@@ -1,5 +1,3 @@
-//go:build linux && amt
-
 /*********************************************************************
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
@@ -34,22 +32,30 @@ type GetUUIDRequest struct {
 
 func TestHeciInit(t *testing.T) {
 	h := Driver{}
-	err := h.Init(false)
+	err := h.Init(false, false)
 	defer h.Close()
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(5120), h.bufferSize)
 }
 func TestHeciInitLME(t *testing.T) {
 	h := Driver{}
-	err := h.Init(true)
+	err := h.Init(true, false)
 	defer h.Close()
 	assert.NoError(t, err)
 	assert.Equal(t, uint8(4), h.protocolVersion)
 	assert.Equal(t, uint32(8192), h.bufferSize)
 }
+func TestHeciInitWatchdog(t *testing.T) {
+	h := Driver{}
+	err := h.Init(false, true)
+	defer h.Close()
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(5120), h.bufferSize)
+
+}
 func TestHeciInitError(t *testing.T) {
 	h := Driver{}
-	err := h.Init(true)
+	err := h.Init(true, false)
 	defer h.Close()
 	assert.Error(t, err)
 }
@@ -62,7 +68,7 @@ func TestGetBufferSize(t *testing.T) {
 
 func TestSendMessage(t *testing.T) {
 	h := Driver{}
-	err := h.Init(false)
+	err := h.Init(false, false)
 	defer h.Close()
 	assert.NoError(t, err)
 	commandSize := (uint32)(12) //(uint32)(unsafe.Sizeof(GetUUIDRequest{}))
@@ -87,7 +93,7 @@ func TestSendMessage(t *testing.T) {
 }
 func TestReceiveMessage(t *testing.T) {
 	h := Driver{}
-	err := h.Init(false)
+	err := h.Init(false, false)
 	defer h.Close()
 	assert.NoError(t, err)
 	// send a message so we can receieve it
