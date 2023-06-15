@@ -50,7 +50,7 @@ func NewDriver() *Driver {
 	return &Driver{}
 }
 
-func (heci *Driver) Init(useLME bool) error {
+func (heci *Driver) Init(useLME bool, useWD bool) error {
 	var err, err2 error
 	heci.useLME = useLME
 

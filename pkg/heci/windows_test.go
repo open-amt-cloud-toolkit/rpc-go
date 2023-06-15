@@ -13,7 +13,7 @@ import (
 
 func TestInit(t *testing.T) {
 	h := Driver{}
-	err := h.Init(false)
+	err := h.Init(false, false)
 	assert.NoError(t, err)
 	guid, _ := windows.GUIDFromString("{E2D1FF34-3458-49A9-88DA-8E6915CE9BE5}")
 	pthiguid, _ := windows.GUIDFromString("{12F80028-B4B7-4B2D-ACA8-46E0FF65814C}")
@@ -25,6 +25,6 @@ func TestInit(t *testing.T) {
 
 func TestFindDevices(t *testing.T) {
 	h := Driver{}
-	err := h.Init(false)
+	err := h.Init(false, false)
 	assert.NoError(t, err)
 }
