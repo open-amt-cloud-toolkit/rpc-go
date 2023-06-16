@@ -1,3 +1,12 @@
+<a name="2.10.0"></a>
+## [2.10.0] - 2023-06-16
+### Build
+- update version and changelog to v2.10.0
+
+### Feat
+- adds AMT Features to amtinfo
+- support device friendly name
+
 <a name="2.9.1"></a>
 ## [2.9.1] - 2023-06-08
 ### Build
