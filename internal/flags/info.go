@@ -8,6 +8,7 @@ import (
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -79,6 +80,13 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) int {
 
 			if !f.JsonOutput {
 				println("SKU			: " + result)
+			}
+		}
+		if *amtInfoVerPtr && *amtInfoSkuPtr {
+			result := decodeAMT(dataStruct["amt"].(string), dataStruct["sku"].(string))
+			dataStruct["features"] = strings.TrimSpace(result)
+			if !f.JsonOutput {
+				println("Features		: " + result)
 			}
 		}
 		if *amtInfoUUIDPtr {
@@ -214,4 +222,74 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) int {
 		}
 	}
 	return utils.Success
+}
+
+func decodeAMT(version, SKU string) string {
+	amtParts := strings.Split(version, ".")
+	if len(amtParts) <= 1 {
+		return "Invalid AMT version format"
+	}
+	amtVer, err := strconv.ParseFloat(amtParts[0], 64)
+	if err != nil {
+		return "Invalid AMT version"
+	}
+	skuNum, err := strconv.ParseInt(SKU, 0, 64)
+	if err != nil {
+		return "Invalid SKU"
+	}
+	result := ""
+	if amtVer <= 2.2 {
+		switch skuNum {
+		case 0:
+			result += "AMT + ASF + iQST"
+		case 1:
+			result += "ASF + iQST"
+		case 2:
+			result += "iQST"
+		default:
+			result += "Unknown"
+		}
+	} else if amtVer < 5.0 {
+		if skuNum&0x02 > 0 {
+			result += "iQST "
+		}
+		if skuNum&0x04 > 0 {
+			result += "ASF "
+		}
+		if skuNum&0x08 > 0 {
+			result += "AMT"
+		}
+	} else {
+		if skuNum&0x02 > 0 && amtVer < 7.0 {
+			result += "iQST "
+		}
+		if skuNum&0x04 > 0 && amtVer < 6.0 {
+			result += "ASF "
+		}
+		if skuNum&0x08 > 0 {
+			result += "AMT Pro "
+		}
+		if skuNum&0x10 > 0 {
+			result += "Intel Standard Manageability "
+		}
+		if skuNum&0x20 > 0 && amtVer < 6.0 {
+			result += "TPM "
+		}
+		if skuNum&0x100 > 0 && amtVer < 6.0 {
+			result += "Home IT "
+		}
+		if skuNum&0x400 > 0 && amtVer < 6.0 {
+			result += "WOX "
+		}
+		if skuNum&0x2000 > 0 {
+			result += "AT-p "
+		}
+		if skuNum&0x4000 > 0 {
+			result += "Corporate "
+		}
+		if skuNum&0x8000 > 0 && amtVer < 8.0 {
+			result += "L3 Mgt Upgrade"
+		}
+	}
+	return result
 }
