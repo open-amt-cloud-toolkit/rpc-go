@@ -12,7 +12,6 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
 	// use the Func call rather than StringVar to keep the default value out of the help/usage message
 	f.amtActivateCommand.Func("name", "friendly name to associate with this device", func(flagValue string) error {
-		f.FriendlyNameProvided = true
 		f.FriendlyName = flagValue
 		return nil
 	})

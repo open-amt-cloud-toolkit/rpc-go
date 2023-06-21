@@ -32,7 +32,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "16992", flags.LMSPort)
 	// 2m default
 	assert.Equal(t, AMTTimeoutDuration, flags.AMTTimeoutDuration)
-	assert.False(t, flags.FriendlyNameProvided)
+	assert.Equal(t, "", flags.FriendlyName)
 }
 
 func TestHandleActivateCommandWithTimeOut(t *testing.T) {
@@ -75,7 +75,6 @@ func TestHandleActivateCommandWithFriendlyName(t *testing.T) {
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, expected, flags.Command)
 	assert.Equal(t, "friendlyName", flags.FriendlyName)
-	assert.True(t, flags.FriendlyNameProvided)
 }
 func TestHandleActivateCommandWithENV(t *testing.T) {
 
