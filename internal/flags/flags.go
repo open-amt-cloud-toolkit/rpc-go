@@ -79,7 +79,6 @@ type Flags struct {
 	HostnameInfo                         HostnameInfo
 	AMTTimeoutDuration                   time.Duration
 	FriendlyName                         string
-	FriendlyNameProvided                 bool
 }
 
 func NewFlags(args []string) *Flags {
