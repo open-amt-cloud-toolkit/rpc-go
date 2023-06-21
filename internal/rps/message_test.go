@@ -232,8 +232,7 @@ func TestCreateMessageRequestHostnameInfo(t *testing.T) {
 func TestCreateMessageRequestFriendlyName(t *testing.T) {
 	expectedName := "friendlyName01"
 	flags := flags.Flags{
-		FriendlyName:         expectedName,
-		FriendlyNameProvided: true,
+		FriendlyName: expectedName,
 	}
 	result, createErr := p.CreateMessageRequest(flags)
 	assert.NoError(t, createErr)

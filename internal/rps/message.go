@@ -57,6 +57,7 @@ type MessagePayload struct {
 	CertificateHashes []string              `json:"certHashes"`
 	IPConfiguration   flags.IPConfiguration `json:"ipConfiguration"`
 	HostnameInfo      flags.HostnameInfo    `json:"hostnameInfo"`
+	FriendlyName      string                `json:"friendlyName,omitempty"`
 }
 
 func NewPayload() Payload {
@@ -166,24 +167,11 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 		payload.Password = flags.Password
 	}
 
+	payload.FriendlyName = flags.FriendlyName
 	//convert struct to json
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return message, err
-	}
-
-	// only include friendlyName if value is provided explicitly
-	if flags.FriendlyNameProvided {
-		var m map[string]interface{}
-		err = json.Unmarshal(data, &m)
-		if err != nil {
-			return message, err
-		}
-		m["friendlyName"] = flags.FriendlyName
-		data, err = json.Marshal(m)
-		if err != nil {
-			return message, err
-		}
 	}
 
 	message.Payload = base64.StdEncoding.EncodeToString(data)
