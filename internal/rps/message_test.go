@@ -228,3 +228,33 @@ func TestCreateMessageRequestHostnameInfo(t *testing.T) {
 	assert.NoError(t, jsonErr)
 	assert.Equal(t, flags.HostnameInfo, msgPayload.HostnameInfo)
 }
+
+func TestCreateMessageRequestFriendlyName(t *testing.T) {
+	expectedName := "friendlyName01"
+	flags := flags.Flags{
+		FriendlyName:         expectedName,
+		FriendlyNameProvided: true,
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	var m map[string]interface{}
+	unmarshalErr := json.Unmarshal(decodedBytes, &m)
+	assert.NoError(t, unmarshalErr)
+	assert.Equal(t, m["friendlyName"], expectedName)
+}
+func TestCreateMessageRequestWithoutFriendlyName(t *testing.T) {
+	flags := flags.Flags{}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	var m map[string]interface{}
+	unmarshalErr := json.Unmarshal(decodedBytes, &m)
+	assert.NoError(t, unmarshalErr)
+	_, isInMap := m["friendlyName"]
+	assert.False(t, isInMap)
+}

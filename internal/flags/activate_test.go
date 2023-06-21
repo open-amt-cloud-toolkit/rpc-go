@@ -32,6 +32,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	assert.Equal(t, "16992", flags.LMSPort)
 	// 2m default
 	assert.Equal(t, AMTTimeoutDuration, flags.AMTTimeoutDuration)
+	assert.False(t, flags.FriendlyNameProvided)
 }
 
 func TestHandleActivateCommandWithTimeOut(t *testing.T) {
@@ -62,6 +63,19 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 	assert.Equal(t, expected, flags.Command)
 	assert.Equal(t, "1.1.1.1", flags.LMSAddress)
 	assert.Equal(t, "99", flags.LMSPort)
+}
+func TestHandleActivateCommandWithFriendlyName(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-name", "friendlyName"}
+	flags := NewFlags(args)
+	expected := "activate --profile profileName"
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
+	assert.EqualValues(t, success, utils.Success)
+	assert.Equal(t, "wss://localhost", flags.URL)
+	assert.Equal(t, "profileName", flags.Profile)
+	assert.Equal(t, expected, flags.Command)
+	assert.Equal(t, "friendlyName", flags.FriendlyName)
+	assert.True(t, flags.FriendlyNameProvided)
 }
 func TestHandleActivateCommandWithENV(t *testing.T) {
 

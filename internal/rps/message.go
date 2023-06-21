@@ -150,6 +150,7 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	}
 	payload.IPConfiguration = flags.IpConfiguration
 	payload.HostnameInfo = flags.HostnameInfo
+
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
@@ -169,6 +170,20 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return message, err
+	}
+
+	// only include friendlyName if value is provided explicitly
+	if flags.FriendlyNameProvided {
+		var m map[string]interface{}
+		err = json.Unmarshal(data, &m)
+		if err != nil {
+			return message, err
+		}
+		m["friendlyName"] = flags.FriendlyName
+		data, err = json.Marshal(m)
+		if err != nil {
+			return message, err
+		}
 	}
 
 	message.Payload = base64.StdEncoding.EncodeToString(data)
