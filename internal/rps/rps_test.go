@@ -111,6 +111,16 @@ func TestProcessMessageSuccess(t *testing.T) {
 	decodedMessage := server.ProcessMessage([]byte(activation))
 	assert.Nil(t, decodedMessage)
 }
+func TestProcessMessageSuccessForWirelessOnlyDevice(t *testing.T) {
+	activation := `{
+        "method": "success",
+        "message": "{\"status\":\"already enabled in client mode.\", \"network\":\"undefined. Wireless Configured\", \"ciraConnection\":\"configured\"}"
+    }`
+	server := NewAMTActivationServer(testFlags)
+	server.Connect(true)
+	decodedMessage := server.ProcessMessage([]byte(activation))
+	assert.Nil(t, decodedMessage)
+}
 func TestProcessMessageUnformattedSuccess(t *testing.T) {
 	activation := `{
         "method": "success",

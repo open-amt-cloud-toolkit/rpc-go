@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"rpc/internal/flags"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -132,7 +133,7 @@ func (amt *AMTActivationServer) ProcessMessage(message []byte) []byte {
 			log.Info(activation.Message)
 		} else {
 			log.Info("Status: " + statusMessage.Status)
-			log.Info("Network: " + statusMessage.Network)
+			log.Info("Network: " + strings.Replace(statusMessage.Network, "undefined. ", "", -1))
 			log.Info("CIRA: " + statusMessage.CIRAConnection)
 			log.Info("TLS: " + statusMessage.TLSConfiguration)
 		}
