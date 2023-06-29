@@ -10,9 +10,11 @@ package main
 import "C"
 
 import (
-	log "github.com/sirupsen/logrus"
+	"encoding/csv"
 	"rpc/pkg/utils"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //export rpcCheckAccess
@@ -33,7 +35,14 @@ func rpcExec(Input *C.char, Output **C.char) int {
 
 	//create argument array from input string
 	inputString := C.GoString(Input)
-	args := strings.Fields(inputString)
+	// Split string
+	r := csv.NewReader(strings.NewReader(inputString))
+	r.Comma = ' ' // space
+	args, err := r.Read()
+	if err != nil {
+		log.Error(err.Error())
+		return utils.InvalidParameters
+	}
 	args = append([]string{"rpc"}, args...)
 	runStatus, err := runRPC(args)
 	if runStatus != utils.Success {
