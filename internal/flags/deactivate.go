@@ -3,6 +3,8 @@ package flags
 import (
 	"fmt"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (f *Flags) handleDeactivateCommand() (bool, int) {
@@ -31,7 +33,7 @@ func (f *Flags) handleDeactivateCommand() (bool, int) {
 				return false, errCode
 			}
 			status = false
-			fmt.Println("Status: Device deactivated.")
+			log.Info("Status: Device deactivated.")
 		}
 	}
 	return status, utils.Success
