@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"rpc/internal/config"
 	"strings"
 	"testing"
 
@@ -21,7 +22,7 @@ const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope
 func setup(t *testing.T, handler http.Handler) LocalConfiguration {
 	server := httptest.NewServer(handler)
 
-	config := Config{
+	config := config.Config{
 		// fill with appropriate values
 	}
 

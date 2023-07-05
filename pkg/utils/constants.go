@@ -65,6 +65,7 @@ const (
 	EightZeroTwoConfigurationFailed = 108 // 802.1x configuration failed
 	UnableToDeactivate              = 109 // Device is not in CCM mode
 	DeactivationFailed              = 110 // Deactivation Failed
+	UnableToActivate                = 111 // Device is not in pre-provisioning mode
 
 	// (150-199) Maintenance Errors
 	ClockSyncFailed    = 150 // Clock sync failed

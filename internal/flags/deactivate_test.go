@@ -90,6 +90,7 @@ func TestHandleLocalDeactivationWithACM(t *testing.T) {
 	keepGoing, errCode := flags.handleLocalDeactivation()
 	assert.Equal(t, keepGoing, false)
 	assert.Equal(t, errCode, utils.UnableToDeactivate)
+	mode = 0
 }
 
 func TestHandleLocalDeactivation(t *testing.T) {
@@ -101,6 +102,7 @@ func TestHandleLocalDeactivation(t *testing.T) {
 	keepGoing, errCode := flags.handleLocalDeactivation()
 	assert.Equal(t, keepGoing, false)
 	assert.Equal(t, errCode, utils.Success)
+	mode = 0
 }
 
 func TestHandleDeactivateCommandWithGetControlModeError(t *testing.T) {
@@ -113,6 +115,7 @@ func TestHandleDeactivateCommandWithGetControlModeError(t *testing.T) {
 	keepGoing, errCode := flags.handleDeactivateCommand()
 	assert.Equal(t, keepGoing, false)
 	assert.Equal(t, errCode, utils.DeactivationFailed)
+	mode = 0
 }
 
 func TestHandleLocalDeactivationwithUnprovisionError(t *testing.T) {
@@ -125,6 +128,8 @@ func TestHandleLocalDeactivationwithUnprovisionError(t *testing.T) {
 	keepGoing, errCode := flags.handleLocalDeactivation()
 	assert.Equal(t, keepGoing, false)
 	assert.Equal(t, errCode, utils.DeactivationFailed)
+	result = 0
+	mode = 0
 }
 
 func TestHandleDeactivationWithLocal(t *testing.T) {
@@ -137,6 +142,7 @@ func TestHandleDeactivationWithLocal(t *testing.T) {
 	keepGoing, errCode := flags.handleDeactivateCommand()
 	assert.Equal(t, keepGoing, false)
 	assert.Equal(t, errCode, utils.Success)
+	mode = 0
 }
 
 func TestParseFlagsDeactivate(t *testing.T) {
