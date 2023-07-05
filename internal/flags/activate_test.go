@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"errors"
 	"os"
 	"rpc/pkg/utils"
 	"testing"
@@ -149,6 +150,55 @@ func TestHandleActivateCommandMissingProfile(t *testing.T) {
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
 
+func TestHandleActivateCommandBothURLandLocal(t *testing.T) {
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-local"}
+	flags := NewFlags(args)
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.EqualValues(t, success, utils.InvalidParameters)
+}
+func TestHandleActivateCommandLocalNoPassword(t *testing.T) {
+	args := []string{"./rpc", "activate", "-local"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.EqualValues(t, utils.MissingOrIncorrectPassword, success)
+}
+func TestHandleActivateCommandLocal(t *testing.T) {
+	args := []string{"./rpc", "activate", "-local", "-password", "P@ssw0rd"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 0
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, true)
+	assert.Equal(t, flags.Local, true)
+	assert.Equal(t, flags.UseCCM, true)
+	assert.EqualValues(t, utils.Success, success)
+}
+func TestHandleActivateCommandLocalAlreadyActivated(t *testing.T) {
+	args := []string{"./rpc", "activate", "-local", "-password", "P@ssw0rd"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 1
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, flags.Local, true)
+	assert.EqualValues(t, utils.UnableToActivate, success)
+	mode = 0
+}
+func TestHandleActivateCommandLocalControlModeError(t *testing.T) {
+	args := []string{"./rpc", "activate", "-local", "-password", "P@ssw0rd"}
+	flags := NewFlags(args)
+	flags.amtCommand.PTHI = MockPTHICommands{}
+	mode = 0
+	controlModeErr = errors.New("error")
+	keepGoing, success := flags.handleActivateCommand()
+	assert.Equal(t, keepGoing, false)
+	assert.Equal(t, flags.Local, true)
+	assert.EqualValues(t, utils.ActivationFailed, success)
+	controlModeErr = nil
+}
 func TestHandleActivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "activate", "-profile", "profileName"}
 

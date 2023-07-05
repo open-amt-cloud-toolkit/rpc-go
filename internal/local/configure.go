@@ -4,11 +4,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"rpc/internal/config"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 
 	log "github.com/sirupsen/logrus"
@@ -16,15 +18,17 @@ import (
 
 type LocalConfiguration struct {
 	client      *wsman.Client
-	config      Config
+	config      config.Config
 	amtMessages amt.Messages
+	ipsMessages ips.Messages
 }
 
-func NewLocalConfiguration(config Config, client *wsman.Client) LocalConfiguration {
+func NewLocalConfiguration(config config.Config, client *wsman.Client) LocalConfiguration {
 	return LocalConfiguration{
 		client:      client,
 		config:      config,
 		amtMessages: amt.NewMessages(),
+		ipsMessages: ips.NewMessages(),
 	}
 
 }
