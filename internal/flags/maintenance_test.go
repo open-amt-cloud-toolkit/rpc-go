@@ -241,9 +241,9 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				assert.Equal(t, keepGoing, false)
 			}
 			if strings.Contains(tc.cmdLine, argAddWiFiSettings) {
-				assert.Equal(t, flags.UseLocal, true)
+				assert.Equal(t, flags.Local, true)
 			} else {
-				assert.Equal(t, flags.UseLocal, false)
+				assert.Equal(t, flags.Local, false)
 			}
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, "maintenance", gotCommand)

@@ -37,12 +37,27 @@ func runRPC(args []string) (int, error) {
 	if !keepgoing {
 		return status, nil
 	}
-	if flags.UseLocal {
+	if flags.Local {
 		config := *flags.LocalConfig
-		client := wsman.NewClient("http://"+utils.LMSAddress+":"+utils.LMSPort+"/wsman", "admin", config.Password, true)
+		var password string = config.Password
+		var username string = "admin"
+		if flags.UseCCM || flags.UseACM {
+			rpsPayload := rps.NewPayload()
+			lsa, err := rpsPayload.AMT.GetLocalSystemAccount()
+			if err != nil {
+				log.Error(err)
+				return -1, err
+			}
+			password = lsa.Password
+			username = lsa.Username
+		}
+		client := wsman.NewClient("http://"+utils.LMSAddress+":"+utils.LMSPort+"/wsman", username, password, true)
 		localConnection := local.NewLocalConfiguration(config, client)
-		localConnection.Configure8021xWiFi()
-
+		if flags.UseCCM {
+			localConnection.ActivateCCM()
+		} else {
+			localConnection.Configure8021xWiFi()
+		}
 	} else {
 		startMessage, err := rps.PrepareInitialMessage(flags)
 		if err != nil {

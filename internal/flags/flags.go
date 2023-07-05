@@ -11,7 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/internal/amt"
-	"rpc/internal/local"
+	"rpc/internal/config"
 	"rpc/pkg/utils"
 	"strconv"
 	"time"
@@ -60,9 +60,10 @@ type Flags struct {
 	LogLevel                             string
 	Token                                string
 	TenantID                             string
-	UseLocal                             bool
+	UseCCM                               bool
+	UseACM                               bool
 	configContent                        string
-	LocalConfig                          *local.Config
+	LocalConfig                          *config.Config
 	amtInfoCommand                       *flag.FlagSet
 	amtActivateCommand                   *flag.FlagSet
 	amtDeactivateCommand                 *flag.FlagSet

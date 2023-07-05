@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"rpc/internal/amt"
-	"rpc/internal/local"
+	"rpc/internal/config"
 	"rpc/pkg/utils"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -67,24 +67,20 @@ func (f *Flags) handleMaintenanceCommand() (bool, int) {
 	default:
 		f.printMaintenanceUsage()
 	}
-	if !f.UseLocal {
+	if !f.Local {
 		if task == "" {
 			return false, utils.IncorrectCommandLineParameters
 		}
 	}
 
 	if f.Password == "" {
-		fmt.Println("Please enter the current AMT Password: ")
-		_, err := fmt.Scanln(&f.Password)
-		if f.Password == "" || err != nil {
-			fmt.Print("\ncurrent AMT password is required and cannot be empty\n\n")
-			f.amtMaintenanceCommand.Usage()
+		if _, errCode := f.readPasswordFromUser(); errCode != 0 {
 			return false, utils.MissingOrIncorrectPassword
 		}
 	}
 
 	// if this is a local command, then we dont care about -u or what task/command since its not going to the cloud
-	if !f.UseLocal {
+	if !f.Local {
 		if f.URL == "" {
 			fmt.Print("\n-u flag is required and cannot be empty\n\n")
 			f.amtMaintenanceCommand.Usage()
@@ -100,7 +96,7 @@ func (f *Flags) handleMaintenanceCommand() (bool, int) {
 	return true, utils.Success
 }
 func (f *Flags) handleLocalCommand() (bool, int) {
-	f.LocalConfig = &local.Config{}
+	f.LocalConfig = &config.Config{}
 
 	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
 
@@ -114,7 +110,7 @@ func (f *Flags) handleLocalCommand() (bool, int) {
 	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.ClientCert, "clientCert", "", "specify client certificate")
 	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.CACert, "caCert", "", "specify CA certificate")
 	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.PrivateKey, "privateKey", "", "specify private key")
-	f.UseLocal = true
+	f.Local = true
 
 	if err := f.amtMaintenanceAddWiFiSettingsCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return false, utils.IncorrectCommandLineParameters
@@ -139,14 +135,9 @@ func (f *Flags) handleLocalCommand() (bool, int) {
 			}
 		}
 		if f.Password == "" {
-			fmt.Println("Please enter AMT Password: ")
-			var password string
-			// Taking input from user
-			_, err := fmt.Scanln(&password)
-			if password == "" || err != nil {
+			if _, errCode := f.readPasswordFromUser(); errCode != 0 {
 				return false, utils.MissingOrIncorrectPassword
 			}
-			f.Password = password
 		}
 		f.LocalConfig.Password = f.Password
 	}

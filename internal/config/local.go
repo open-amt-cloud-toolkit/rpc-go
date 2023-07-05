@@ -1,4 +1,4 @@
-package local
+package config
 
 type (
 	Config struct {
