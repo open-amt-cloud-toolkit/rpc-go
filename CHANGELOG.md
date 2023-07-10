@@ -1,3 +1,23 @@
+<a name="2.11.0"></a>
+## [2.11.0] - 2023-07-10
+### Build
+- update version to v2.11.0
+- **deps:** bump golang.org/x/sys from 0.9.0 to 0.10.0
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump golang.org/x/sys from 0.8.0 to 0.9.0
+
+### Ci
+- added semantic release
+
+### Feat
+- add local CCM activate
+
+### Fix
+- allow for spaces in input parameters
+
+### Refactor
+- simplify friendly name
+
 <a name="2.10.0"></a>
 ## [2.10.0] - 2023-06-16
 ### Build
