@@ -45,42 +45,39 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
 		return false, utils.InvalidParameters
 	}
-	if f.Local {
+	//if f.Local {
+	// if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
+	// 	fmt.Println("must specify -ccm or -acm, but not both")
+	// 	return false, utils.InvalidParameters
+	// }
+	//}
+
+	if !f.Local {
+		if f.URL == "" {
+			fmt.Println("-u flag is required and cannot be empty")
+			f.amtActivateCommand.Usage()
+			return false, utils.MissingOrIncorrectURL
+		}
+		if f.Profile == "" {
+			fmt.Println("-profile flag is required and cannot be empty")
+			f.amtActivateCommand.Usage()
+			return false, utils.MissingOrIncorrectProfile
+		}
+	} else {
 		if errCode := f.checkCurrentMode(); errCode != 0 {
 			return false, errCode
 		}
-		// if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
-		// 	fmt.Println("must specify -ccm or -acm, but not both")
-		// 	return false, utils.InvalidParameters
-		// }
-	}
-	if f.amtActivateCommand.Parsed() {
-		if !f.Local {
-			if f.URL == "" {
-				fmt.Println("-u flag is required and cannot be empty")
-				f.amtActivateCommand.Usage()
-				return false, utils.MissingOrIncorrectURL
+		if f.Password == "" {
+			if _, errCode := f.readPasswordFromUser(); errCode != 0 {
+				return false, utils.MissingOrIncorrectPassword
 			}
-			if f.Profile == "" {
-				fmt.Println("-profile flag is required and cannot be empty")
-				f.amtActivateCommand.Usage()
-				return false, utils.MissingOrIncorrectProfile
-			}
-		} else {
-			if f.Password == "" {
-				if _, errCode := f.readPasswordFromUser(); errCode != 0 {
-					return false, utils.MissingOrIncorrectPassword
-				}
-			}
-			f.UseCCM = true
-			f.LocalConfig = &config.Config{}
-			if errCode := f.checkCurrentMode(); errCode != 0 {
-				return false, errCode
-			}
-
-			return true, utils.Success
 		}
+		f.UseCCM = true
+		f.LocalConfig = &config.Config{}
+
+		return true, utils.Success
 	}
+
 	f.Command = "activate --profile " + f.Profile
 	return true, utils.Success
 }

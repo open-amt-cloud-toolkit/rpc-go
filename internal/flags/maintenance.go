@@ -115,32 +115,32 @@ func (f *Flags) handleLocalCommand() (bool, int) {
 	if err := f.amtMaintenanceAddWiFiSettingsCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return false, utils.IncorrectCommandLineParameters
 	}
-	if f.amtMaintenanceAddWiFiSettingsCommand.Parsed() {
-		if f.JsonOutput {
-			log.SetFormatter(&log.JSONFormatter{})
-		}
-		if f.configContent != "" {
-			err := cleanenv.ReadConfig(f.configContent, f.LocalConfig)
-			if err != nil {
-				log.Error("config error: ", err)
-				return false, utils.IncorrectCommandLineParameters
-			}
-		}
-		// Check if all fields are filled
-		v := reflect.ValueOf(f.LocalConfig.IEEE8021XSettings)
-		for i := 0; i < v.NumField(); i++ {
-			if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
-				log.Error("Missing value for field: ", v.Type().Field(i).Name)
-				return false, utils.IncorrectCommandLineParameters
-			}
-		}
-		if f.Password == "" {
-			if _, errCode := f.readPasswordFromUser(); errCode != 0 {
-				return false, utils.MissingOrIncorrectPassword
-			}
-		}
-		f.LocalConfig.Password = f.Password
+
+	if f.JsonOutput {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
+	if f.configContent != "" {
+		err := cleanenv.ReadConfig(f.configContent, f.LocalConfig)
+		if err != nil {
+			log.Error("config error: ", err)
+			return false, utils.IncorrectCommandLineParameters
+		}
+	}
+	// Check if all fields are filled
+	v := reflect.ValueOf(f.LocalConfig.IEEE8021XSettings)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
+			log.Error("Missing value for field: ", v.Type().Field(i).Name)
+			return false, utils.IncorrectCommandLineParameters
+		}
+	}
+	if f.Password == "" {
+		if _, errCode := f.readPasswordFromUser(); errCode != 0 {
+			return false, utils.MissingOrIncorrectPassword
+		}
+	}
+	f.LocalConfig.Password = f.Password
+
 	return true, utils.Success
 }
 func (f *Flags) handleMaintenanceSyncClock() string {
