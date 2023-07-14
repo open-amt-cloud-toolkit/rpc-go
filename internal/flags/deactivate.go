@@ -22,20 +22,19 @@ func (f *Flags) handleDeactivateCommand() (bool, int) {
 		return false, utils.InvalidParameters
 	}
 
-	if f.amtDeactivateCommand.Parsed() {
-		if !f.Local {
-			if _, errCode := f.handleRemoteDeactivation(); errCode != 0 {
-				return false, errCode
-			}
-			status = true
-		} else {
-			if _, errCode := f.handleLocalDeactivation(); errCode != 0 {
-				return false, errCode
-			}
-			status = false
-			log.Info("Status: Device deactivated.")
+	if !f.Local {
+		if _, errCode := f.handleRemoteDeactivation(); errCode != 0 {
+			return false, errCode
 		}
+		status = true
+	} else {
+		if _, errCode := f.handleLocalDeactivation(); errCode != 0 {
+			return false, errCode
+		}
+		status = false
+		log.Info("Status: Device deactivated.")
 	}
+
 	return status, utils.Success
 }
 
