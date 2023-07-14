@@ -74,6 +74,7 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 		}
 		f.UseCCM = true
 		f.LocalConfig = &config.Config{}
+		f.LocalConfig.Password = f.Password
 
 		return true, utils.Success
 	}
