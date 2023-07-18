@@ -21,6 +21,18 @@ const (
 	// MPSServerMaxLength is the max length of the servername
 	MPSServerMaxLength = 256
 
+	CommandActivate    = "activate"
+	CommandAMTInfo     = "amtinfo"
+	CommandDeactivate  = "deactivate"
+	CommandMaintenance = "maintenance"
+	CommandVersion     = "version"
+
+	SubCommandAddWifiSettings = "addwifisettings"
+	SubCommandChangePassword  = "changepassword"
+	SubCommandSyncClock       = "syncclock"
+	SubCommandSyncHostname    = "synchostname"
+	SubCommandSyncIP          = "syncip"
+
 	// Return Codes
 	Success = 0
 

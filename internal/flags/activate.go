@@ -3,11 +3,10 @@ package flags
 import (
 	"fmt"
 	"regexp"
-	"rpc/internal/config"
 	"rpc/pkg/utils"
 )
 
-func (f *Flags) handleActivateCommand() (bool, int) {
+func (f *Flags) handleActivateCommand() int {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
@@ -22,7 +21,7 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
-		return false, utils.IncorrectCommandLineParameters
+		return utils.IncorrectCommandLineParameters
 	}
 	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
 		re := regexp.MustCompile(`: .*`)
@@ -39,11 +38,11 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 		default:
 			errCode = utils.IncorrectCommandLineParameters
 		}
-		return false, errCode
+		return errCode
 	}
 	if f.Local && f.URL != "" {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
-		return false, utils.InvalidParameters
+		return utils.InvalidParameters
 	}
 	//if f.Local {
 	// if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
@@ -56,42 +55,20 @@ func (f *Flags) handleActivateCommand() (bool, int) {
 		if f.URL == "" {
 			fmt.Println("-u flag is required and cannot be empty")
 			f.amtActivateCommand.Usage()
-			return false, utils.MissingOrIncorrectURL
+			return utils.MissingOrIncorrectURL
 		}
 		if f.Profile == "" {
 			fmt.Println("-profile flag is required and cannot be empty")
 			f.amtActivateCommand.Usage()
-			return false, utils.MissingOrIncorrectProfile
+			return utils.MissingOrIncorrectProfile
 		}
 	} else {
-		if errCode := f.checkCurrentMode(); errCode != 0 {
-			return false, errCode
-		}
 		if f.Password == "" {
-			if _, errCode := f.readPasswordFromUser(); errCode != 0 {
-				return false, utils.MissingOrIncorrectPassword
+			if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+				return utils.MissingOrIncorrectPassword
 			}
 		}
-		f.UseCCM = true
-		f.LocalConfig = &config.Config{}
 		f.LocalConfig.Password = f.Password
-
-		return true, utils.Success
-	}
-
-	f.Command = "activate --profile " + f.Profile
-	return true, utils.Success
-}
-
-func (f *Flags) checkCurrentMode() int {
-	controlMode, err := f.amtCommand.GetControlMode()
-	if err != nil {
-		fmt.Println("Unable to determine current control mode.")
-		return utils.ActivationFailed
-	}
-	if controlMode != 0 {
-		fmt.Println("Device is already activated")
-		return utils.UnableToActivate
 	}
 	return utils.Success
 }
