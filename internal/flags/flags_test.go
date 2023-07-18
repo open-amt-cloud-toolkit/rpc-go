@@ -174,84 +174,75 @@ func TestPrintUsage(t *testing.T) {
 func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
 
 func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, true, flags.JsonOutput)
 }
 func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
 func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "amtinfo", command)
+	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
-	assert.Equal(t, "activate", command)
+	assert.Equal(t, flags.Command, utils.CommandActivate)
 }
 func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "version", command)
+	assert.Equal(t, flags.Command, utils.CommandVersion)
 	assert.Equal(t, false, flags.JsonOutput)
 }
 
 func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "version", command)
+	assert.Equal(t, flags.Command, utils.CommandVersion)
 	assert.Equal(t, true, flags.JsonOutput)
 }
 
 func TestParseFlagsNone(t *testing.T) {
 	args := []string{"./rpc"}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
+	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
-	assert.Equal(t, "", command)
+	assert.Equal(t, "", flags.Command)
 }
 
 func TestParseFlagsEmptyCommand(t *testing.T) {
 	args := []string{"./rpc", ""}
 	flags := NewFlags(args)
-	command, keepGoing, result := flags.ParseFlags()
-	assert.Equal(t, keepGoing, false)
-	assert.EqualValues(t, result, utils.Success)
-	assert.Equal(t, "", command)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+	assert.Equal(t, "", flags.Command)
 }
 
 func TestLookupEnvOrString_Default(t *testing.T) {

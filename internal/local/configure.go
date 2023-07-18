@@ -4,55 +4,52 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"rpc/internal/config"
-
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
-
 	log "github.com/sirupsen/logrus"
+	"rpc/pkg/utils"
 )
 
-type LocalConfiguration struct {
-	client      *wsman.Client
-	config      config.Config
-	amtMessages amt.Messages
-	ipsMessages ips.Messages
+func (service *ProvisioningService) Configure() int {
+
+	service.setupWsmanClient("admin", service.flags.Password)
+
+	resultCode := utils.Success
+	var err error
+	switch service.flags.SubCommand {
+	case utils.SubCommandAddWifiSettings:
+		err = service.Configure8021xWiFi()
+		break
+	default:
+		resultCode = utils.InvalidParameters
+	}
+	if err != nil {
+		resultCode = utils.WiFiConfigurationFailed
+	}
+	return resultCode
 }
 
-func NewLocalConfiguration(config config.Config, client *wsman.Client) LocalConfiguration {
-	return LocalConfiguration{
-		client:      client,
-		config:      config,
-		amtMessages: amt.NewMessages(),
-		ipsMessages: ips.NewMessages(),
-	}
-
-}
-
-func (local *LocalConfiguration) Configure8021xWiFi() error {
-	privateKeyHandle, err := local.AddPrivateKey()
+func (service *ProvisioningService) Configure8021xWiFi() error {
+	privateKeyHandle, err := service.AddPrivateKey()
 	if err != nil {
 		return err
 	}
 
-	certHandle, err := local.AddClientCert()
+	certHandle, err := service.AddClientCert()
 	if err != nil {
 		return err
 	}
 
-	rootHandle, err := local.AddTrustedRootCert()
+	rootHandle, err := service.AddTrustedRootCert()
 	if err != nil {
 		return err
 	}
 
-	err = local.AddWifiSettings(certHandle, rootHandle)
+	err = service.AddWifiSettings(certHandle, rootHandle)
 	if err != nil {
 		log.Error("error adding wifi settings", err)
-		err = local.RollbackAddedItems(certHandle, rootHandle, privateKeyHandle)
+		err = service.RollbackAddedItems(certHandle, rootHandle, privateKeyHandle)
 		if err != nil {
 			log.Error("error rolling back added certificates", err)
 		}
@@ -61,24 +58,24 @@ func (local *LocalConfiguration) Configure8021xWiFi() error {
 	return nil
 }
 
-func (local *LocalConfiguration) AddWifiSettings(certHandle string, rootHandle string) error {
+func (service *ProvisioningService) AddWifiSettings(certHandle string, rootHandle string) error {
 	wifiEndpointSettings := models.WiFiEndpointSettings{
-		ElementName:          local.config.Name,
-		InstanceID:           fmt.Sprintf("Intel(r) AMT:WiFi Endpoint Settings %s", local.config.Name),
-		SSID:                 local.config.SSID,
-		Priority:             local.config.Priority,
-		AuthenticationMethod: models.AuthenticationMethod(local.config.AuthenticationMethod),
-		EncryptionMethod:     models.EncryptionMethod(local.config.EncryptionMethod),
+		ElementName:          service.config.Name,
+		InstanceID:           fmt.Sprintf("Intel(r) AMT:WiFi Endpoint Settings %s", service.config.Name),
+		SSID:                 service.config.SSID,
+		Priority:             service.config.Priority,
+		AuthenticationMethod: models.AuthenticationMethod(service.config.AuthenticationMethod),
+		EncryptionMethod:     models.EncryptionMethod(service.config.EncryptionMethod),
 	}
 	ieee8021xSettings := &models.IEEE8021xSettings{
-		ElementName:            local.config.Name,
-		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", local.config.Name),
-		AuthenticationProtocol: models.AuthenticationProtocol(local.config.AuthenticationProtocol),
-		Username:               local.config.Username,
+		ElementName:            service.config.Name,
+		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", service.config.Name),
+		AuthenticationProtocol: models.AuthenticationProtocol(service.config.AuthenticationProtocol),
+		Username:               service.config.Username,
 	}
 
-	addWiFiSettingsMessage := local.amtMessages.WiFiPortConfigurationService.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, "WiFi Endpoint 0", certHandle, rootHandle)
-	addWiFiSettingsResponse, err := local.client.Post(addWiFiSettingsMessage)
+	addWiFiSettingsMessage := service.amtMessages.WiFiPortConfigurationService.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, "WiFi Endpoint 0", certHandle, rootHandle)
+	addWiFiSettingsResponse, err := service.client.Post(addWiFiSettingsMessage)
 	if err != nil {
 		return err
 	}
@@ -89,12 +86,12 @@ func (local *LocalConfiguration) AddWifiSettings(certHandle string, rootHandle s
 	}
 	return nil
 }
-func (local *LocalConfiguration) RollbackAddedItems(certHandle, rootHandle, privateKeyHandle string) error {
+func (service *ProvisioningService) RollbackAddedItems(certHandle, rootHandle, privateKeyHandle string) error {
 	log.Debug("rolling back added keys and certificates")
 
 	if privateKeyHandle != "" {
-		deleteMessage := local.amtMessages.PublicPrivateKeyPair.Delete(privateKeyHandle)
-		_, err := local.client.Post(deleteMessage)
+		deleteMessage := service.amtMessages.PublicPrivateKeyPair.Delete(privateKeyHandle)
+		_, err := service.client.Post(deleteMessage)
 		if err != nil {
 			return err
 		}
@@ -102,8 +99,8 @@ func (local *LocalConfiguration) RollbackAddedItems(certHandle, rootHandle, priv
 	}
 
 	if certHandle != "" {
-		deleteMessage := local.amtMessages.PublicKeyCertificate.Delete(certHandle)
-		_, err := local.client.Post(deleteMessage)
+		deleteMessage := service.amtMessages.PublicKeyCertificate.Delete(certHandle)
+		_, err := service.client.Post(deleteMessage)
 		if err != nil {
 			return err
 		}
@@ -111,8 +108,8 @@ func (local *LocalConfiguration) RollbackAddedItems(certHandle, rootHandle, priv
 	}
 
 	if rootHandle != "" {
-		deleteMessage := local.amtMessages.PublicKeyCertificate.Delete(rootHandle)
-		_, err := local.client.Post(deleteMessage)
+		deleteMessage := service.amtMessages.PublicKeyCertificate.Delete(rootHandle)
+		_, err := service.client.Post(deleteMessage)
 		if err != nil {
 			return err
 		}
@@ -121,10 +118,10 @@ func (local *LocalConfiguration) RollbackAddedItems(certHandle, rootHandle, priv
 
 	return nil
 }
-func (local *LocalConfiguration) AddTrustedRootCert() (string, error) {
+func (service *ProvisioningService) AddTrustedRootCert() (string, error) {
 	var gs publickey.Response
-	addRootCertMessage := local.amtMessages.PublicKeyManagementService.AddTrustedRootCertificate(local.config.CACert)
-	caCertResponse, err := local.client.Post(addRootCertMessage)
+	addRootCertMessage := service.amtMessages.PublicKeyManagementService.AddTrustedRootCertificate(service.config.CACert)
+	caCertResponse, err := service.client.Post(addRootCertMessage)
 	if err != nil {
 		return "", err
 	}
@@ -145,9 +142,9 @@ func (local *LocalConfiguration) AddTrustedRootCert() (string, error) {
 	return rootHandle, nil
 }
 
-func (local *LocalConfiguration) AddClientCert() (string, error) {
-	addCertMessage := local.amtMessages.PublicKeyManagementService.AddCertificate(local.config.ClientCert)
-	clientCertResponse, err := local.client.Post(addCertMessage)
+func (service *ProvisioningService) AddClientCert() (string, error) {
+	addCertMessage := service.amtMessages.PublicKeyManagementService.AddCertificate(service.config.ClientCert)
+	clientCertResponse, err := service.client.Post(addCertMessage)
 	if err != nil {
 		return "", err
 	}
@@ -167,9 +164,9 @@ func (local *LocalConfiguration) AddClientCert() (string, error) {
 	return certHandle, nil
 }
 
-func (local *LocalConfiguration) AddPrivateKey() (handle string, err error) {
-	message := local.amtMessages.PublicKeyManagementService.AddKey([]byte(local.config.PrivateKey))
-	addKeyOutput, err := local.client.Post(message)
+func (service *ProvisioningService) AddPrivateKey() (handle string, err error) {
+	message := service.amtMessages.PublicKeyManagementService.AddKey([]byte(service.config.PrivateKey))
+	addKeyOutput, err := service.client.Post(message)
 	if err != nil {
 		fmt.Println(err)
 		return "", err

@@ -1,8 +1,41 @@
-package flags
+package local
 
 import (
+	"github.com/stretchr/testify/assert"
+	"rpc/internal/flags"
+	"rpc/pkg/utils"
 	"testing"
 )
+
+func TestDisplayAMTInfo(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandVersion
+	f.AmtInfo.Ver = true
+	f.AmtInfo.Bld = true
+	f.AmtInfo.Sku = true
+	f.AmtInfo.UUID = true
+	f.AmtInfo.Mode = true
+	f.AmtInfo.DNS = true
+	f.AmtInfo.Cert = true
+	f.AmtInfo.Ras = true
+	f.AmtInfo.Lan = true
+	f.AmtInfo.Hostname = true
+
+	t.Run("should return Success", func(t *testing.T) {
+		lps := setupService(f)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+	})
+
+	t.Run("should return Success with json output", func(t *testing.T) {
+		f.JsonOutput = true
+		lps := setupService(f)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+		f.JsonOutput = false
+	})
+
+}
 
 func TestDecodeAMT(t *testing.T) {
 	testCases := []struct {

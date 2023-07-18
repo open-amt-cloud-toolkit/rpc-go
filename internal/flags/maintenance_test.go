@@ -65,19 +65,16 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	tests := map[string]struct {
 		cmdLine      string
 		wantResult   int
-		wantRpsCmd   string
 		wantIPConfig IPConfiguration
 		userInput    string
 	}{
-		"should fail with usage - no additional arguments": {
+		"should pass with usage - no additional arguments": {
 			cmdLine:    cmdBase,
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should fail with usage - unhandled task": {
 			cmdLine:    cmdBase + " someothertask",
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should fail - required websocket URL": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argCurPw,
@@ -86,38 +83,30 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		"should fail - required amt password": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
 			wantResult: utils.MissingOrIncorrectPassword,
-			wantRpsCmd: "",
 		},
 		"should pass - syncclock": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			// translate arg from clock -> time
-			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 		},
 		"should fail - syncclock bad param": {
 			cmdLine:    cmdBase + " " + argSyncClock + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should pass - synchostname no params": {
 			cmdLine:    cmdBase + " " + argSyncHostname + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname,
 		},
 		"should pass - task force flag": {
 			cmdLine:    cmdBase + " " + argSyncHostname + " -f " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argSyncHostname + " -f",
 		},
 		"should fail - synchostname bad param": {
 			cmdLine:    cmdBase + " " + argSyncHostname + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should pass - syncip no params": {
 			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
 			wantResult:   utils.Success,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgNoParams,
 		},
 		"should pass - syncip with params": {
@@ -130,7 +119,6 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -secondarydns " + ipCfgWithParams.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
 			wantResult:   utils.Success,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgWithParams,
 		},
 		"should pass - syncip with lookup": {
@@ -141,68 +129,55 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
 			wantResult:   utils.Success,
-			wantRpsCmd:   "maintenance -" + argCurPw + " --" + argSyncIp,
 			wantIPConfig: ipCfgWithLookup,
 		},
 		"should fail - syncip bad param": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should fail - syncip MissingOrIncorrectNetworkMask": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -netmask 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectNetworkMask,
-			wantRpsCmd: "",
 		},
 		"should fail - syncip MissingOrIncorrectStaticIP": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectStaticIP,
-			wantRpsCmd: "",
 		},
 		"should fail - syncip MissingOrIncorrectGateway": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -gateway 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectGateway,
-			wantRpsCmd: "",
 		},
 		"should fail - syncip MissingOrIncorrectPrimaryDNS": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -primarydns 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectPrimaryDNS,
-			wantRpsCmd: "",
 		},
 		"should fail - syncip MissingOrIncorrectSecondaryDNS": {
 			cmdLine:    cmdBase + " " + argSyncIp + " -secondarydns 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectSecondaryDNS,
-			wantRpsCmd: "",
 		},
 		"should pass - changepassword to random value": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " ",
 		},
 		"should pass - changepassword using static value": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - changepassword static value before other flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should pass - changepassword static value after all flags": {
 			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --" + argChangePw + " " + newPassword,
 		},
 		"should fail - changepassword bad param": {
 			cmdLine:    cmdBase + " " + argChangePw + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
-			wantRpsCmd: "",
 		},
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
 			wantResult: utils.Success,
-			wantRpsCmd: "maintenance -" + argCurPw + " --synctime",
 			userInput:  trickyPassword,
 		},
 		"should fail - addwifisettings cannot find file": {
@@ -220,7 +195,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			userInput:  trickyPassword,
 		},
 		"should pass - addwifisettings": {
-			cmdLine:    cmdBase + " " + argAddWiFiSettings + " --config ../../config.yaml --password password",
+			cmdLine:    cmdBase + " " + argAddWiFiSettings + " --config ../../config.yaml " + argCurPw,
 			wantResult: utils.Success,
 		},
 	}
@@ -234,26 +209,20 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			flags := NewFlags(args)
 			flags.amtCommand.PTHI = MockPTHICommands{}
 			flags.netEnumerator = testNetEnumerator
-			gotCommand, keepGoing, gotResult := flags.ParseFlags()
-			if gotResult == utils.Success {
-				assert.Equal(t, keepGoing, true)
-			} else {
-				assert.Equal(t, keepGoing, false)
-			}
+			gotResult := flags.ParseFlags()
 			if strings.Contains(tc.cmdLine, argAddWiFiSettings) {
 				assert.Equal(t, flags.Local, true)
 			} else {
 				assert.Equal(t, flags.Local, false)
 			}
 			assert.Equal(t, tc.wantResult, gotResult)
-			assert.Equal(t, "maintenance", gotCommand)
-			assert.Equal(t, tc.wantRpsCmd, flags.Command)
+			assert.Equal(t, utils.CommandMaintenance, flags.Command)
 			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)
 		})
 	}
 }
 
-// TestHandleLocalCommand is a test function for handleLocalCommand method of Flags struct.
+// TestHandleLocalCommand is a test function for handleAddWifiSettings method of Flags struct.
 func TestHandleLocalCommand(t *testing.T) {
 	// Setup environment
 	os.Setenv("AMT_PASSWORD", "test_password")
@@ -262,17 +231,9 @@ func TestHandleLocalCommand(t *testing.T) {
 	// Setup flags
 	flags := NewFlags(args)
 	flags.amtCommand.PTHI = MockPTHICommands{}
-
-	expected := false
 	expectedErrorCode := utils.IncorrectCommandLineParameters
-
-	result, errorCode := flags.handleLocalCommand()
-
-	if result != expected {
-		t.Errorf("handleLocalCommand() = %v; want %v", result, expected)
-	}
-
+	errorCode := flags.handleAddWifiSettings()
 	if errorCode != expectedErrorCode {
-		t.Errorf("handleLocalCommand() error code = %v; want %v", errorCode, expectedErrorCode)
+		t.Errorf("handleAddWifiSettings() error code = %v; want %v", errorCode, expectedErrorCode)
 	}
 }

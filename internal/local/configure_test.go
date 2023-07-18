@@ -4,42 +4,51 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
-	"rpc/internal/config"
+	"rpc/internal/flags"
+	"rpc/pkg/utils"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 )
 
-const trustedRootXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>2</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService/AddTrustedRootCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A988</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService</c:ResourceURI></a:Header><a:Body><g:AddTrustedRootCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 2</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddTrustedRootCertificate_OUTPUT></a:Body></a:Envelope>"
-const clientCertXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>1</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService/AddCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89C</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService</c:ResourceURI></a:Header><a:Body><g:AddCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 1</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddCertificate_OUTPUT></a:Body></a:Envelope>"
-const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementService</c:ResourceURI></a:Header><a:Body><g:AddKey_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>0</g:ReturnValue></g:AddKey_OUTPUT></a:Body></a:Envelope>"
+const trustedRootXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>2</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddTrustedRootCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A988</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddTrustedRootCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 2</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddTrustedRootCertificate_OUTPUT></a:Body></a:Envelope>"
+const clientCertXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>1</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89C</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 1</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddCertificate_OUTPUT></a:Body></a:Envelope>"
+const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddKey_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>0</g:ReturnValue></g:AddKey_OUTPUT></a:Body></a:Envelope>"
+const addWifiSettingsResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddWiFiSettings_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>a</g:ReturnValue></g:AddWiFiSettings_OUTPUT></a:Body></a:Envelope>"
 
-func setup(t *testing.T, handler http.Handler) LocalConfiguration {
-	server := httptest.NewServer(handler)
-
-	config := config.Config{
-		// fill with appropriate values
-	}
-
-	client := wsman.NewClient(server.URL, "admin", "password", false)
-
-	return NewLocalConfiguration(config, client)
+func TestConfigure(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandMaintenance
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	t.Run("returns error when SubCommand is not handled", func(t *testing.T) {
+		f.SubCommand = "notvalid"
+		lps := setupWithWsmanClient(f, handler)
+		resultCode := lps.Configure()
+		assert.Equal(t, utils.InvalidParameters, resultCode)
+	})
+	t.Run("returns error when SubCommand is not handled", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandAddWifiSettings
+		lps := setupWithWsmanClient(f, handler)
+		resultCode := lps.Configure()
+		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
+	})
 }
 
 func TestConfigure8021xWiFi(t *testing.T) {
+	f := &flags.Flags{}
 	t.Run("returns error when AddPrivateKey fails", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusInternalServerError)
 		})
-
-		localConf := setup(t, handler)
-		err := localConf.Configure8021xWiFi()
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
 		assert.NotNil(t, err)
 	})
 
@@ -59,8 +68,8 @@ func TestConfigure8021xWiFi(t *testing.T) {
 			}
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.Configure8021xWiFi()
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
 		assert.NotNil(t, err)
 	})
 
@@ -84,8 +93,8 @@ func TestConfigure8021xWiFi(t *testing.T) {
 			}
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.Configure8021xWiFi()
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
 		assert.NotNil(t, err)
 	})
 
@@ -114,8 +123,8 @@ func TestConfigure8021xWiFi(t *testing.T) {
 			}
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.Configure8021xWiFi()
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
 		assert.NotNil(t, err)
 	})
 
@@ -132,13 +141,38 @@ func TestConfigure8021xWiFi(t *testing.T) {
 			}
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.Configure8021xWiFi()
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
 		assert.NotNil(t, err)
+	})
+
+	t.Run("returns nil on happy path", func(t *testing.T) {
+		calls := 0
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "POST", r.Method)
+			var err error
+			// Simulate AddPrivateKey and AddClientCert success and AddTrustedRootCert failure
+			if calls == 0 {
+				_, err = w.Write([]byte(addKeyXMLResponse))
+			} else if calls == 1 {
+				_, err = w.Write([]byte(clientCertXMLResponse))
+			} else if calls == 2 {
+				_, err = w.Write([]byte(trustedRootXMLResponse))
+			} else {
+				_, err = w.Write([]byte(addWifiSettingsResponse))
+			}
+			assert.Nil(t, err)
+			calls++
+		})
+
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.Configure8021xWiFi()
+		assert.Nil(t, err)
 	})
 }
 
 func TestAddWifiSettings(t *testing.T) {
+	f := &flags.Flags{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check the request method and URL path.
 		assert.Equal(t, "POST", r.Method)
@@ -146,20 +180,21 @@ func TestAddWifiSettings(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 
-	localConf := setup(t, handler)
-	err := localConf.AddWifiSettings("certHandle", "rootHandle")
+	lps := setupWithWsmanClient(f, handler)
+	err := lps.AddWifiSettings("certHandle", "rootHandle")
 	assert.NotNil(t, err)
 
 }
 func TestRollbackAddedItems(t *testing.T) {
+	f := &flags.Flags{}
 	t.Run("returns no error when rollback is successful", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			w.WriteHeader(http.StatusOK)
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
 		assert.Nil(t, err)
 	})
 
@@ -169,13 +204,14 @@ func TestRollbackAddedItems(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		localConf := setup(t, handler)
-		err := localConf.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
+		lps := setupWithWsmanClient(f, handler)
+		err := lps.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
 		assert.NotNil(t, err)
 	})
 }
 
 func TestAddTrustedRootCert(t *testing.T) {
+	f := &flags.Flags{}
 	t.Run("returns handle when adding cert is successful", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
@@ -183,8 +219,8 @@ func TestAddTrustedRootCert(t *testing.T) {
 			assert.Nil(t, err)
 		})
 
-		localConf := setup(t, handler)
-		handle, err := localConf.AddTrustedRootCert()
+		lps := setupWithWsmanClient(f, handler)
+		handle, err := lps.AddTrustedRootCert()
 		assert.Nil(t, err)
 		assert.NotEmpty(t, handle)
 	})
@@ -195,13 +231,14 @@ func TestAddTrustedRootCert(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		localConf := setup(t, handler)
-		_, err := localConf.AddTrustedRootCert()
+		lps := setupWithWsmanClient(f, handler)
+		_, err := lps.AddTrustedRootCert()
 		assert.NotNil(t, err)
 	})
 }
 
 func TestAddClientCert(t *testing.T) {
+	f := &flags.Flags{}
 	t.Run("returns handle when adding cert is successful", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
@@ -209,8 +246,8 @@ func TestAddClientCert(t *testing.T) {
 			assert.Nil(t, err)
 		})
 
-		localConf := setup(t, handler)
-		handle, err := localConf.AddClientCert()
+		lps := setupWithWsmanClient(f, handler)
+		handle, err := lps.AddClientCert()
 		assert.Nil(t, err)
 		assert.NotEmpty(t, handle)
 	})
@@ -221,13 +258,14 @@ func TestAddClientCert(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		localConf := setup(t, handler)
-		_, err := localConf.AddClientCert()
+		lps := setupWithWsmanClient(f, handler)
+		_, err := lps.AddClientCert()
 		assert.NotNil(t, err)
 	})
 }
 
 func TestAddPrivateKey(t *testing.T) {
+	f := &flags.Flags{}
 	t.Run("returns handle when adding cert is successful", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
@@ -235,8 +273,8 @@ func TestAddPrivateKey(t *testing.T) {
 			assert.Nil(t, err)
 		})
 
-		localConf := setup(t, handler)
-		handle, err := localConf.AddPrivateKey()
+		lps := setupWithWsmanClient(f, handler)
+		handle, err := lps.AddPrivateKey()
 		assert.Nil(t, err)
 		assert.NotEmpty(t, handle)
 	})
@@ -247,8 +285,8 @@ func TestAddPrivateKey(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 		})
 
-		localConf := setup(t, handler)
-		_, err := localConf.AddPrivateKey()
+		lps := setupWithWsmanClient(f, handler)
+		_, err := lps.AddPrivateKey()
 		assert.NotNil(t, err)
 	})
 }

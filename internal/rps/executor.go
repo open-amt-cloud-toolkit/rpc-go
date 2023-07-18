@@ -2,14 +2,13 @@
  * Copyright (c) Intel Corporation 2022
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-package client
+package rps
 
 import (
 	"os"
 	"os/signal"
 	"rpc/internal/flags"
 	"rpc/internal/lm"
-	"rpc/internal/rps"
 	"rpc/pkg/utils"
 	"syscall"
 
@@ -17,10 +16,10 @@ import (
 )
 
 type Executor struct {
-	server          rps.AMTActivationServer
+	server          AMTActivationServer
 	localManagement lm.LocalMananger
 	isLME           bool
-	payload         rps.Payload
+	payload         Payload
 	data            chan []byte
 	errors          chan error
 	status          chan bool
@@ -32,7 +31,7 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	lmErrorChannel := make(chan error)
 
 	client := Executor{
-		server:          rps.NewAMTActivationServer(&flags),
+		server:          NewAMTActivationServer(&flags),
 		localManagement: lm.NewLMSConnection(utils.LMSAddress, utils.LMSPort, lmDataChannel, lmErrorChannel),
 		data:            lmDataChannel,
 		errors:          lmErrorChannel,
@@ -62,7 +61,7 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	return client, err
 }
 
-func (e Executor) MakeItSo(messageRequest rps.Message) {
+func (e Executor) MakeItSo(messageRequest Message) {
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
