@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"rpc/internal/flags"
+	"rpc/pkg/utils"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +24,55 @@ type AMTActivationServer struct {
 	flags *flags.Flags
 }
 
+func ExecuteCommand(flags *flags.Flags) int {
+	resultCode := utils.Success
+	setCommandMethod(flags)
+
+	startMessage, err := PrepareInitialMessage(flags)
+	if err != nil {
+		log.Error(err)
+		// TODO: this error mapping is rather random?
+		return utils.MissingOrIncorrectPassword
+	}
+
+	executor, err := NewExecutor(*flags)
+	if err != nil {
+		log.Error(err)
+		// TODO: this error mapping is rather random?
+		return utils.ServerCerificateVerificationFailed
+	}
+
+	executor.MakeItSo(startMessage)
+
+	return resultCode
+}
+
+func setCommandMethod(flags *flags.Flags) {
+	switch flags.Command {
+	case utils.CommandActivate:
+		flags.Command += " --profile " + flags.Profile
+		break
+	case utils.CommandDeactivate:
+		flags.Command += " --password " + flags.Password
+		break
+	case utils.CommandMaintenance:
+		flags.Command += " -password " + flags.Password
+		task := flags.SubCommand
+		if task == "syncclock" {
+			task = "synctime"
+		}
+		flags.Command += " --" + task
+		if task == "changepassword" && flags.StaticPassword != "" {
+			flags.Command += " " + flags.StaticPassword
+		}
+		break
+	}
+	if flags.Force {
+		flags.Command += " -f"
+	}
+}
+
+// TODO: suggest this be renamed to RemoteProvisioningService
 func NewAMTActivationServer(flags *flags.Flags) AMTActivationServer {
 	amtactivationserver := AMTActivationServer{
 		URL:   flags.URL,

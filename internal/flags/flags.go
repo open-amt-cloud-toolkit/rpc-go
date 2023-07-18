@@ -46,6 +46,7 @@ type Flags struct {
 	Hostname                             string
 	Proxy                                string
 	Command                              string
+	SubCommand                           string
 	Profile                              string
 	LMSAddress                           string
 	LMSPort                              string
@@ -63,7 +64,7 @@ type Flags struct {
 	UseCCM                               bool
 	UseACM                               bool
 	configContent                        string
-	LocalConfig                          *config.Config
+	LocalConfig                          config.Config
 	amtInfoCommand                       *flag.FlagSet
 	amtActivateCommand                   *flag.FlagSet
 	amtDeactivateCommand                 *flag.FlagSet
@@ -80,6 +81,7 @@ type Flags struct {
 	HostnameInfo                         HostnameInfo
 	AMTTimeoutDuration                   time.Duration
 	FriendlyName                         string
+	AmtInfo                              AmtInfoFlags
 }
 
 func NewFlags(args []string) *Flags {
@@ -111,36 +113,29 @@ func NewFlags(args []string) *Flags {
 }
 
 // ParseFlags is used for understanding the command line flags
-func (f *Flags) ParseFlags() (string, bool, int) {
-
+func (f *Flags) ParseFlags() int {
+	var resultCode int
 	if len(f.commandLineArgs) > 1 {
-		var keepGoing bool
-		var errCode int
-		switch f.commandLineArgs[1] {
-		case "amtinfo":
-			f.handleAMTInfo(f.amtInfoCommand)
-			return "amtinfo", false, utils.Success //we want to exit the program
-		case "activate":
-			keepGoing, errCode = f.handleActivateCommand()
-			return "activate", keepGoing, errCode
-		case "maintenance":
-			keepGoing, errCode = f.handleMaintenanceCommand()
-			return "maintenance", keepGoing, errCode
-		case "deactivate":
-			keepGoing, errCode = f.handleDeactivateCommand()
-			return "deactivate", keepGoing, errCode
-		case "version":
-			f.handleVersionCommand()
-			return "version", false, utils.Success //we want to exit the program
-		default:
-			f.printUsage()
-			return "", false, utils.Success
-		}
+		f.Command = f.commandLineArgs[1]
 	}
-	f.printUsage()
-	return "", false, utils.IncorrectCommandLineParameters
-
+	switch f.Command {
+	case utils.CommandAMTInfo:
+		resultCode = f.handleAMTInfo(f.amtInfoCommand)
+	case utils.CommandActivate:
+		resultCode = f.handleActivateCommand()
+	case utils.CommandDeactivate:
+		resultCode = f.handleDeactivateCommand()
+	case utils.CommandMaintenance:
+		resultCode = f.handleMaintenanceCommand()
+	case utils.CommandVersion:
+		resultCode = f.handleVersionCommand()
+	default:
+		resultCode = utils.IncorrectCommandLineParameters
+		f.printUsage()
+	}
+	return resultCode
 }
+
 func (f *Flags) printUsage() string {
 	executable := filepath.Base(os.Args[0])
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
@@ -208,7 +203,7 @@ func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func (f *Flags) readPasswordFromUser() (bool, int) {
+func (f *Flags) ReadPasswordFromUser() (bool, int) {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
 	_, err := fmt.Scanln(&password)
