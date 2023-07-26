@@ -8,7 +8,7 @@ go 1.20
 require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/open-amt-cloud-toolkit/go-wsman-messages v1.3.0
+	github.com/open-amt-cloud-toolkit/go-wsman-messages v1.4.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sys v0.10.0
