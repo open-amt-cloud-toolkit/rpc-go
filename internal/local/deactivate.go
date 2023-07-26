@@ -1,6 +1,8 @@
 package local
 
 import (
+	"encoding/xml"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
 	log "github.com/sirupsen/logrus"
 	"rpc/pkg/utils"
 )
@@ -22,14 +24,31 @@ func (service *ProvisioningService) Deactivate() int {
 }
 
 func (service *ProvisioningService) DeactivateACM() int {
-	log.Error("local deactivation in Admin Control Mode not currently supported")
-	return utils.DeactivationFailed
+	service.setupWsmanClient("admin", service.flags.Password)
+	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
+	response, err := service.client.Post(msg)
+	if err != nil {
+		log.Error("Status: Unable to deactivate ", err)
+		return utils.UnableToDeactivate
+	}
+	var setupResponse setupandconfiguration.UnprovisionResponse
+	err = xml.Unmarshal([]byte(response), &setupResponse)
+	if err != nil {
+		log.Error("Status: Failed to deactivate ", err)
+		return utils.DeactivationFailed
+	}
+	if setupResponse.Body.Unprovision_OUTPUT.ReturnValue != 0 {
+		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
+		return utils.DeactivationFailed
+	}
+	log.Info("Status: Device deactivated in ACM.")
+	return utils.Success
 }
 
 func (service *ProvisioningService) DeactivateCCM() int {
 	status, err := service.amtCommand.Unprovision()
 	if err != nil || status != 0 {
-		log.Error(err)
+		log.Error("Status: Failed to deactivate ", err)
 		return utils.DeactivationFailed
 	}
 	log.Info("Status: Device deactivated.")
