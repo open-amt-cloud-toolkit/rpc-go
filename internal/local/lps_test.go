@@ -82,7 +82,7 @@ func setupWithWsmanClient(f *flags.Flags, handler http.Handler) ProvisioningServ
 	server := httptest.NewServer(handler)
 	service := setupService(f)
 	service.serverURL = server.URL
-	service.setupWsmanClient("admin", "password")
+	service.setupWsmanClient("admin", f.Password)
 	return service
 }
 
