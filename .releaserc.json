@@ -1,11 +1,11 @@
 {
   "branches": [
-    "main",
-    "next"
+      "main",
+      "next"
   ],
   "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/changelog",
-    "@semantic-release/git"
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github"
   ]
 }
