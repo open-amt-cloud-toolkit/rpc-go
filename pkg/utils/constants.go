@@ -26,6 +26,7 @@ const (
 	CommandDeactivate  = "deactivate"
 	CommandMaintenance = "maintenance"
 	CommandVersion     = "version"
+	CommandConfigure   = "configure"
 
 	SubCommandAddWifiSettings = "addwifisettings"
 	SubCommandChangePassword  = "changepassword"

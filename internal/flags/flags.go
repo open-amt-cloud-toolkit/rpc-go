@@ -75,6 +75,7 @@ type Flags struct {
 	amtMaintenanceSyncHostnameCommand    *flag.FlagSet
 	amtMaintenanceChangePasswordCommand  *flag.FlagSet
 	versionCommand                       *flag.FlagSet
+	amtConfigureCommand                  *flag.FlagSet
 	amtCommand                           amt.AMTCommand
 	netEnumerator                        NetEnumerator
 	IpConfiguration                      IPConfiguration
@@ -87,12 +88,12 @@ type Flags struct {
 func NewFlags(args []string) *Flags {
 	flags := &Flags{}
 	flags.commandLineArgs = args
-	flags.amtInfoCommand = flag.NewFlagSet("amtinfo", flag.ContinueOnError)
+	flags.amtInfoCommand = flag.NewFlagSet(utils.CommandAMTInfo, flag.ContinueOnError)
 	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
-	flags.amtActivateCommand = flag.NewFlagSet("activate", flag.ContinueOnError)
-	flags.amtDeactivateCommand = flag.NewFlagSet("deactivate", flag.ContinueOnError)
-	flags.amtMaintenanceCommand = flag.NewFlagSet("maintenance", flag.ContinueOnError)
+	flags.amtActivateCommand = flag.NewFlagSet(utils.CommandActivate, flag.ContinueOnError)
+	flags.amtDeactivateCommand = flag.NewFlagSet(utils.CommandDeactivate, flag.ContinueOnError)
+	flags.amtMaintenanceCommand = flag.NewFlagSet(utils.CommandMaintenance, flag.ContinueOnError)
 
 	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet("syncip", flag.ContinueOnError)
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
@@ -100,8 +101,11 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
 	flags.amtMaintenanceAddWiFiSettingsCommand = flag.NewFlagSet("addwifisettings", flag.ContinueOnError)
 
-	flags.versionCommand = flag.NewFlagSet("version", flag.ContinueOnError)
+	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+
+	flags.amtConfigureCommand = flag.NewFlagSet(utils.CommandConfigure, flag.ContinueOnError)
+	flags.amtConfigureCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
@@ -129,6 +133,8 @@ func (f *Flags) ParseFlags() int {
 		resultCode = f.handleMaintenanceCommand()
 	case utils.CommandVersion:
 		resultCode = f.handleVersionCommand()
+	case utils.CommandConfigure:
+		resultCode = f.handleConfigureCommand()
 	default:
 		resultCode = utils.IncorrectCommandLineParameters
 		f.printUsage()
