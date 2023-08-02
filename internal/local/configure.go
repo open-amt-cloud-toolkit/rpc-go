@@ -15,19 +15,47 @@ func (service *ProvisioningService) Configure() int {
 
 	service.setupWsmanClient("admin", service.flags.Password)
 
-	resultCode := utils.Success
-	var err error
-	switch service.flags.SubCommand {
-	case utils.SubCommandAddWifiSettings:
-		err = service.Configure8021xWiFi()
-		break
-	default:
-		resultCode = utils.InvalidParameters
+	if service.flags.SubCommand == utils.SubCommandAddWifiSettings {
+		err := service.Configure8021xWiFi()
+		if err != nil {
+			return utils.WiFiConfigurationFailed
+		}
 	}
-	if err != nil {
-		resultCode = utils.WiFiConfigurationFailed
+	if len(service.flags.LocalConfig.WifiConfigs) > 0 {
+		return service.ConfigureWiFi()
 	}
-	return resultCode
+	return utils.InvalidParameters
+}
+
+func (service *ProvisioningService) ConfigureWiFi() int {
+	if result := service.EnableWifiOnAMT(); result != utils.Success {
+		return result
+	}
+	// loop through the configurations and add them accordingly
+	fmt.Println("loop through the configurations and add them accordingly")
+	return utils.Success
+}
+
+func (service *ProvisioningService) EnableWifiOnAMT() int {
+
+	fmt.Println("get the WiFiPortConfigurationService")
+	//   context.xmlMessage = context.amt.WiFiPortConfigurationService.Get()
+	//   wifiPortConfigurationService = post the message
+
+	fmt.Println("if local sync not enable, enable it")
+	// if wifiPortConfigurationService.localProfileSynchronizationEnabled == 0 {
+	//   wifiPortConfigurationService.localProfileSynchronizationEnabled = 3
+	//   result = post the message
+	//   check result for errors
+	// }
+
+	fmt.Println("always turn wifi on")
+	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
+	//   msg = cim.WiFiPort.RequestStateChange(32769)
+	//   result = post the message
+	//   check result for errors
+
+	return utils.Success
 }
 
 func (service *ProvisioningService) Configure8021xWiFi() error {

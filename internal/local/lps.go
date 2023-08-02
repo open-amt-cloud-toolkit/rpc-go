@@ -47,6 +47,9 @@ func ExecuteCommand(flags *flags.Flags) int {
 	case utils.CommandDeactivate:
 		resultCode = service.Deactivate()
 		break
+	case utils.CommandConfigure:
+		resultCode = service.Configure()
+		break
 	case utils.CommandMaintenance:
 		resultCode = service.Configure()
 		break

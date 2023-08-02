@@ -183,8 +183,36 @@ func TestAddWifiSettings(t *testing.T) {
 	lps := setupWithWsmanClient(f, handler)
 	err := lps.AddWifiSettings("certHandle", "rootHandle")
 	assert.NotNil(t, err)
-
 }
+
+func TestConfigureWiFi(t *testing.T) {
+	f := &flags.Flags{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check the request method and URL path.
+		assert.Equal(t, "POST", r.Method)
+		// Return an error response
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	lps := setupWithWsmanClient(f, handler)
+	err := lps.ConfigureWiFi()
+	assert.NotNil(t, err)
+}
+
+func TestEnableWifiOnAMT(t *testing.T) {
+	f := &flags.Flags{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check the request method and URL path.
+		assert.Equal(t, "POST", r.Method)
+		// Return an error response
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	lps := setupWithWsmanClient(f, handler)
+	err := lps.EnableWifiOnAMT()
+	assert.NotNil(t, err)
+}
+
 func TestRollbackAddedItems(t *testing.T) {
 	f := &flags.Flags{}
 	t.Run("returns no error when rollback is successful", func(t *testing.T) {

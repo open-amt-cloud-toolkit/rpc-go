@@ -1,0 +1,25 @@
+wifiConfigs:
+  - priority: 1
+    profileName: 'name_1' # friendly name (ex. Profile name)
+    ssid: 'ssid'
+    pskPassphrase: ''
+    authenticationMethod: 5
+    encryptionMethod: 4
+    clientCert: 'test'
+    caCert: 'test'
+    privateKey: 'test'
+    username: "test" # 8021x username
+    password: "" # 8021x password if MSCHAP PEAP
+    authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
+  - priority: 2
+    profileName: 'name_2' # friendly name (ex. Profile name)
+    ssid: 'ssid'
+    pskPassphrase: ''
+    authenticationMethod: 5
+    encryptionMethod: 4
+    clientCert: 'test'
+    caCert: 'test'
+    privateKey: 'test'
+    username: "test" # 8021x username
+    password: "" # 8021x password if MSCHAP PEAP
+    authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
