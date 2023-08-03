@@ -228,6 +228,22 @@ func TestParseFlagsConfigure(t *testing.T) {
 	assert.Equal(t, false, flags.JsonOutput)
 }
 
+func TestParseFlagsConfigureEmpty(t *testing.T) {
+	args := []string{"./rpc", "configure"}
+	flags := NewFlags(args)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+	assert.Equal(t, "configure", flags.Command)
+}
+
+func TestParseFlagsConfigureNoFile(t *testing.T) {
+	args := []string{"./rpc", "configure", "-config"}
+	flags := NewFlags(args)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+	assert.Equal(t, "configure", flags.Command)
+}
+
 func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
 	flags := NewFlags(args)
