@@ -25,7 +25,15 @@ func (f *Flags) handleConfigureCommand() int {
 		log.Error("config error: ", err)
 		return utils.IncorrectCommandLineParameters
 	}
+	configFileStatus := f.verifyWifiConfigurationFile()
+	if configFileStatus != 0 {
+		log.Error("config error: ", err)
+		return utils.IncorrectCommandLineParameters
+	}
+	return utils.Success
+}
 
+func (f *Flags) verifyWifiConfigurationFile() int {
 	var matchedIeeeProfileName int = 0
 
 	for _, wifiConfigs := range f.LocalConfig.WifiConfigs {
@@ -55,6 +63,14 @@ func (f *Flags) handleConfigureCommand() int {
 			return utils.MissingOrIncorrectProfile
 		}
 		//Check authentication method
+		if wifiConfigs.AuthenticationMethod == 6 && wifiConfigs.PskPassphrase == "" {
+			log.Error("wifi configuration missing passphrase: ", wifiConfigs.ProfileName)
+			return utils.MissingOrIncorrectProfile
+		}
+		if wifiConfigs.AuthenticationMethod == 7 && wifiConfigs.PskPassphrase != "" {
+			log.Error("wifi configuration contains passphrase: ", wifiConfigs.ProfileName)
+			return utils.MissingOrIncorrectProfile
+		}
 		if wifiConfigs.AuthenticationMethod == 7 {
 			//Check for ieee8021xProfileName in IEEE8021XSettings
 			for _, ieee802xSettings := range f.LocalConfig.Ieee8021xConfigs {
@@ -68,10 +84,6 @@ func (f *Flags) handleConfigureCommand() int {
 				log.Error("duplicate IEEE802x Profile names")
 				return utils.MissingOrIncorrectProfile
 			}
-		}
-		if wifiConfigs.AuthenticationMethod != 7 && wifiConfigs.PskPassphrase == "" {
-			log.Error("wifi configuration missing passphrase: ", wifiConfigs.ProfileName)
-			return utils.MissingOrIncorrectProfile
 		}
 		fmt.Println("wifi: ", wifiConfigs)
 	}
