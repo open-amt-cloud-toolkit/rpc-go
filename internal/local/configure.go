@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	log "github.com/sirupsen/logrus"
@@ -12,7 +13,6 @@ import (
 )
 
 func (service *ProvisioningService) Configure() int {
-
 	service.setupWsmanClient("admin", service.flags.Password)
 
 	if service.flags.SubCommand == utils.SubCommandAddWifiSettings {
@@ -39,21 +39,53 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 func (service *ProvisioningService) EnableWifiOnAMT() int {
 
 	fmt.Println("get the WiFiPortConfigurationService")
-	//   context.xmlMessage = context.amt.WiFiPortConfigurationService.Get()
-	//   wifiPortConfigurationService = post the message
+	msg := service.amtMessages.WiFiPortConfigurationService.Get()
+	rsp, err := service.client.Post(msg)
+	if err != nil {
+		log.Error(err)
+		return utils.WiFiConfigurationFailed
+	}
+	var wifiPortConfigResponse wifiportconfiguration.Response
+	err = xml.Unmarshal([]byte(rsp), &wifiPortConfigResponse)
+	if err != nil {
+		log.Error(err)
+		return utils.WiFiConfigurationFailed
+	}
+
+	pcs := wifiPortConfigResponse.Body.WiFiPortConfigurationService
 
 	fmt.Println("if local sync not enable, enable it")
-	// if wifiPortConfigurationService.localProfileSynchronizationEnabled == 0 {
-	//   wifiPortConfigurationService.localProfileSynchronizationEnabled = 3
-	//   result = post the message
-	//   check result for errors
-	// }
+	if pcs.LocalProfileSynchronizationEnabled == wifiportconfiguration.LocalSyncDisabled {
+		pcs.LocalProfileSynchronizationEnabled = wifiportconfiguration.UnrestrictedSync
+		msg = service.amtMessages.WiFiPortConfigurationService.Put(pcs)
+		// not sure why it's accepted to not check the response for success code? this is what RPS does also
+		// no response struct in wsmang messages
+		rsp, err = service.client.Post(msg)
+		if err != nil {
+			log.Error(err)
+			return utils.WiFiConfigurationFailed
+		}
+		err = xml.Unmarshal([]byte(rsp), &wifiPortConfigResponse)
+		if err != nil {
+			log.Error(err)
+			return utils.WiFiConfigurationFailed
+		}
+		pcs = wifiPortConfigResponse.Body.WiFiPortConfigurationService
+		if pcs.LocalProfileSynchronizationEnabled == 0 {
+			log.Error("failed to enable wifi local profile synchronization")
+			return utils.WiFiConfigurationFailed
+		}
+	}
 
 	fmt.Println("always turn wifi on")
 	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
-	//   msg = cim.WiFiPort.RequestStateChange(32769)
-	//   result = post the message
-	//   check result for errors
+	msg = service.cimMessages.WiFiPort.RequestStateChange(32769)
+	// TODO: no return code checking
+	_, err = service.client.Post(msg)
+	if err != nil {
+		log.Error(err)
+		return utils.WiFiConfigurationFailed
+	}
 
 	return utils.Success
 }

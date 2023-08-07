@@ -1,9 +1,14 @@
 package local
 
 import (
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
+	"io/ioutil"
 	"net/http"
+	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strings"
@@ -19,25 +24,113 @@ const clientCertXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Enve
 const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddKey_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>0</g:ReturnValue></g:AddKey_OUTPUT></a:Body></a:Envelope>"
 const addWifiSettingsResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddWiFiSettings_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>a</g:ReturnValue></g:AddWiFiSettings_OUTPUT></a:Body></a:Envelope>"
 
+var wifiCfgWPA = config.WifiConfig{
+	ProfileName:          "WPA Wifi Config",
+	SSID:                 "testssid",
+	Priority:             1,
+	AuthenticationMethod: 4,
+	EncryptionMethod:     4,
+	PskPassphrase:        "testPassPhrase",
+	Ieee8021xProfileName: "",
+}
+
+// TODO: remove these when local-acm-activation branch is available in main
+func respondServerError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+}
+
+func respondBadXml(t *testing.T, w http.ResponseWriter) {
+	_, err := w.Write([]byte(`not really xml is it?`))
+	assert.Nil(t, err)
+}
+
+func respondMsg(t *testing.T, w http.ResponseWriter, msg any) {
+	bytes, err := xml.Marshal(msg)
+	assert.Nil(t, err)
+	_, err = w.Write(bytes)
+	assert.Nil(t, err)
+
+}
+
+func TestXML(t *testing.T) {
+	pcsResponse := wifiportconfiguration.Response{}
+	pcsResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 15
+	data, err := xml.MarshalIndent(pcsResponse, " ", "  ")
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = ioutil.WriteFile("/tmp/rsp.xml", data, 0666)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
-	f.Command = utils.CommandMaintenance
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
-		w.WriteHeader(http.StatusInternalServerError)
+		respondServerError(w)
 	})
-	t.Run("returns error when SubCommand is not handled", func(t *testing.T) {
-		f.SubCommand = "notvalid"
+	t.Run("returns InvalidParameters with no sub command and not wifi configs", func(t *testing.T) {
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Configure()
 		assert.Equal(t, utils.InvalidParameters, resultCode)
 	})
-	t.Run("returns error when SubCommand is not handled", func(t *testing.T) {
+	t.Run("returns WiFiConfigurationFailed from err in Configure8021xWiFi", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Configure()
 		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
 	})
+	t.Run("returns WiFiConfigurationFailed handling WifiConfigs from LocalConfig", func(t *testing.T) {
+		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
+		lps := setupWithWsmanClient(f, handler)
+		resultCode := lps.Configure()
+		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
+	})
+}
+
+func TestConfigureWiFi(t *testing.T) {
+	f := &flags.Flags{}
+
+	pcsResponse := wifiportconfiguration.Response{}
+
+	t.Run("returns success on happy path", func(t *testing.T) {
+		count := 0
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "POST", r.Method)
+			count++
+			switch count {
+			case 1:
+				respondMsg(t, w, pcsResponse)
+				break
+			case 2:
+				pcsResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+				respondMsg(t, w, pcsResponse)
+				break
+			case 3:
+				respondMsg(t, w, wifi.RequestStateChangeResponse{})
+				break
+			}
+		})
+		lps := setupWithWsmanClient(f, handler)
+		resultCode := lps.ConfigureWiFi()
+		assert.Equal(t, utils.Success, resultCode)
+	})
+}
+
+func TestEnableWifiOnAMT(t *testing.T) {
+	f := &flags.Flags{}
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check the request method and URL path.
+		assert.Equal(t, "POST", r.Method)
+		// Return an error response
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	lps := setupWithWsmanClient(f, handler)
+	err := lps.EnableWifiOnAMT()
+	assert.NotNil(t, err)
 }
 
 func TestConfigure8021xWiFi(t *testing.T) {
@@ -182,34 +275,6 @@ func TestAddWifiSettings(t *testing.T) {
 
 	lps := setupWithWsmanClient(f, handler)
 	err := lps.AddWifiSettings("certHandle", "rootHandle")
-	assert.NotNil(t, err)
-}
-
-func TestConfigureWiFi(t *testing.T) {
-	f := &flags.Flags{}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check the request method and URL path.
-		assert.Equal(t, "POST", r.Method)
-		// Return an error response
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
-	lps := setupWithWsmanClient(f, handler)
-	err := lps.ConfigureWiFi()
-	assert.NotNil(t, err)
-}
-
-func TestEnableWifiOnAMT(t *testing.T) {
-	f := &flags.Flags{}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check the request method and URL path.
-		assert.Equal(t, "POST", r.Method)
-		// Return an error response
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
-	lps := setupWithWsmanClient(f, handler)
-	err := lps.EnableWifiOnAMT()
 	assert.NotNil(t, err)
 }
 

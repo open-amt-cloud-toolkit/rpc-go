@@ -3,7 +3,7 @@ module rpc
 go 1.20
 
 // uncomment if developing with go-wsman-messages locally
-// replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../go-wsman-messages
+replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../go-wsman-messages
 
 require (
 	github.com/gorilla/websocket v1.5.0

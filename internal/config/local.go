@@ -19,7 +19,8 @@ type (
 		CACert                 string `yaml:"caCert"`
 		PrivateKey             string `yaml:"privateKey"`
 	}
-	WifiConfigs []struct {
+	WifiConfigs []WifiConfig
+	WifiConfig  struct {
 		ProfileName          string `yaml:"profileName"`
 		SSID                 string `yaml:"ssid"`
 		Priority             int    `yaml:"priority"`
@@ -28,7 +29,8 @@ type (
 		PskPassphrase        string `yaml:"pskPassphrase"`
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
-	Ieee8021xConfigs []struct {
+	Ieee8021xConfigs []Ieee8021xConfig
+	Ieee8021xConfig  struct {
 		ProfileName            string `yaml:"profileName"`
 		Username               string `yaml:"username"`
 		Password               string `yaml:"password"`
