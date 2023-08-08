@@ -41,7 +41,7 @@ func rpcExec(Input *C.char, Output **C.char) int {
 	args, err := r.Read()
 	if err != nil {
 		log.Error(err.Error())
-		return utils.InvalidParameters
+		return utils.InvalidParameterCombination
 	}
 	args = append([]string{"rpc"}, args...)
 	runStatus := runRPC(args)

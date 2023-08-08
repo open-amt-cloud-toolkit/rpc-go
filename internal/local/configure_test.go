@@ -30,7 +30,7 @@ func TestConfigure(t *testing.T) {
 		f.SubCommand = "notvalid"
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Configure()
-		assert.Equal(t, utils.InvalidParameters, resultCode)
+		assert.Equal(t, utils.InvalidParameterCombination, resultCode)
 	})
 	t.Run("returns error when SubCommand is not handled", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
