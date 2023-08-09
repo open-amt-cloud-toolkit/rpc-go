@@ -42,12 +42,12 @@ func (f *Flags) handleActivateCommand() int {
 	}
 	if f.Local && f.URL != "" {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
-		return utils.InvalidParameters
+		return utils.InvalidParameterCombination
 	}
 	//if f.Local {
 	// if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
 	// 	fmt.Println("must specify -ccm or -acm, but not both")
-	// 	return false, utils.InvalidParameters
+	// 	return false, utils.InvalidParameterCombination
 	// }
 	//}
 
