@@ -9,12 +9,8 @@ github.com/ilyakaznacheev/cleanenv v1.5.0 h1:0VNZXggJE2OYdXE87bfSSwGxeiGt9moSR2l
 github.com/ilyakaznacheev/cleanenv v1.5.0/go.mod h1:a5aDzaJrLCQZsazHol1w8InnDcOX0OColm64SlIi6gk=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.4.1 h1:ckU0WSsm3I1i5L2xHj1VyQp3MhNC1unQqICBfAwwLzk=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.4.1/go.mod h1:36KrOcNg+yMvv7TcNirdds8sneQQNiUzwS3zndx566w=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.4.2 h1:St6rKyMZNPWtz/nXgLc1owx5QibXtZcROOMaM8S+1gQ=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.4.2/go.mod h1:36KrOcNg+yMvv7TcNirdds8sneQQNiUzwS3zndx566w=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.5.0 h1:p73wPdG7CQGqpsLLHMZGHWNHZSL+g08HAzFrE0R1sKE=
-github.com/open-amt-cloud-toolkit/go-wsman-messages v1.5.0/go.mod h1:36KrOcNg+yMvv7TcNirdds8sneQQNiUzwS3zndx566w=
+github.com/open-amt-cloud-toolkit/go-wsman-messages v1.6.0 h1:lRxD1/Y8G4FoZFCGEMbU1ZZDTYsMdA4OHxSdNj5iVTo=
+github.com/open-amt-cloud-toolkit/go-wsman-messages v1.6.0/go.mod h1:36KrOcNg+yMvv7TcNirdds8sneQQNiUzwS3zndx566w=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
@@ -24,8 +20,8 @@ github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
-golang.org/x/sys v0.10.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.11.0 h1:eG7RXZHdqOJ1i+0lgLgCpSXAp6M3LYlAo6osgSi0xOM=
+golang.org/x/sys v0.11.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
