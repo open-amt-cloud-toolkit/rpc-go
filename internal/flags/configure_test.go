@@ -10,7 +10,7 @@ import (
 )
 
 func TestHandleConfigureCommand(t *testing.T) {
-	cmdLine := "rpc configure --config ../../config-wifi.yaml "
+	cmdLine := "rpc configure addwifisettings --config ../../config-wifi.yaml "
 	args := strings.Fields(cmdLine)
 	flags := NewFlags(args)
 	gotResult := flags.ParseFlags()
@@ -135,6 +135,24 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 			expected: utils.Success,
 		},
 		{
+			description: "Passphrase present when AuthenticationMethod is 5",
+			testConfiguration: Flags{
+				LocalConfig: config.Config{
+					WifiConfigs: config.WifiConfigs{
+						{
+							ProfileName:          "Test-Profile-1",
+							SSID:                 "Test-SSID-1",
+							Priority:             1,
+							AuthenticationMethod: 5,
+							EncryptionMethod:     4,
+							PskPassphrase:        "Test-Passphrase-1",
+						},
+					},
+				},
+			},
+			expected: utils.MissingOrIncorrectProfile,
+		},
+		{
 			description: "Passphrase present when AuthenticationMethod is 7",
 			testConfiguration: Flags{
 				LocalConfig: config.Config{
@@ -177,7 +195,7 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 			expected: utils.Success,
 		},
 		{
-			description: "Found duplicate IEEE802.1 ProfileName",
+			description: "Found duplicate IEEE802.1 ProfileName when AuthenticationMethod is 5",
 			testConfiguration: Flags{
 				LocalConfig: config.Config{
 					WifiConfigs: config.WifiConfigs{
@@ -197,6 +215,46 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 						},
 						{
 							ProfileName: "Test-IEEE-Profile",
+						},
+					},
+				},
+			},
+			expected: utils.MissingOrIncorrectProfile,
+		},
+		{
+			description: "Found duplicate IEEE802.1 ProfileName when AuthenticationMethod is 7",
+			testConfiguration: Flags{
+				LocalConfig: config.Config{
+					WifiConfigs: config.WifiConfigs{
+						{
+							ProfileName:          "Test-Profile-1",
+							SSID:                 "Test-SSID-1",
+							Priority:             1,
+							AuthenticationMethod: 7,
+							EncryptionMethod:     4,
+							PskPassphrase:        "",
+							Ieee8021xProfileName: "Test-IEEE-Profile",
+						},
+					},
+					Ieee8021xConfigs: config.Ieee8021xConfigs{
+						{
+							ProfileName: "Test-IEEE-Profile",
+						},
+						{
+							ProfileName: "Test-IEEE-Profile",
+						},
+					},
+				},
+			},
+			expected: utils.MissingOrIncorrectProfile,
+		},
+		{
+			description: "Missing ProfileName in IEEE802.1x config",
+			testConfiguration: Flags{
+				LocalConfig: config.Config{
+					Ieee8021xConfigs: config.Ieee8021xConfigs{
+						{
+							ProfileName: "",
 						},
 					},
 				},

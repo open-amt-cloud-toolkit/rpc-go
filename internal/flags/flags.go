@@ -76,6 +76,7 @@ type Flags struct {
 	amtMaintenanceChangePasswordCommand  *flag.FlagSet
 	versionCommand                       *flag.FlagSet
 	amtConfigureCommand                  *flag.FlagSet
+	amtConfigureAddWiFiSettingsCommand   *flag.FlagSet
 	amtCommand                           amt.AMTCommand
 	netEnumerator                        NetEnumerator
 	IpConfiguration                      IPConfiguration
@@ -106,6 +107,7 @@ func NewFlags(args []string) *Flags {
 
 	flags.amtConfigureCommand = flag.NewFlagSet(utils.CommandConfigure, flag.ContinueOnError)
 	flags.amtConfigureCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+	flags.amtConfigureAddWiFiSettingsCommand = flag.NewFlagSet("addwifisettings", flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
