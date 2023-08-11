@@ -10,6 +10,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	log "github.com/sirupsen/logrus"
+	"regexp"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 )
@@ -39,12 +40,14 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 	var successes []string
 	var failures []string
 	for _, cfg := range lc.WifiConfigs {
+		log.Info("configuring wifi profile: ", cfg.ProfileName)
 		err = service.ProcessWifiConfig(&cfg)
 		if err != nil {
-			log.Error("failed configuring: ", cfg.ProfileName, " ", err)
+			log.Error("failed configuring: ", cfg.ProfileName)
+			log.Error(err)
 			failures = append(failures, cfg.ProfileName)
 		} else {
-			log.Info("successfully configured  ", cfg.ProfileName)
+			log.Info("successfully configured: ", cfg.ProfileName)
 			successes = append(successes, cfg.ProfileName)
 		}
 	}
@@ -56,6 +59,12 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 }
 
 func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) error {
+
+	// profile names can only be alphanumeric (not even dashes)
+	var reAlphaNum = regexp.MustCompile("[^a-zA-Z0-9]+")
+	if reAlphaNum.MatchString(wifiCfg.ProfileName) {
+		return fmt.Errorf("invalid wifi profile name: %s (only alphanumeric allowed)", wifiCfg.ProfileName)
+	}
 
 	wiFiEndpointSettings := models.WiFiEndpointSettings{
 		ElementName:          wifiCfg.ProfileName,
@@ -78,6 +87,8 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 			return err
 		}
 
+	} else {
+		wiFiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
 	}
 	xmlMsg := service.amtMessages.WiFiPortConfigurationService.AddWiFiSettings(
 		wiFiEndpointSettings,
@@ -297,11 +308,11 @@ func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, er
 func checkReturnValue(returnValue int, item string) error {
 	if returnValue != 0 {
 		if returnValue == common.PT_STATUS_DUPLICATE {
-			return errors.New("item already exists. You must remove it manually before continuing")
+			return fmt.Errorf("%s already exists and must be removed before continuing", item)
 		} else if returnValue == common.PT_STATUS_INVALID_CERT {
-			return fmt.Errorf("%s invalid cert", item)
+			return fmt.Errorf("%s is invalid", item)
 		} else {
-			return fmt.Errorf("non-zero return code: %d", returnValue)
+			return fmt.Errorf("%s non-zero return code: %d", item, returnValue)
 		}
 	}
 	return nil
