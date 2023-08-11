@@ -9,11 +9,16 @@ import (
 )
 
 func (f *Flags) handleConfigureCommand() int {
+	f.amtConfigureCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.amtConfigureCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
-	if err := f.amtConfigureAddWiFiSettingsCommand.Parse(f.commandLineArgs[2:]); err != nil {
+	if err := f.amtConfigureCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtConfigureCommand.Usage()
 		return utils.IncorrectCommandLineParameters
 	}
+	//if err := f.amtConfigureAddWiFiSettingsCommand.Parse(f.commandLineArgs[2:]); err != nil {
+	//	f.amtConfigureCommand.Usage()
+	//	return utils.IncorrectCommandLineParameters
+	//}
 	// runs locally
 	f.Local = true
 
