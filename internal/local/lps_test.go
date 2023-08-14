@@ -104,7 +104,7 @@ func TestExecute(t *testing.T) {
 	t.Run("execute CommandMaintenance with no SubCommand fails", func(t *testing.T) {
 		f.Command = utils.CommandMaintenance
 		resultCode := ExecuteCommand(f)
-		assert.Equal(t, utils.InvalidParameters, resultCode)
+		assert.Equal(t, utils.InvalidParameterCombination, resultCode)
 	})
 
 }

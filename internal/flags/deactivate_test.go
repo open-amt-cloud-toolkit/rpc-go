@@ -60,7 +60,7 @@ func TestHandleDeactivateCommandWithURLAndLocal(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-u", "wss://localhost", "--password", "password", "-local"}
 	flags := NewFlags(args)
 	success := flags.handleDeactivateCommand()
-	assert.EqualValues(t, success, utils.InvalidParameters)
+	assert.EqualValues(t, success, utils.InvalidParameterCombination)
 	assert.Equal(t, "wss://localhost", flags.URL)
 }
 func TestHandleDeactivateCommandWithForce(t *testing.T) {
