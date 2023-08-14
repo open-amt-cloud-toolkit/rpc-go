@@ -4,6 +4,7 @@ type (
 	Config struct {
 		Password          string
 		IEEE8021XSettings `yaml:"ieee801xConfig"`
+		ACMSettings       `yaml:"acmactivate"`
 	}
 	IEEE8021XSettings struct {
 		Name                   string `yaml:"name"`
@@ -16,5 +17,10 @@ type (
 		ClientCert             string `yaml:"clientCert"`
 		CACert                 string `yaml:"caCert"`
 		PrivateKey             string `yaml:"privateKey"`
+	}
+	ACMSettings struct {
+		AMTPassword         string `yaml:"amtPassword"`
+		ProvisioningCert    string `yaml:"provisioningCert"`
+		ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
 	}
 )
