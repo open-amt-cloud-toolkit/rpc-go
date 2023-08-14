@@ -22,7 +22,7 @@ func (service *ProvisioningService) Configure() int {
 		err = service.Configure8021xWiFi()
 		break
 	default:
-		resultCode = utils.InvalidParameters
+		resultCode = utils.InvalidParameterCombination
 	}
 	if err != nil {
 		resultCode = utils.WiFiConfigurationFailed

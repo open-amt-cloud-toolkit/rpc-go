@@ -16,7 +16,7 @@ func (f *Flags) handleDeactivateCommand() int {
 	}
 	if f.Local && f.URL != "" {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
-		return utils.InvalidParameters
+		return utils.InvalidParameterCombination
 	}
 	if !f.Local {
 		if f.URL == "" {

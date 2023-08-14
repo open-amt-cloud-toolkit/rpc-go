@@ -144,7 +144,7 @@ func TestHandleActivateCommandBothURLandLocal(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-local"}
 	flags := NewFlags(args)
 	success := flags.ParseFlags()
-	assert.EqualValues(t, success, utils.InvalidParameters)
+	assert.EqualValues(t, success, utils.InvalidParameterCombination)
 }
 
 func TestHandleActivateCommandNoURL(t *testing.T) {
