@@ -2,14 +2,15 @@ package local
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 	"net/http"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,53 +24,119 @@ const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope
 const addWifiSettingsResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddWiFiSettings_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>a</g:ReturnValue></g:AddWiFiSettings_OUTPUT></a:Body></a:Envelope>"
 
 var wifiCfgWPA = config.WifiConfig{
-	ProfileName:          "WPA Wifi Config",
-	SSID:                 "testssid",
+	ProfileName:          "wifiWPA",
+	SSID:                 "ssid",
 	Priority:             1,
-	AuthenticationMethod: 4,
-	EncryptionMethod:     4,
-	PskPassphrase:        "testPassPhrase",
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA_PSK),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	PskPassphrase:        "wifiWPAPassPhrase",
 	Ieee8021xProfileName: "",
 }
 
+var wifiCfgWPA2 = config.WifiConfig{
+	ProfileName:          "wifiWPA2",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_PSK),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	PskPassphrase:        "wifiWPAPassPhrase",
+	Ieee8021xProfileName: "",
+}
+
+var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
+	ProfileName:          "wifiWPA28021x",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA_IEEE8021x),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	PskPassphrase:        "",
+	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
+}
+
+var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
+	ProfileName:            "ieee8021xCfgEAPTLS",
+	Username:               "username",
+	Password:               "",
+	AuthenticationProtocol: int(models.AuthenticationProtocolEAPTLS),
+	ClientCert:             "clientCert",
+	CACert:                 "caCert",
+	PrivateKey:             "privateKey",
+}
+
+var wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2 = config.WifiConfig{
+	ProfileName:          "wifiWPA28021x",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_IEEE8021x),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	PskPassphrase:        "",
+	Ieee8021xProfileName: "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
+}
+
+var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
+	ProfileName:            "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
+	Username:               "username",
+	Password:               "password",
+	AuthenticationProtocol: int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2),
+	ClientCert:             "clientCert",
+	CACert:                 "caCert",
+	PrivateKey:             "privateKey",
+}
+
 // TODO: remove these when local-acm-activation branch is available in main
-func respondServerError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
+type ResponseFuncArray []func(w http.ResponseWriter, r *http.Request)
+
+func setupWsmanResponses(t *testing.T, f *flags.Flags, responses ResponseFuncArray) ProvisioningService {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		responses[0](w, r)
+		responses = responses[1:]
+	})
+	return setupWithWsmanClient(f, handler)
 }
 
-func respondBadXml(t *testing.T, w http.ResponseWriter) {
-	_, err := w.Write([]byte(`not really xml is it?`))
-	assert.Nil(t, err)
+func respondServerErrFunc() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
-func respondMsg(t *testing.T, w http.ResponseWriter, msg any) {
-	bytes, err := xml.Marshal(msg)
-	assert.Nil(t, err)
-	_, err = w.Write(bytes)
-	assert.Nil(t, err)
+func respondBadXmlFunc(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(`not really xml is it?`))
+		assert.Nil(t, err)
+	}
+}
 
+func respondMsgFunc(t *testing.T, msg any) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bytes, err := xml.Marshal(msg)
+		assert.Nil(t, err)
+		_, err = w.Write(bytes)
+		assert.Nil(t, err)
+	}
+}
+
+func respondStringFunc(t *testing.T, msg string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(msg))
+		assert.Nil(t, err)
+	}
 }
 
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "POST", r.Method)
-		respondServerError(w)
-	})
+
 	t.Run("returns InvalidParameters with no sub command and not wifi configs", func(t *testing.T) {
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
 		resultCode := lps.Configure()
 		assert.Equal(t, utils.InvalidParameters, resultCode)
 	})
-	//t.Run("returns WiFiConfigurationFailed from err in Configure8021xWiFi", func(t *testing.T) {
-	//	f.SubCommand = utils.SubCommandAddWifiSettings
-	//	lps := setupWithWsmanClient(f, handler)
-	//	resultCode := lps.Configure()
-	//	assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
-	//})
 	t.Run("returns WiFiConfigurationFailed handling WifiConfigs from LocalConfig", func(t *testing.T) {
 		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
-		lps := setupWithWsmanClient(f, handler)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
 		resultCode := lps.Configure()
 		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
 	})
@@ -77,297 +144,353 @@ func TestConfigure(t *testing.T) {
 
 func TestConfigureWiFi(t *testing.T) {
 	f := &flags.Flags{}
-
-	pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
-
-	t.Run("returns success on happy path", func(t *testing.T) {
-		count := 0
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "POST", r.Method)
-			count++
-			switch count {
-			case 1:
-				respondMsg(t, w, pcsResponse)
-				break
-			case 2:
-				pcsResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-				respondMsg(t, w, pcsResponse)
-				break
-			case 3:
-				respondMsg(t, w, wifi.RequestStateChangeResponse{})
-				break
-			}
-		})
-		lps := setupWithWsmanClient(f, handler)
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
+	t.Run("expect Success on happy path", func(t *testing.T) {
+		pcsRsp := wifiportconfiguration.PortConfigurationResponse{}
+		pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsRsp))
+		responsers = append(responsers, respondMsgFunc(t, wifi.RequestStateChangeResponse{}))
+		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}))
+		lps := setupWsmanResponses(t, f, responsers)
 		resultCode := lps.ConfigureWiFi()
 		assert.Equal(t, utils.Success, resultCode)
 	})
-}
-
-func TestEnableWifi(t *testing.T) {
-	f := &flags.Flags{}
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check the request method and URL path.
-		assert.Equal(t, "POST", r.Method)
-		// Return an error response
-		w.WriteHeader(http.StatusInternalServerError)
+	t.Run("expect WiFiConfigurationFailed on error with configuration", func(t *testing.T) {
+		orig := f.LocalConfig.WifiConfigs[0].ProfileName
+		f.LocalConfig.WifiConfigs[0].ProfileName = "bad-name"
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.PortConfigurationResponse{}))
+		responsers = append(responsers, respondMsgFunc(t, wifi.RequestStateChangeResponse{}))
+		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}))
+		lps := setupWsmanResponses(t, f, responsers)
+		resultCode := lps.ConfigureWiFi()
+		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
+		f.LocalConfig.WifiConfigs[0].ProfileName = orig
 	})
-
-	lps := setupWithWsmanClient(f, handler)
-	err := lps.EnableWifi()
-	assert.NotNil(t, err)
 }
 
-//func TestConfigure8021xWiFi(t *testing.T) {
-//	f := &flags.Flags{}
-//	t.Run("returns error when AddPrivateKey fails", func(t *testing.T) {
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			assert.Equal(t, "POST", r.Method)
-//			w.WriteHeader(http.StatusInternalServerError)
-//		})
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.NotNil(t, err)
-//	})
-//
-//	t.Run("returns error when AddClientCert fails", func(t *testing.T) {
-//		calls := 0
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			// Simulate AddPrivateKey success and AddClientCert failure
-//			if calls == 0 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(addKeyXMLResponse))
-//				assert.Nil(t, err)
-//
-//			} else {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			}
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.NotNil(t, err)
-//	})
-//
-//	t.Run("returns error when AddTrustedRootCert fails", func(t *testing.T) {
-//		calls := 0
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			// Simulate AddPrivateKey and AddClientCert success and AddTrustedRootCert failure
-//			if calls == 0 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(addKeyXMLResponse))
-//				assert.Nil(t, err)
-//			} else if calls == 1 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(clientCertXMLResponse))
-//				assert.Nil(t, err)
-//			} else {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			}
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.NotNil(t, err)
-//	})
-//
-//	t.Run("returns error when AddWifiSettings fails", func(t *testing.T) {
-//		calls := 0
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			// Simulate AddPrivateKey and AddClientCert success and AddTrustedRootCert failure
-//			if calls == 0 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(addKeyXMLResponse))
-//				assert.Nil(t, err)
-//			} else if calls == 1 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(clientCertXMLResponse))
-//				assert.Nil(t, err)
-//			} else if calls == 2 {
-//				calls++
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(trustedRootXMLResponse))
-//				assert.Nil(t, err)
-//			} else {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			}
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.NotNil(t, err)
-//	})
-//
-//	t.Run("returns error when RollbackAddedItems fails", func(t *testing.T) {
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			// Simulate all steps before RollbackAddedItems success and RollbackAddedItems failure
-//			if strings.Contains(r.URL.Path, "RollbackAddedItems") {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			} else if strings.Contains(r.URL.Path, "WifiSettings") {
-//				w.WriteHeader(http.StatusInternalServerError)
-//			} else {
-//				w.WriteHeader(http.StatusOK)
-//			}
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.NotNil(t, err)
-//	})
-//
-//	t.Run("returns nil on happy path", func(t *testing.T) {
-//		calls := 0
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			assert.Equal(t, "POST", r.Method)
-//			var err error
-//			// Simulate AddPrivateKey and AddClientCert success and AddTrustedRootCert failure
-//			if calls == 0 {
-//				_, err = w.Write([]byte(addKeyXMLResponse))
-//			} else if calls == 1 {
-//				_, err = w.Write([]byte(clientCertXMLResponse))
-//			} else if calls == 2 {
-//				_, err = w.Write([]byte(trustedRootXMLResponse))
-//			} else {
-//				_, err = w.Write([]byte(addWifiSettingsResponse))
-//			}
-//			assert.Nil(t, err)
-//			calls++
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.Configure8021xWiFi()
-//		assert.Nil(t, err)
-//	})
-//}
-//
-//func TestAddWifiSettings(t *testing.T) {
-//	f := &flags.Flags{}
-//	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		// Check the request method and URL path.
-//		assert.Equal(t, "POST", r.Method)
-//		// Return an error response
-//		w.WriteHeader(http.StatusInternalServerError)
-//	})
-//
-//	lps := setupWithWsmanClient(f, handler)
-//	err := lps.AddWifiSettings("certHandle", "rootHandle")
-//	assert.NotNil(t, err)
-//}
+func TestProcessWifiConfig(t *testing.T) {
+	f := &flags.Flags{}
 
-//func TestRollbackAddedItems(t *testing.T) {
-//	f := &flags.Flags{}
-//	t.Run("returns no error when rollback is successful", func(t *testing.T) {
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			assert.Equal(t, "POST", r.Method)
-//			w.WriteHeader(http.StatusOK)
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
-//		assert.Nil(t, err)
-//	})
-//
-//	t.Run("returns error when server returns non-200 status code", func(t *testing.T) {
-//		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			assert.Equal(t, "POST", r.Method)
-//			w.WriteHeader(http.StatusInternalServerError)
-//		})
-//
-//		lps := setupWithWsmanClient(f, handler)
-//		err := lps.RollbackAddedItems("certHandle", "rootHandle", "privateKeyHandle")
-//		assert.NotNil(t, err)
-//	})
-//}
+	// bad name error already tested
+	t.Run("expect error ProcessIeee8012xConfig", func(t *testing.T) {
+		orig := wifiCfgWPA8021xEAPTLS.AuthenticationMethod
+		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = int(models.AuthenticationMethod_WPA_IEEE8021x)
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
+		assert.NotNil(t, err)
+		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = orig
+	})
+	t.Run("expect server error for AddWiFiSettings()", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.NotNil(t, err)
+	})
+	t.Run("expect xml parse error for AddWiFiSettings()", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.NotNil(t, err)
+	})
+	t.Run("expect unsuccessful return value error for AddWiFiSettings()", func(t *testing.T) {
+		msgRsp := wifiportconfiguration.AddWiFiSettingsResponse{}
+		msgRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue = 1
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, msgRsp))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.NotNil(t, err)
+	})
+}
 
-//	func TestAddTrustedRootCert(t *testing.T) {
-//		f := &flags.Flags{}
-//		t.Run("returns handle when adding cert is successful", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(trustedRootXMLResponse))
-//				assert.Nil(t, err)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			handle, err := lps.AddTrustedRootCert()
-//			assert.Nil(t, err)
-//			assert.NotEmpty(t, handle)
-//		})
-//
-//		t.Run("returns error when server returns non-200 status code", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			_, err := lps.AddTrustedRootCert()
-//			assert.NotNil(t, err)
-//		})
-//	}
-//
-//	func TestAddClientCert(t *testing.T) {
-//		f := &flags.Flags{}
-//		t.Run("returns handle when adding cert is successful", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(clientCertXMLResponse))
-//				assert.Nil(t, err)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			handle, err := lps.AddClientCert()
-//			assert.Nil(t, err)
-//			assert.NotEmpty(t, handle)
-//		})
-//
-//		t.Run("returns error when server returns non-200 status code", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			_, err := lps.AddClientCert()
-//			assert.NotNil(t, err)
-//		})
-//	}
-//
-//	func TestAddPrivateKey(t *testing.T) {
-//		f := &flags.Flags{}
-//		t.Run("returns handle when adding cert is successful", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				_, err := w.Write([]byte(addKeyXMLResponse))
-//				assert.Nil(t, err)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			handle, err := lps.AddPrivateKey()
-//			assert.Nil(t, err)
-//			assert.NotEmpty(t, handle)
-//		})
-//
-//		t.Run("returns error when server returns non-200 status code", func(t *testing.T) {
-//			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//				assert.Equal(t, "POST", r.Method)
-//				w.WriteHeader(http.StatusInternalServerError)
-//			})
-//
-//			lps := setupWithWsmanClient(f, handler)
-//			_, err := lps.AddPrivateKey()
-//			assert.NotNil(t, err)
-//		})
-//	}
+func TestProcessIeee8012xConfig(t *testing.T) {
+	f := &flags.Flags{}
+
+	t.Run("expect error on missing ieee8021x profile", func(t *testing.T) {
+		ieee8021xSettings := &models.IEEE8021xSettings{}
+		handles := Handles{}
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
+		err := lps.ProcessIeee8012xConfig("someothername", ieee8021xSettings, &handles)
+		assert.NotNil(t, err)
+		assert.Empty(t, ieee8021xSettings.ElementName)
+		assert.Empty(t, handles.privateKeyHandle)
+		assert.Empty(t, handles.clientCertHandle)
+		assert.Empty(t, handles.rootCertHandle)
+	})
+	t.Run("expect error on AddPrivateKey error", func(t *testing.T) {
+		ieee8021xSettings := &models.IEEE8021xSettings{}
+		handles := Handles{}
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgPEAPv0_EAPMSCHAPv2)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessIeee8012xConfig(ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings, &handles)
+		assert.NotNil(t, err)
+		assert.Equal(t, ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings.ElementName)
+		assert.Empty(t, handles.privateKeyHandle)
+		assert.Empty(t, handles.clientCertHandle)
+		assert.Empty(t, handles.rootCertHandle)
+	})
+	t.Run("expect error on AddClientCert error", func(t *testing.T) {
+		ieee8021xSettings := &models.IEEE8021xSettings{}
+		handles := Handles{}
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, addKeyXMLResponse))
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.NotNil(t, err)
+		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
+		assert.NotEmpty(t, handles.privateKeyHandle)
+		assert.Empty(t, handles.clientCertHandle)
+		assert.Empty(t, handles.rootCertHandle)
+	})
+	t.Run("expect error on AddTrustedRootCert error", func(t *testing.T) {
+		ieee8021xSettings := &models.IEEE8021xSettings{}
+		handles := Handles{}
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, addKeyXMLResponse))
+		responsers = append(responsers, respondStringFunc(t, clientCertXMLResponse))
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.NotNil(t, err)
+		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
+		assert.NotEmpty(t, handles.privateKeyHandle)
+		assert.NotEmpty(t, handles.clientCertHandle)
+		assert.Empty(t, handles.rootCertHandle)
+	})
+	t.Run("expect success on happy path", func(t *testing.T) {
+		ieee8021xSettings := &models.IEEE8021xSettings{}
+		handles := Handles{}
+		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, addKeyXMLResponse))
+		responsers = append(responsers, respondStringFunc(t, clientCertXMLResponse))
+		responsers = append(responsers, respondStringFunc(t, trustedRootXMLResponse))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.Nil(t, err)
+		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
+		assert.NotEmpty(t, handles.privateKeyHandle)
+		assert.NotEmpty(t, handles.clientCertHandle)
+		assert.NotEmpty(t, handles.rootCertHandle)
+	})
+}
+
+func TestEnableWifiErrors(t *testing.T) {
+	f := &flags.Flags{}
+	t.Run("expect server error for WiFiPortConfigurationService.Get()", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect unmarshall error for WiFiPortConfigurationService.Get()", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect server error for WiFiPortConfigurationService.Put()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect unmarshall error for WiFiPortConfigurationService.Put()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect non-zero error for WiFiPortConfigurationService.Put()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseFailed := wifiportconfiguration.PortConfigurationResponse{}
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondMsgFunc(t, pcsResponseFailed))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect server error for RequestStateChange()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondMsgFunc(t, pcsResponseEnabled))
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect xml unmarshall error for RequestStateChange()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondMsgFunc(t, pcsResponseEnabled))
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+	t.Run("expect non-zero error for RequestStateChange()", func(t *testing.T) {
+		pcsResponse := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled := wifiportconfiguration.PortConfigurationResponse{}
+		pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+		stateChangeResponse := wifi.RequestStateChangeResponse{}
+		stateChangeResponse.Body.RequestStateChange_OUTPUT.ReturnValue = 1
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, pcsResponse))
+		responsers = append(responsers, respondMsgFunc(t, pcsResponseEnabled))
+		responsers = append(responsers, respondMsgFunc(t, stateChangeResponse))
+		lps := setupWsmanResponses(t, f, responsers)
+		err := lps.EnableWifi()
+		assert.NotNil(t, err)
+	})
+}
+
+func TestRollbackAddedItems(t *testing.T) {
+	f := &flags.Flags{}
+	handles := Handles{
+		privateKeyHandle: "privateKeyHandle",
+		clientCertHandle: "clientCertHandle",
+		rootCertHandle:   "rootCertHandle",
+	}
+
+	t.Run("expect all error paths traversed for coverage", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		responsers = append(responsers, respondServerErrFunc())
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		lps.RollbackAddedItems(&handles)
+	})
+	t.Run("expect all happy paths traversed for coverage", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, "any message works?"))
+		responsers = append(responsers, respondStringFunc(t, "any message works?"))
+		responsers = append(responsers, respondStringFunc(t, "any message works?"))
+		lps := setupWsmanResponses(t, f, responsers)
+		lps.RollbackAddedItems(&handles)
+	})
+}
+
+func TestAddTrustedRootCert(t *testing.T) {
+	f := &flags.Flags{}
+	t.Run("expect server error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddTrustedRootCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect xml parse error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddTrustedRootCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect non-zero error ", func(t *testing.T) {
+		dup := strings.Replace(trustedRootXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, dup))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddTrustedRootCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+}
+
+func TestAddClientCert(t *testing.T) {
+	f := &flags.Flags{}
+	t.Run("expect server error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddClientCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect xml parse error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddClientCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect non-zero error ", func(t *testing.T) {
+		dup := strings.Replace(clientCertXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, dup))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddClientCert("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+}
+
+func TestAddPrivateKey(t *testing.T) {
+	f := &flags.Flags{}
+	t.Run("expect server error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondServerErrFunc())
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddPrivateKey("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect xml parse error", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondBadXmlFunc(t))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddPrivateKey("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+	t.Run("expect non-zero error ", func(t *testing.T) {
+		dup := strings.Replace(addKeyXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondStringFunc(t, dup))
+		lps := setupWsmanResponses(t, f, responsers)
+		handle, err := lps.AddPrivateKey("AABBCCDD")
+		assert.NotNil(t, err)
+		assert.Empty(t, handle)
+	})
+}
+
 func TestCheckReturnValue(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -376,9 +499,9 @@ func TestCheckReturnValue(t *testing.T) {
 		wantErr error
 	}{
 		{"TestNoError", 0, "item", nil},
-		{"TestAlreadyExists", common.PT_STATUS_DUPLICATE, "item", errors.New("item already exists. You must remove it manually before continuing")},
-		{"TestInvalidItem", common.PT_STATUS_INVALID_CERT, "item", fmt.Errorf("%s invalid cert", "item")},
-		{"TestNonZeroReturnCode", 9999, "item", fmt.Errorf("non-zero return code: %d", 9999)},
+		{"TestAlreadyExists", common.PT_STATUS_DUPLICATE, "item", fmt.Errorf("%s already exists and must be removed before continuing", "item")},
+		{"TestInvalidItem", common.PT_STATUS_INVALID_CERT, "item", fmt.Errorf("%s is invalid", "item")},
+		{"TestNonZeroReturnCode", 9999, "item", fmt.Errorf("%s non-zero return code: %d", "item", 9999)},
 	}
 
 	for _, tt := range tests {

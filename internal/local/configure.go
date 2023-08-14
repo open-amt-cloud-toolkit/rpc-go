@@ -109,6 +109,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	}
 	returnValue := addWifiSettingsRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue
 	if returnValue != 0 {
+		service.RollbackAddedItems(&handles)
 		return fmt.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", returnValue)
 	}
 	return nil
@@ -166,8 +167,6 @@ func (service *ProvisioningService) EnableWifi() error {
 		return err
 	}
 
-	// pcs := wifiPortConfigResponse.Body.WiFiPortConfigurationService
-
 	// if local sync not enable, enable it
 	if wifiPortConfigResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == wifiportconfiguration.LocalSyncDisabled {
 		wifiPortConfigResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = wifiportconfiguration.UnrestrictedSync
@@ -182,7 +181,7 @@ func (service *ProvisioningService) EnableWifi() error {
 		if err != nil {
 			return err
 		}
-		//pcs = wifiPortConfigResponse.Body.WiFiPortConfigurationService
+
 		if wifiPortConfigResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == 0 {
 			return errors.New("failed to enable wifi local profile synchronization")
 		}
