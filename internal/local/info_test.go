@@ -21,13 +21,13 @@ func TestDisplayAMTInfo(t *testing.T) {
 	f.AmtInfo.Lan = true
 	f.AmtInfo.Hostname = true
 
-	t.Run("should return Success", func(t *testing.T) {
+	t.Run("returns Success on happy path", func(t *testing.T) {
 		lps := setupService(f)
 		resultCode := lps.DisplayAMTInfo()
 		assert.Equal(t, utils.Success, resultCode)
 	})
 
-	t.Run("should return Success with json output", func(t *testing.T) {
+	t.Run("returns Success with json output", func(t *testing.T) {
 		f.JsonOutput = true
 		lps := setupService(f)
 		resultCode := lps.DisplayAMTInfo()
@@ -35,6 +35,31 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.JsonOutput = false
 	})
 
+	t.Run("returns Success but logs errors on error conditions", func(t *testing.T) {
+		mockUUIDErr = mockStandardErr
+		mockVersionDataErr = mockStandardErr
+		mockControlModeErr = mockStandardErr
+		mockDNSSuffixErr = mockStandardErr
+		mockOSDNSSuffixErr = mockStandardErr
+		mockRemoteAcessConnectionStatusErr = mockStandardErr
+		mockLANInterfaceSettingsErr = mockStandardErr
+		mockCertHashesErr = mockStandardErr
+
+		f.JsonOutput = true
+		lps := setupService(f)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+		f.JsonOutput = false
+
+		mockUUIDErr = nil
+		mockVersionDataErr = nil
+		mockControlModeErr = nil
+		mockDNSSuffixErr = nil
+		mockOSDNSSuffixErr = nil
+		mockRemoteAcessConnectionStatusErr = nil
+		mockLANInterfaceSettingsErr = nil
+		mockCertHashesErr = nil
+	})
 }
 
 func TestDecodeAMT(t *testing.T) {
