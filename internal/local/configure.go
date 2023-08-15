@@ -4,15 +4,16 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"regexp"
+	"rpc/internal/config"
+	"rpc/pkg/utils"
+
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	log "github.com/sirupsen/logrus"
-	"regexp"
-	"rpc/internal/config"
-	"rpc/pkg/utils"
 )
 
 func (service *ProvisioningService) Configure() int {
@@ -31,6 +32,7 @@ func (service *ProvisioningService) Configure() int {
 }
 
 func (service *ProvisioningService) ConfigureWiFi() int {
+	service.pruneWifiConfigs()
 	err := service.EnableWifi()
 	if err != nil {
 		log.Error(err)
@@ -56,6 +58,47 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 		return utils.WiFiConfigurationFailed
 	}
 	return utils.Success
+}
+
+func (service *ProvisioningService) pruneWifiConfigs() {
+	// Removes existing wifi configs
+	enumerateMessage := service.cimMessages.WiFiEndpointSettings.Enumerate()
+	enumerateResponse, err := service.client.Post(enumerateMessage)
+	if err != nil {
+		log.Error(err)
+		return utils.WSMANMessageError
+	}
+
+	var enumerationEnvelope wifi.EnumerationEnvelope
+	if err := xml.Unmarshal(enumerateResponse, &enumerationEnvelope); err != nil {
+		log.Error(err)
+		return utils.UnmarshalMessageFailed
+	}
+
+	pullMessage := service.cimMessages.WiFiEndpointSettings.Pull(enumerationEnvelope.Body.EnumerateResponse.EnumerationContext)
+	pullResponse, err := service.client.Post(pullMessage)
+	if err != nil {
+		log.Error(err)
+		return utils.WSMANMessageError
+	}
+
+	var pullEnvelope wifi.PullEnvelope
+	if err := xml.Unmarshal(pullResponse, &pullEnvelope); err != nil {
+		log.Error(err)
+		return utils.UnmarshalMessageFailed
+	}
+
+	for _, config := range pullEnvelope.Body.PullResponse.Items.WifiSettings {
+		deleteMessage := service.cimMessages.WiFiEndpointSettings.Delete(config.InstanceID)
+		deleteMessageResponse, err := service.client.Post(deleteMessage)
+		if err != nil {
+			log.Error(err)
+			return utils.DeleteWifiConfigFailed
+		}
+		fmt.Println(deleteMessageResponse)
+	}
+
+	err = service.EnableWifi()
 }
 
 func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) error {
