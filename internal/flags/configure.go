@@ -78,21 +78,29 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
 
-	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
-	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
-
 	if err := f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
-	err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
-	if err != nil {
-		log.Error("config error: ", err)
-		return utils.IncorrectCommandLineParameters
+
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
+	//Check if ieee8021x is empty, if so do not append.
+	if !ieee8021xCfgIsEmpty(ieee8021xCfg) {
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
 	}
+
+	if f.configContent != "" {
+		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.IncorrectCommandLineParameters
+		}
+	}
+
 	configFileStatus := f.verifyWifiConfigurationFile()
 	if configFileStatus != 0 {
-		log.Error("config error: ", err)
+		log.Error("config error")
+		// log.Error("config error: ", err)
 		return utils.IncorrectCommandLineParameters
 	}
 	return utils.Success
@@ -160,4 +168,13 @@ func (f *Flags) verifyWifiConfigurationFile() int {
 		}
 	}
 	return utils.Success
+}
+func ieee8021xCfgIsEmpty(config config.Ieee8021xConfig) bool {
+	return config.ProfileName == "" &&
+		config.Username == "" &&
+		config.Password == "" &&
+		config.AuthenticationProtocol == 0 &&
+		config.ClientCert == "" &&
+		config.CACert == "" &&
+		config.PrivateKey == ""
 }
