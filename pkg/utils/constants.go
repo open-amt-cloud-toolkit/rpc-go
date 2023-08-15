@@ -79,6 +79,8 @@ const (
 	UnableToDeactivate              = 109 // Device is not in CCM mode
 	DeactivationFailed              = 110 // Deactivation Failed
 	UnableToActivate                = 111 // Device is not in pre-provisioning mode
+	UnmarshalMessageFailed          = 112 // Unmarshal wsman response failed
+	DeleteWifiConfigFailed          = 113 // Delete wifi configuration failed
 
 	// (150-199) Maintenance Errors
 	ClockSyncFailed    = 150 // Clock sync failed
