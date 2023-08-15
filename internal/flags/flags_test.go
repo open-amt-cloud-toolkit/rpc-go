@@ -161,6 +161,8 @@ func TestPrintUsage(t *testing.T) {
 	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
 	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"
@@ -220,7 +222,7 @@ func TestParseFlagsVersion(t *testing.T) {
 	assert.Equal(t, false, flags.JsonOutput)
 }
 func TestParseFlagsConfigure(t *testing.T) {
-	args := []string{"./rpc", "configure", "-config", "../../config-wifi.yaml"}
+	args := []string{"./rpc", "configure", "addwifisettings", "-config", "../../config-wifi.yaml", "-password", "Passw0rd!"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.Success)

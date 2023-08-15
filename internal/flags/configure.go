@@ -2,43 +2,98 @@ package flags
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"rpc/pkg/utils"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
 )
 
+func (f *Flags) printConfigurationUsage() string {
+	executable := filepath.Base(os.Args[0])
+	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
+	usage = usage + "Usage: " + executable + " configure COMMAND [OPTIONS]\n\n"
+	usage = usage + "Supported Configuration Commands:\n"
+	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage = usage + "                 Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
+	usage = usage + "\nRun '" + executable + " configure COMMAND -h' for more information on a command.\n"
+	fmt.Println(usage)
+	return usage
+}
+
 func (f *Flags) handleConfigureCommand() int {
-	f.amtConfigureCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.amtConfigureCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
-	if err := f.amtConfigureCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtConfigureCommand.Usage()
+	if len(f.commandLineArgs) == 2 {
+		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
-	//if err := f.amtConfigureAddWiFiSettingsCommand.Parse(f.commandLineArgs[2:]); err != nil {
-	//	f.amtConfigureCommand.Usage()
-	//	return utils.IncorrectCommandLineParameters
-	//}
-	// runs locally
-	f.Local = true
+
+	var errCode = utils.Success
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "addwifisettings":
-		if f.configContent == "" {
-			fmt.Println("-config flag is required and cannot be empty")
-			return utils.IncorrectCommandLineParameters
+		errCode = f.handleAddWifiSettings()
+		break
+	default:
+		f.printConfigurationUsage()
+		errCode = utils.IncorrectCommandLineParameters
+		break
+	}
+	if errCode != utils.Success {
+		return errCode
+	}
+
+	f.Local = true
+	if f.Password == "" {
+		if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+			return utils.MissingOrIncorrectPassword
 		}
-		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
-		if err != nil {
-			log.Error("config error: ", err)
-			return utils.IncorrectCommandLineParameters
-		}
-		configFileStatus := f.verifyWifiConfigurationFile()
-		if configFileStatus != 0 {
-			log.Error("config error: ", err)
-			return utils.IncorrectCommandLineParameters
-		}
+	}
+	f.LocalConfig.Password = f.Password
+	return utils.Success
+}
+
+func (f *Flags) handleAddWifiSettings() int {
+
+	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file ")
+	// TODO: these are the params for entering a single wifi config from command line
+	//wifiCfg := config.WifiConfig{}
+	//ieee8021xCfg := config.Ieee8021xConfig{}
+	//f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
+	//f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
+	//f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
+	//f.flagSetAddWifiSettings.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
+	//f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", "", "specify psk passphrase")
+	//f.flagSetAddWifiSettings.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
+	//f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
+	//f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", "", "specify ieee8021x password")
+	//f.flagSetAddWifiSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
+	//f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
+	//f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
+	//f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
+
+	if err := f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	if f.configContent == "" {
+		fmt.Println("-config flag is required and cannot be empty")
+		return utils.IncorrectCommandLineParameters
+	}
+	err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
+	if err != nil {
+		log.Error("config error: ", err)
+		return utils.IncorrectCommandLineParameters
+	}
+	configFileStatus := f.verifyWifiConfigurationFile()
+	if configFileStatus != 0 {
+		log.Error("config error: ", err)
+		return utils.IncorrectCommandLineParameters
 	}
 	return utils.Success
 }

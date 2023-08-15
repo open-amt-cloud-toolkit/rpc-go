@@ -68,15 +68,13 @@ type Flags struct {
 	amtInfoCommand                       *flag.FlagSet
 	amtActivateCommand                   *flag.FlagSet
 	amtDeactivateCommand                 *flag.FlagSet
-	amtMaintenanceCommand                *flag.FlagSet
 	amtMaintenanceAddWiFiSettingsCommand *flag.FlagSet
 	amtMaintenanceSyncIPCommand          *flag.FlagSet
 	amtMaintenanceSyncClockCommand       *flag.FlagSet
 	amtMaintenanceSyncHostnameCommand    *flag.FlagSet
 	amtMaintenanceChangePasswordCommand  *flag.FlagSet
 	versionCommand                       *flag.FlagSet
-	amtConfigureCommand                  *flag.FlagSet
-	amtConfigureAddWiFiSettingsCommand   *flag.FlagSet
+	flagSetAddWifiSettings               *flag.FlagSet
 	amtCommand                           amt.AMTCommand
 	netEnumerator                        NetEnumerator
 	IpConfiguration                      IPConfiguration
@@ -94,7 +92,6 @@ func NewFlags(args []string) *Flags {
 
 	flags.amtActivateCommand = flag.NewFlagSet(utils.CommandActivate, flag.ContinueOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet(utils.CommandDeactivate, flag.ContinueOnError)
-	flags.amtMaintenanceCommand = flag.NewFlagSet(utils.CommandMaintenance, flag.ContinueOnError)
 
 	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet("syncip", flag.ContinueOnError)
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
@@ -105,9 +102,7 @@ func NewFlags(args []string) *Flags {
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
-	flags.amtConfigureCommand = flag.NewFlagSet(utils.CommandConfigure, flag.ContinueOnError)
-	flags.amtConfigureCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
-	flags.amtConfigureAddWiFiSettingsCommand = flag.NewFlagSet("addwifisettings", flag.ContinueOnError)
+	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
@@ -153,6 +148,8 @@ func (f *Flags) printUsage() string {
 	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
 	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"

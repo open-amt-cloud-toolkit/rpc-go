@@ -48,7 +48,7 @@ func (f *Flags) handleMaintenanceCommand() int {
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "addwifisettings":
-		errCode = f.handleAddWifiSettings()
+		errCode = f.handleMaintenanceAddWifiSettings()
 		break
 	case "syncclock":
 		errCode = f.handleMaintenanceSyncClock()
@@ -82,7 +82,7 @@ func (f *Flags) handleMaintenanceCommand() int {
 	if !f.Local {
 		if f.URL == "" {
 			fmt.Print("\n-u flag is required and cannot be empty\n\n")
-			f.amtMaintenanceCommand.Usage()
+			f.printMaintenanceUsage()
 			return utils.MissingOrIncorrectURL
 		}
 	}
@@ -90,7 +90,7 @@ func (f *Flags) handleMaintenanceCommand() int {
 	return utils.Success
 }
 
-func (f *Flags) handleAddWifiSettings() int {
+func (f *Flags) handleMaintenanceAddWifiSettings() int {
 	// this is an implied local command
 	f.Local = true
 

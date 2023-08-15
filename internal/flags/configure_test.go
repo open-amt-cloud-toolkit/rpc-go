@@ -10,13 +10,14 @@ import (
 )
 
 func TestHandleConfigureCommand(t *testing.T) {
-	cmdLine := "rpc configure addwifisettings --config ../../config-wifi.yaml "
+	cmdLine := "rpc configure addwifisettings -password Passw0rd! -config ../../config-wifi.yaml "
 	args := strings.Fields(cmdLine)
 	flags := NewFlags(args)
 	gotResult := flags.ParseFlags()
 	assert.Equal(t, flags.Local, true)
 	assert.Equal(t, utils.Success, gotResult)
 	assert.Equal(t, utils.CommandConfigure, flags.Command)
+	assert.Equal(t, utils.SubCommandAddWifiSettings, flags.SubCommand)
 }
 
 func TestVerifyWifiConfigurationFile(t *testing.T) {
