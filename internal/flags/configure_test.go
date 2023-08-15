@@ -10,14 +10,70 @@ import (
 )
 
 func TestHandleConfigureCommand(t *testing.T) {
-	cmdLine := "rpc configure addwifisettings -password Passw0rd! -config ../../config-wifi.yaml "
-	args := strings.Fields(cmdLine)
-	flags := NewFlags(args)
-	gotResult := flags.ParseFlags()
-	assert.Equal(t, flags.Local, true)
-	assert.Equal(t, utils.Success, gotResult)
-	assert.Equal(t, utils.CommandConfigure, flags.Command)
-	assert.Equal(t, utils.SubCommandAddWifiSettings, flags.SubCommand)
+	cases := []struct {
+		description    string
+		cmdLine        string
+		flagsLocal     bool
+		expectedResult int
+	}{
+		// {description: "Basic wifi config command line",
+		// 	cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName \"\"",
+		// 	flagsLocal:     true,
+		// 	expectedResult: utils.Success,
+		// },
+		{description: "Missing Ieee8021xProfileName value",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing PskPassphrase value",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing priority value",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing ssid value",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing authenticationMethod value",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing profile name",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing filename",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
+			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Valid with reading from file",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config ../../config-wifi.yaml",
+			flagsLocal:     true,
+			expectedResult: utils.Success,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			args := strings.Fields(tc.cmdLine)
+			flags := NewFlags(args)
+			gotResult := flags.ParseFlags()
+
+			assert.Equal(t, flags.Local, tc.flagsLocal)
+			assert.Equal(t, tc.expectedResult, gotResult)
+			assert.Equal(t, utils.CommandConfigure, flags.Command)
+			assert.Equal(t, utils.SubCommandAddWifiSettings, flags.SubCommand)
+		})
+	}
 }
 
 func TestVerifyWifiConfigurationFile(t *testing.T) {
@@ -271,5 +327,27 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 				t.Errorf("expected %d but got %d", tt.expected, gotResult)
 			}
 		})
+	}
+}
+func TestIeee8021xCfgIsEmpty(t *testing.T) {
+	emptyConfig := config.Ieee8021xConfig{}
+	notEmptyConfig := config.Ieee8021xConfig{
+		ProfileName:            "wifi-8021x",
+		Username:               "user",
+		Password:               "pass",
+		AuthenticationProtocol: 1,
+		ClientCert:             "cert",
+		CACert:                 "caCert",
+		PrivateKey:             "key",
+	}
+
+	empty := ieee8021xCfgIsEmpty(emptyConfig)
+	if !empty {
+		t.Errorf("Expected empty config to return true, but got false")
+	}
+
+	notEmpty := ieee8021xCfgIsEmpty(notEmptyConfig)
+	if notEmpty {
+		t.Errorf("Expected non-empty config to return false, but got true")
 	}
 }
