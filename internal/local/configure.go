@@ -92,12 +92,11 @@ func (service *ProvisioningService) PruneWifiConfigs() int {
 
 	for _, config := range pullEnvelope.Body.PullResponse.Items.WifiSettings {
 		deleteMessage := service.cimMessages.WiFiEndpointSettings.Delete(config.InstanceID)
-		deleteMessageResponse, err := service.client.Post(deleteMessage)
+		_, err := service.client.Post(deleteMessage)
 		if err != nil {
 			log.Error(err)
 			return utils.DeleteWifiConfigFailed
 		}
-		log.Info(deleteMessageResponse)
 	}
 
 	return 0

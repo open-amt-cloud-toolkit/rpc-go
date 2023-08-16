@@ -3,15 +3,16 @@ package local
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 	"net/http"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 
 	"github.com/stretchr/testify/assert"
 
@@ -208,6 +209,48 @@ func TestProcessWifiConfig(t *testing.T) {
 		lps := setupWsmanResponses(t, f, responsers)
 		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
 		assert.NotNil(t, err)
+	})
+}
+
+func TestPruneWifiConfigs(t *testing.T) {
+	f := &flags.Flags{}
+
+	t.Run("expect success when there are no configs", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{}))
+		responsers = append(responsers, respondMsgFunc(t, wifi.PullEnvelope{}))
+		lps := setupWsmanResponses(t, f, responsers)
+		errCode := lps.PruneWifiConfigs()
+		assert.Equal(t, 0, errCode)
+	})
+	t.Run("expect success when there are configs", func(t *testing.T) {
+		pullEnvelope := wifi.PullEnvelope{}
+		pullEnvelope.Body.PullResponse.Items.WifiSettings = append(pullEnvelope.Body.PullResponse.Items.WifiSettings, wifi.CIMWiFiEndpointSettings{InstanceID: "Config1"})
+		pullEnvelope.Body.PullResponse.Items.WifiSettings = append(pullEnvelope.Body.PullResponse.Items.WifiSettings, wifi.CIMWiFiEndpointSettings{InstanceID: "Config2"})
+
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{}))
+		responsers = append(responsers, respondMsgFunc(t, pullEnvelope))
+		responsers = append(responsers, respondMsgFunc(t, "Config1 Deleted"))
+		responsers = append(responsers, respondMsgFunc(t, "Config2 Deleted"))
+		lps := setupWsmanResponses(t, f, responsers)
+		errCode := lps.PruneWifiConfigs()
+		assert.Equal(t, 0, errCode)
+	})
+	t.Run("expect error when enumeration not returned", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, "Not an enumeration envelope"))
+		lps := setupWsmanResponses(t, f, responsers)
+		errCode := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.UnmarshalMessageFailed, errCode)
+	})
+	t.Run("expect error when pull not returned", func(t *testing.T) {
+		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{}))
+		responsers = append(responsers, respondMsgFunc(t, "Not a pull envelope"))
+		lps := setupWsmanResponses(t, f, responsers)
+		errCode := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.UnmarshalMessageFailed, errCode)
 	})
 }
 
