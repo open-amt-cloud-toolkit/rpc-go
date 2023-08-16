@@ -32,7 +32,7 @@ func (service *ProvisioningService) Configure() int {
 }
 
 func (service *ProvisioningService) ConfigureWiFi() int {
-	if errCode := service.pruneWifiConfigs(); errCode != 0 {
+	if errCode := service.PruneWifiConfigs(); errCode != 0 {
 		return errCode
 	}
 	err := service.EnableWifi()
@@ -62,7 +62,7 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 	return utils.Success
 }
 
-func (service *ProvisioningService) pruneWifiConfigs() int {
+func (service *ProvisioningService) PruneWifiConfigs() int {
 	// Removes existing wifi configs
 	enumerateMessage := service.cimMessages.WiFiEndpointSettings.Enumerate()
 	enumerateResponse, err := service.client.Post(enumerateMessage)
@@ -97,7 +97,6 @@ func (service *ProvisioningService) pruneWifiConfigs() int {
 			log.Error(err)
 			return utils.DeleteWifiConfigFailed
 		}
-		fmt.Println(deleteMessageResponse)
 	}
 
 	return 0
