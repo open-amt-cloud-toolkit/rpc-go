@@ -78,6 +78,8 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
 
+	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
+	// rpc configure add -config "filename" -secrets "someotherfile"
 	if err := f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
@@ -107,8 +109,6 @@ func (f *Flags) handleAddWifiSettings() int {
 }
 
 func (f *Flags) verifyWifiConfigurationFile() int {
-	var matchedIeeeProfileName int = 0
-
 	for _, wifiConfigs := range f.LocalConfig.WifiConfigs {
 		//Check profile name is not empty
 		if wifiConfigs.ProfileName == "" {
@@ -146,6 +146,8 @@ func (f *Flags) verifyWifiConfigurationFile() int {
 		}
 		if wifiConfigs.AuthenticationMethod == 5 || wifiConfigs.AuthenticationMethod == 7 {
 			//Check for ieee8021xProfileName in IEEE8021XSettings
+			var matchedIeeeProfileName int = 0
+
 			for _, ieee802xSettings := range f.LocalConfig.Ieee8021xConfigs {
 				if wifiConfigs.Ieee8021xProfileName == ieee802xSettings.ProfileName {
 					matchedIeeeProfileName++

@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 	"strings"
@@ -76,259 +77,168 @@ func TestHandleConfigureCommand(t *testing.T) {
 	}
 }
 
+var wifiCfgWPA = config.WifiConfig{
+	ProfileName:          "wifiWPA",
+	SSID:                 "ssid",
+	Priority:             1,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA_PSK),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+}
+
+var wifiCfgWPA2 = config.WifiConfig{
+	ProfileName:          "wifiWPA2",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_PSK),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	PskPassphrase:        "wifiWPAPassPhrase",
+}
+
+var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
+	ProfileName:          "wifiWPA28021x",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA_IEEE8021x),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
+}
+
+var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
+	ProfileName:            "ieee8021xCfgEAPTLS",
+	Username:               "username",
+	Password:               "",
+	AuthenticationProtocol: int(models.AuthenticationProtocolEAPTLS),
+	ClientCert:             "clientCert",
+	CACert:                 "caCert",
+	PrivateKey:             "privateKey",
+}
+
+var wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2 = config.WifiConfig{
+	ProfileName:          "wifiWPA28021x",
+	SSID:                 "ssid",
+	Priority:             2,
+	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_IEEE8021x),
+	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	Ieee8021xProfileName: "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
+}
+
+var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
+	ProfileName:            "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
+	Username:               "username",
+	Password:               "password",
+	AuthenticationProtocol: int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2),
+	ClientCert:             "clientCert",
+	CACert:                 "caCert",
+	PrivateKey:             "privateKey",
+}
+
+func runVerifyWifiConfiguration(t *testing.T, expectedResult int, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
+	f := Flags{}
+	for _, cfg := range wifiCfgs {
+		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, cfg)
+	}
+	for _, cfg := range ieee8021xCfgs {
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	}
+	gotResult := f.verifyWifiConfigurationFile()
+	assert.Equal(t, expectedResult, gotResult)
+}
+
 func TestVerifyWifiConfigurationFile(t *testing.T) {
 
-	cases := []struct {
-		description       string
-		testConfiguration Flags
-		expected          int
-	}{
-		{
-			description: "Missing ProfileName",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName: "",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing SSID",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName: "Test-Profile-1",
-							SSID:        "",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing Priority",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName: "Test-Profile-1",
-							SSID:        "Test-SSID-1",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing AuthenticationMethod",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName: "Test-Profile-1",
-							SSID:        "Test-SSID-1",
-							Priority:    1,
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing EncryptionMethod",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 6,
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing Passphrase when AuthenticationMethod is 6",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 6,
-							EncryptionMethod:     4,
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Properly formed config",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 6,
-							EncryptionMethod:     4,
-							PskPassphrase:        "Test-Passphrase-1",
-							Ieee8021xProfileName: "",
-						},
-					},
-				},
-			},
-			expected: utils.Success,
-		},
-		{
-			description: "Passphrase present when AuthenticationMethod is 5",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 5,
-							EncryptionMethod:     4,
-							PskPassphrase:        "Test-Passphrase-1",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Passphrase present when AuthenticationMethod is 7",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 7,
-							EncryptionMethod:     4,
-							PskPassphrase:        "Test-Passphrase-1",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Successfully matches IEEE802.1 ProfileName",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 7,
-							EncryptionMethod:     4,
-							PskPassphrase:        "",
-							Ieee8021xProfileName: "Test-IEEE-Profile",
-						},
-					},
-					Ieee8021xConfigs: config.Ieee8021xConfigs{
-						{
-							ProfileName: "Test-IEEE-Profile",
-						},
-					},
-				},
-			},
-			expected: utils.Success,
-		},
-		{
-			description: "Found duplicate IEEE802.1 ProfileName when AuthenticationMethod is 5",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 7,
-							EncryptionMethod:     4,
-							PskPassphrase:        "",
-							Ieee8021xProfileName: "Test-IEEE-Profile",
-						},
-					},
-					Ieee8021xConfigs: config.Ieee8021xConfigs{
-						{
-							ProfileName: "Test-IEEE-Profile",
-						},
-						{
-							ProfileName: "Test-IEEE-Profile",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Found duplicate IEEE802.1 ProfileName when AuthenticationMethod is 7",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					WifiConfigs: config.WifiConfigs{
-						{
-							ProfileName:          "Test-Profile-1",
-							SSID:                 "Test-SSID-1",
-							Priority:             1,
-							AuthenticationMethod: 7,
-							EncryptionMethod:     4,
-							PskPassphrase:        "",
-							Ieee8021xProfileName: "Test-IEEE-Profile",
-						},
-					},
-					Ieee8021xConfigs: config.Ieee8021xConfigs{
-						{
-							ProfileName: "Test-IEEE-Profile",
-						},
-						{
-							ProfileName: "Test-IEEE-Profile",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-		{
-			description: "Missing ProfileName in IEEE802.1x config",
-			testConfiguration: Flags{
-				LocalConfig: config.Config{
-					Ieee8021xConfigs: config.Ieee8021xConfigs{
-						{
-							ProfileName: "",
-						},
-					},
-				},
-			},
-			expected: utils.MissingOrIncorrectProfile,
-		},
-	}
+	t.Run("expect Success for correct configs", func(t *testing.T) {
+		runVerifyWifiConfiguration(t, utils.Success,
+			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+	})
+	t.Run("expect MissingOrIncorrectProfile when missing ProfileName", func(t *testing.T) {
+		orig := wifiCfgWPA.ProfileName
+		wifiCfgWPA.ProfileName = ""
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.ProfileName = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile when missing SSID", func(t *testing.T) {
+		orig := wifiCfgWPA.SSID
+		wifiCfgWPA.SSID = ""
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.SSID = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile with invalid Priority", func(t *testing.T) {
+		orig := wifiCfgWPA.Priority
+		wifiCfgWPA.Priority = 0
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.Priority = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile with invalid AuthenticationMethod", func(t *testing.T) {
+		orig := wifiCfgWPA.AuthenticationMethod
+		wifiCfgWPA.AuthenticationMethod = 0
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.AuthenticationMethod = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile with invalid EncryptionMethod", func(t *testing.T) {
+		orig := wifiCfgWPA.EncryptionMethod
+		wifiCfgWPA.EncryptionMethod = 0
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.EncryptionMethod = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile with missing passphrase", func(t *testing.T) {
+		orig := wifiCfgWPA2.PskPassphrase
+		wifiCfgWPA2.PskPassphrase = ""
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA2},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA2.PskPassphrase = orig
+	})
+	t.Run("expect MissingOrIncorrectProfile with missing ieee8021x ProfileName", func(t *testing.T) {
+		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
+		ieee8021xCfgEAPTLS.ProfileName = ""
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
+			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
+	})
+	t.Run("expect MissingOrIncorrectProfile with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
+		wifiCfgWPA8021xEAPTLS.PskPassphrase = "shouldn't be here"
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
+			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+		wifiCfgWPA8021xEAPTLS.PskPassphrase = ""
+	})
+	t.Run("expect MissingOrIncorrectProfile with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
+		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = "shouldn't be here"
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			config.Ieee8021xConfigs{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = ""
+	})
 
-	for _, tt := range cases {
-		t.Run(tt.description, func(t *testing.T) {
-			gotResult := tt.testConfiguration.verifyWifiConfigurationFile()
-			if gotResult != tt.expected {
-				t.Errorf("expected %d but got %d", tt.expected, gotResult)
-			}
-		})
-	}
+	t.Run("expect MissingOrIncorrectProfile with duplicate ieee8021x ProfileName", func(t *testing.T) {
+		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
+		ieee8021xCfgEAPTLS.ProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
+		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
+		// authMethod 5
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
+			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+		// authMethod 7
+		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
+		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgEAPTLS.ProfileName
+	})
 }
+
 func TestIeee8021xCfgIsEmpty(t *testing.T) {
 	emptyConfig := config.Ieee8021xConfig{}
 	notEmptyConfig := config.Ieee8021xConfig{
