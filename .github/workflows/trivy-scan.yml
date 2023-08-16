@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604 # v2.5.0
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
         with:
           egress-policy: audit
 
@@ -24,7 +24,7 @@ jobs:
 
         run: docker build . --file Dockerfile --tag vprodemo.azurecr.io/rpc-go:${{ github.sha }} --tag vprodemo.azurecr.io/rpc-go:latest
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@e602665a11b530ef6d75951b866d4eea32732be9 # master
+        uses: aquasecurity/trivy-action@559eb1224e654a86c844a795e6702a0742c60c72 # master
         with:
           image-ref: 'vprodemo.azurecr.io/rpc-go:${{ github.sha }}'
           format: 'table'

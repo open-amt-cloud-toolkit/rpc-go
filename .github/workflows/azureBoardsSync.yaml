@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604 # v2.5.0
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
         with:
           egress-policy: audit
 
-      - uses: danhellem/github-actions-issue-to-work-item@927d3d4b05e642489bcd2ff97e30a44f1c016c23 # v2.1
+      - uses: danhellem/github-actions-issue-to-work-item@3072da42abf94ebe4c7778c57fb4af06db341c72 # v2.2
         env:
           ado_token: "${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}"
           ado_organization: "rbheBoards"

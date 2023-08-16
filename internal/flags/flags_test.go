@@ -182,6 +182,15 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 	assert.Equal(t, false, flags.JsonOutput)
 }
 
+func TestParseFlagsAMTInfoBadParam(t *testing.T) {
+	args := []string{"./rpc", "amtinfo", "-help"}
+	flags := NewFlags(args)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, utils.IncorrectCommandLineParameters, result)
+	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
+	assert.Equal(t, false, flags.JsonOutput)
+}
+
 func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
 	flags := NewFlags(args)

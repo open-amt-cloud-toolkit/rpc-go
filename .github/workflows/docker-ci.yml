@@ -8,6 +8,8 @@ name: Docker Image CI
 on:
   push:
     branches: [ main ]
+    tags:
+      - '*'
   pull_request:
     branches: [ main ]
 permissions:
@@ -19,7 +21,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604 # v2.5.0
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09 # v2.5.1
         with:
           egress-policy: audit
 
@@ -28,7 +30,7 @@ jobs:
         run: docker build -f "Dockerfile" --tag vprodemo.azurecr.io/rpc-go:${{ github.sha }} --tag vprodemo.azurecr.io/rpc-go:latest .
       - name: Docker Login
         if: ${{ github.ref == 'refs/heads/main' }}      
-        uses: docker/login-action@adb73476b6e06caddec5db0bc1deacbec8cdd947 # v1.6.0
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc # v2.2.0
         with:
           registry: vprodemo.azurecr.io
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -40,3 +42,6 @@ jobs:
       - name: Push the Docker image to the registry
         if: ${{ github.ref == 'refs/heads/main' }}      
         run: docker push vprodemo.azurecr.io/rpc-go:latest
+      - name: Push the Docker image to the registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: docker image tag vprodemo.azurecr.io/rpc-go:${GITHUB_REF#refs/tags/} && docker push vprodemo.azurecr.io/rpc-go:${GITHUB_REF#refs/tags/}

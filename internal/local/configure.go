@@ -28,7 +28,7 @@ func (service *ProvisioningService) Configure() int {
 	if len(service.flags.LocalConfig.WifiConfigs) > 0 {
 		return service.ConfigureWiFi()
 	}
-	return utils.InvalidParameters
+	return utils.IncorrectCommandLineParameters
 }
 
 func (service *ProvisioningService) ConfigureWiFi() int {
@@ -56,8 +56,7 @@ func (service *ProvisioningService) ConfigureWiFi() int {
 		}
 	}
 	if len(failures) > 0 {
-		// TODO: return the new warnings code
-		return utils.WiFiConfigurationFailed
+		return utils.WifiConfigurationWithWarnings
 	}
 	return utils.Success
 }

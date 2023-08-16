@@ -7,6 +7,7 @@ package flags
 import (
 	"flag"
 	"fmt"
+	"github.com/ilyakaznacheev/cleanenv"
 	"net"
 	"os"
 	"path/filepath"
@@ -217,4 +218,15 @@ func (f *Flags) ReadPasswordFromUser() (bool, int) {
 	}
 	f.Password = password
 	return true, utils.Success
+}
+
+func (f *Flags) handleLocalConfig() int {
+	if f.configContent != "" {
+		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.IncorrectCommandLineParameters
+		}
+	}
+	return utils.Success
 }

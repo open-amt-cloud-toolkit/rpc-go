@@ -8,7 +8,7 @@ const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
 	// ProjectVersion is the full version of this executable
-	ProjectVersion  = "2.11.0"
+	ProjectVersion  = "2.13.0"
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable
 	ClientName = "RPC"
@@ -40,52 +40,54 @@ const (
 	// (1-99) General Errors
 
 	// (1-19) Basic errors outside of Open AMT Cloud Toolkit
-	IncorrectPermissions  = 1 // Incorrect permissions (not admin or sudo)
-	HECIDriverNotDetected = 2 // HECI driver not detected
-	AmtNotDetected        = 3 // AMT not detected
-	AmtNotReady           = 4 // AMT not ready
+	IncorrectPermissions  = 1 // (not admin or sudo)
+	HECIDriverNotDetected = 2
+	AmtNotDetected        = 3
+	AmtNotReady           = 4
 
 	// (20-69) Input errors to RPC
-	MissingOrIncorrectURL              = 20 // Missing or incorrect URL
-	MissingOrIncorrectProfile          = 21 // Missing or incorrect profile
-	ServerCerificateVerificationFailed = 22 // Server certificate verification failed
-	MissingOrIncorrectPassword         = 23 // Missing or incorrect password
-	MissingDNSSuffix                   = 24 // Missing DNS Suffix
-	MissingHostname                    = 25 // Missing hostname
-	MissingProxyAddressAndPort         = 26 // Missing proxy address and port
-	MissingOrIncorrectStaticIP         = 27 // Missing static IP information
-	IncorrectCommandLineParameters     = 28 // Incorrect number of command line parameters
-	MissingOrIncorrectNetworkMask      = 29 // Missing or incorrect network mask
-	MissingOrIncorrectGateway          = 30 // Missing or incorrect gateway
-	MissingOrIncorrectPrimaryDNS       = 31 // Missing primary DNS Suffix
-	MissingOrIncorrectSecondaryDNS     = 32 // Missing secondary DNS Suffix
-	InvalidParameters                  = 33 // Invalid parameter combination
+	MissingOrIncorrectURL              = 20
+	MissingOrIncorrectProfile          = 21
+	ServerCerificateVerificationFailed = 22
+	MissingOrIncorrectPassword         = 23
+	MissingDNSSuffix                   = 24
+	MissingHostname                    = 25
+	MissingProxyAddressAndPort         = 26
+	MissingOrIncorrectStaticIP         = 27
+	IncorrectCommandLineParameters     = 28
+	MissingOrIncorrectNetworkMask      = 29
+	MissingOrIncorrectGateway          = 30
+	MissingOrIncorrectPrimaryDNS       = 31
+	MissingOrIncorrectSecondaryDNS     = 32
+	InvalidParameterCombination        = 33
 
 	// (70-99) Connection Errors
-	RPSAuthenticationFailed         = 70 // RPS authentication failed
+	RPSAuthenticationFailed         = 70
 	AMTConnectionFailed             = 71
 	OSNetworkInterfacesLookupFailed = 72
 
 	// (100-149) Activation, and configuration errors
-	AMTAuthenticationFailed         = 100 // AMT authentication failed
-	WSMANMessageError               = 101 // WSMAN message error
-	ActivationFailed                = 102 // Activation failed
-	NetworkConfigurationFailed      = 103 // Network configuration failed
-	CIRAConfigurationFailed         = 104 // CIRA configuration failed
-	TLSConfigurationFailed          = 105 // TLS configuration failed
-	WiFiConfigurationFailed         = 106 // WiFi configuration failed
-	AMTConfigurationFailed          = 107 // AMT features configuration failed
-	EightZeroTwoConfigurationFailed = 108 // 802.1x configuration failed
-	UnableToDeactivate              = 109 // Device is not in CCM mode
-	DeactivationFailed              = 110 // Deactivation Failed
-	UnableToActivate                = 111 // Device is not in pre-provisioning mode
-	UnmarshalMessageFailed          = 112 // Unmarshal wsman response failed
-	DeleteWifiConfigFailed          = 113 // Delete wifi configuration failed
+	AMTAuthenticationFailed        = 100
+	WSMANMessageError              = 101
+	ActivationFailed               = 102
+	NetworkConfigurationFailed     = 103
+	CIRAConfigurationFailed        = 104
+	TLSConfigurationFailed         = 105
+	WiFiConfigurationFailed        = 106
+	AMTFeaturesConfigurationFailed = 107
+	Ieee8021xConfigurationFailed   = 108
+	UnableToDeactivate             = 109
+	DeactivationFailed             = 110
+	UnableToActivate               = 111
+	WifiConfigurationWithWarnings  = 112
+	UnmarshalMessageFailed         = 113 // Unmarshal wsman response failed
+	DeleteWifiConfigFailed         = 114 // Delete wifi configuration failed
 
 	// (150-199) Maintenance Errors
-	ClockSyncFailed    = 150 // Clock sync failed
-	HostnameSyncFailed = 151 // Hostname sync failed
-	NetworkSyncFailed  = 152 // Network sync failed
+	SyncClockFailed      = 150
+	SyncHostnameFailed   = 151
+	SyncIpFailed         = 152
+	ChangePasswordFailed = 153
 
 	// (200-299) KPMU
 

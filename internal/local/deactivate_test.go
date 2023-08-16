@@ -9,19 +9,13 @@ import (
 	"testing"
 )
 
-func mockUnprovisionResponse(returnValue string) string {
-	return xmlBodyStart +
-		"<g:Unprovision_OUTPUT><g:ReturnValue>" + returnValue + "</g:ReturnValue></g:Unprovision_OUTPUT>" +
-		xmlBodyEnd
-}
-
 func TestDeactivation(t *testing.T) {
 	f := &flags.Flags{}
 	f.Command = utils.CommandDeactivate
 	f.LocalConfig.Password = "P@ssw0rd"
 	stdErr := errors.New("yep it failew")
 
-	t.Run("should return AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
+	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
 		lps := setupService(f)
 		mockControlModeErr = stdErr
 		resultCode := lps.Deactivate()
@@ -29,22 +23,12 @@ func TestDeactivation(t *testing.T) {
 		mockControlModeErr = nil
 	})
 
-	t.Run("should return UnableToDeactivate when already deactivated", func(t *testing.T) {
+	t.Run("returns UnableToDeactivate when ControlMode is pre-provisioning (0)", func(t *testing.T) {
 		lps := setupService(f)
 		// this is default mode for the mock already
 		// mockControlMode = 0
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.UnableToDeactivate, resultCode)
-	})
-
-	t.Run("should return DeactivationFailed if Unprovision fails", func(t *testing.T) {
-		lps := setupService(f)
-		mockControlMode = 1
-		mockUnprovisionErr = stdErr
-		resultCode := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, resultCode)
-		mockControlMode = 0
-		mockUnprovisionErr = nil
 	})
 }
 
@@ -54,19 +38,19 @@ func TestDeactivateCCM(t *testing.T) {
 	f.LocalConfig.Password = "P@ssw0rd"
 	mockControlMode = 1
 
-	t.Run("should return Success for CCM happy path", func(t *testing.T) {
+	t.Run("returns Success for happy path", func(t *testing.T) {
 		lps := setupService(f)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.Success, resultCode)
 	})
-	t.Run("should return DeactivationFailed for CCM AMT unprovision err", func(t *testing.T) {
+	t.Run("returns DeactivationFailed when unprovision fails", func(t *testing.T) {
 		mockUnprovisionErr = errors.New("test error")
 		lps := setupService(f)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.DeactivationFailed, resultCode)
 		mockUnprovisionErr = nil
 	})
-	t.Run("should return DeactivationFailed for CCM AMT unprovision non zero status", func(t *testing.T) {
+	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
 		mockUnprovisionCode = 1
 		lps := setupService(f)
 		resultCode := lps.Deactivate()
@@ -81,31 +65,36 @@ func TestDeactivateACM(t *testing.T) {
 	f.LocalConfig.Password = "P@ssw0rd"
 	mockControlMode = 2
 
-	t.Run("should return Success for ACM happy path", func(t *testing.T) {
+	t.Run("returns Success for happy path", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "POST", r.Method)
-			_, writeErr := w.Write([]byte(mockUnprovisionResponse("0")))
-			assert.Nil(t, writeErr)
+			respondUnprovision(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.Success, resultCode)
 	})
 
-	t.Run("should return UnableToDeactivate for client.Post error", func(t *testing.T) {
+	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision server error", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "POST", r.Method)
-			w.WriteHeader(http.StatusInternalServerError)
+			respondServerError(w)
 		})
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.UnableToDeactivate, resultCode)
 	})
-	t.Run("should return DeactivationFailed on non-zero ReturnValue", func(t *testing.T) {
+	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision xml error", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "POST", r.Method)
-			_, writeErr := w.Write([]byte(mockUnprovisionResponse("1")))
-			assert.Nil(t, writeErr)
+			respondBadXML(t, w)
+		})
+		lps := setupWithWsmanClient(f, handler)
+		resultCode := lps.Deactivate()
+		assert.Equal(t, utils.DeactivationFailed, resultCode)
+	})
+	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			mockUnprovisionResponse.Body.Unprovision_OUTPUT.ReturnValue = 1
+			respondUnprovision(t, w)
+			mockUnprovisionResponse.Body.Unprovision_OUTPUT.ReturnValue = 0
 		})
 		lps := setupWithWsmanClient(f, handler)
 		resultCode := lps.Deactivate()
