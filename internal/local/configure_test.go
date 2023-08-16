@@ -136,6 +136,8 @@ func TestConfigure(t *testing.T) {
 	t.Run("returns WiFiConfigurationFailed handling WifiConfigs from LocalConfig", func(t *testing.T) {
 		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
 		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{})) // PruneWifiConfigs
+		responsers = append(responsers, respondMsgFunc(t, wifi.PullEnvelope{}))        // PruneWifiConfigs
 		responsers = append(responsers, respondServerErrFunc())
 		lps := setupWsmanResponses(t, f, responsers)
 		resultCode := lps.Configure()
@@ -150,6 +152,8 @@ func TestConfigureWiFi(t *testing.T) {
 		pcsRsp := wifiportconfiguration.PortConfigurationResponse{}
 		pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
 		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{})) // PruneWifiConfigs
+		responsers = append(responsers, respondMsgFunc(t, wifi.PullEnvelope{}))        // PruneWifiConfigs
 		responsers = append(responsers, respondMsgFunc(t, pcsRsp))
 		responsers = append(responsers, respondMsgFunc(t, wifi.RequestStateChangeResponse{}))
 		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}))
@@ -161,6 +165,8 @@ func TestConfigureWiFi(t *testing.T) {
 		orig := f.LocalConfig.WifiConfigs[0].ProfileName
 		f.LocalConfig.WifiConfigs[0].ProfileName = "bad-name"
 		responsers := ResponseFuncArray{}
+		responsers = append(responsers, respondMsgFunc(t, wifi.EnumerationEnvelope{})) // PruneWifiConfigs
+		responsers = append(responsers, respondMsgFunc(t, wifi.PullEnvelope{}))        // PruneWifiConfigs
 		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.PortConfigurationResponse{}))
 		responsers = append(responsers, respondMsgFunc(t, wifi.RequestStateChangeResponse{}))
 		responsers = append(responsers, respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}))
