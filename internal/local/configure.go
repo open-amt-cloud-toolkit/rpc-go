@@ -97,6 +97,7 @@ func (service *ProvisioningService) PruneWifiConfigs() int {
 			log.Error(err)
 			return utils.DeleteWifiConfigFailed
 		}
+		log.Info(deleteMessageResponse)
 	}
 
 	return 0
