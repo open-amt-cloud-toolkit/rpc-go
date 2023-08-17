@@ -2,7 +2,6 @@ package local
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"regexp"
 	"rpc/internal/config"
@@ -19,78 +18,54 @@ import (
 func (service *ProvisioningService) Configure() int {
 	service.setupWsmanClient("admin", service.flags.Password)
 
-	//if service.flags.SubCommand == utils.SubCommandAddWifiSettings {
-	//	err := service.Configure8021xWiFi()
-	//	if err != nil {
-	//		return utils.WiFiConfigurationFailed
-	//	}
-	//}
-	if len(service.flags.LocalConfig.WifiConfigs) > 0 {
-		return service.ConfigureWiFi()
+	if service.flags.SubCommand == utils.SubCommandAddWifiSettings {
+		return service.AddWifiSettings()
 	}
 	return utils.IncorrectCommandLineParameters
 }
 
-func (service *ProvisioningService) ConfigureWiFi() int {
-	if errCode := service.PruneWifiConfigs(); errCode != 0 {
-		return errCode
+func (service *ProvisioningService) AddWifiSettings() int {
+	resultCode := service.PruneWifiConfigs()
+	if resultCode != utils.Success {
+		return resultCode
 	}
-	err := service.EnableWifi()
-	if err != nil {
-		log.Error(err)
-		return utils.WiFiConfigurationFailed
+	resultCode = service.EnableWifi()
+	if resultCode != utils.Success {
+		return resultCode
 	}
-	lc := service.flags.LocalConfig
-	var successes []string
-	var failures []string
-	for _, cfg := range lc.WifiConfigs {
-		log.Info("configuring wifi profile: ", cfg.ProfileName)
-		err = service.ProcessWifiConfig(&cfg)
-		if err != nil {
-			log.Error("failed configuring: ", cfg.ProfileName)
-			log.Error(err)
-			failures = append(failures, cfg.ProfileName)
-		} else {
-			log.Info("successfully configured: ", cfg.ProfileName)
-			successes = append(successes, cfg.ProfileName)
-		}
-	}
-	if len(failures) > 0 {
-		return utils.WifiConfigurationWithWarnings
-	}
-	return utils.Success
+	return service.ProcessWifiConfigs()
 }
 
 func (service *ProvisioningService) PruneWifiConfigs() int {
 	// Removes existing wifi configs
-	enumerateMessage := service.cimMessages.WiFiEndpointSettings.Enumerate()
-	enumerateResponse, err := service.client.Post(enumerateMessage)
+	xmlMsg := service.cimMessages.WiFiEndpointSettings.Enumerate()
+	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
 		log.Error(err)
 		return utils.WSMANMessageError
 	}
 
 	var enumerationEnvelope wifi.EnumerationEnvelope
-	if err := xml.Unmarshal(enumerateResponse, &enumerationEnvelope); err != nil {
+	if err := xml.Unmarshal(xmlRsp, &enumerationEnvelope); err != nil {
 		log.Error(err)
 		return utils.UnmarshalMessageFailed
 	}
 
-	pullMessage := service.cimMessages.WiFiEndpointSettings.Pull(enumerationEnvelope.Body.EnumerateResponse.EnumerationContext)
-	pullResponse, err := service.client.Post(pullMessage)
+	xmlMsg = service.cimMessages.WiFiEndpointSettings.Pull(enumerationEnvelope.Body.EnumerateResponse.EnumerationContext)
+	xmlRsp, err = service.client.Post(xmlMsg)
 	if err != nil {
 		log.Error(err)
 		return utils.WSMANMessageError
 	}
 
 	var pullEnvelope wifi.PullEnvelope
-	if err := xml.Unmarshal(pullResponse, &pullEnvelope); err != nil {
+	if err := xml.Unmarshal(xmlRsp, &pullEnvelope); err != nil {
 		log.Error(err)
 		return utils.UnmarshalMessageFailed
 	}
 
-	for _, config := range pullEnvelope.Body.PullResponse.Items.WifiSettings {
-		deleteMessage := service.cimMessages.WiFiEndpointSettings.Delete(config.InstanceID)
+	for _, wifiSetting := range pullEnvelope.Body.PullResponse.Items.WifiSettings {
+		deleteMessage := service.cimMessages.WiFiEndpointSettings.Delete(wifiSetting.InstanceID)
 		_, err := service.client.Post(deleteMessage)
 		if err != nil {
 			log.Error(err)
@@ -101,12 +76,38 @@ func (service *ProvisioningService) PruneWifiConfigs() int {
 	return 0
 }
 
-func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) error {
+func (service *ProvisioningService) ProcessWifiConfigs() int {
+	lc := service.flags.LocalConfig
+	var successes []string
+	var failures []string
+	for _, cfg := range lc.WifiConfigs {
+		log.Info("configuring wifi profile: ", cfg.ProfileName)
+		resultCode := service.ProcessWifiConfig(&cfg)
+		if resultCode != utils.Success {
+			log.Error("failed configuring: ", cfg.ProfileName)
+			failures = append(failures, cfg.ProfileName)
+		} else {
+			log.Info("successfully configured: ", cfg.ProfileName)
+			successes = append(successes, cfg.ProfileName)
+		}
+	}
+	if len(failures) > 0 {
+		if len(successes) > 0 {
+			return utils.WifiConfigurationWithWarnings
+		} else {
+			return utils.WiFiConfigurationFailed
+		}
+	}
+	return utils.Success
+}
+
+func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) int {
 
 	// profile names can only be alphanumeric (not even dashes)
 	var reAlphaNum = regexp.MustCompile("[^a-zA-Z0-9]+")
 	if reAlphaNum.MatchString(wifiCfg.ProfileName) {
-		return fmt.Errorf("invalid wifi profile name: %s (only alphanumeric allowed)", wifiCfg.ProfileName)
+		log.Errorf("invalid wifi profile name: %s (only alphanumeric allowed)", wifiCfg.ProfileName)
+		return utils.MissingOrIncorrectWifiProfileName
 	}
 
 	wiFiEndpointSettings := models.WiFiEndpointSettings{
@@ -124,10 +125,10 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 		wiFiEndpointSettings.AuthenticationMethod == models.AuthenticationMethod_WPA2_IEEE8021x {
 
 		ieee8021xSettings = &models.IEEE8021xSettings{}
-		err := service.ProcessIeee8012xConfig(wifiCfg.Ieee8021xProfileName, ieee8021xSettings, &handles)
-		if err != nil {
+		resultCode := service.ProcessIeee8012xConfig(wifiCfg.Ieee8021xProfileName, ieee8021xSettings, &handles)
+		if resultCode != utils.Success {
 			service.RollbackAddedItems(&handles)
-			return err
+			return resultCode
 		}
 
 	} else {
@@ -142,23 +143,24 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
 		service.RollbackAddedItems(&handles)
-		return err
+		return utils.WSMANMessageError
 	}
 	var addWifiSettingsRsp wifiportconfiguration.AddWiFiSettingsResponse
 	err = xml.Unmarshal(xmlRsp, &addWifiSettingsRsp)
 	if err != nil {
 		service.RollbackAddedItems(&handles)
-		return err
+		return utils.UnmarshalMessageFailed
 	}
 	returnValue := addWifiSettingsRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue
 	if returnValue != 0 {
 		service.RollbackAddedItems(&handles)
-		return fmt.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", returnValue)
+		log.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", returnValue)
+		return utils.AmtPtStatusCodeBase + returnValue
 	}
-	return nil
+	return utils.Success
 }
 
-func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, settings *models.IEEE8021xSettings, handles *Handles) error {
+func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, settings *models.IEEE8021xSettings, handles *Handles) int {
 
 	// find the matching configuration
 	var ieee8021xConfig *config.Ieee8021xConfig
@@ -168,8 +170,8 @@ func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, s
 		}
 	}
 	if ieee8021xConfig == nil {
-		errMsg := fmt.Sprintf("missing Ieee8021xConfig %s", profileName)
-		return errors.New(errMsg)
+		log.Errorf("missing Ieee8021xConfig %s", profileName)
+		return utils.MissingIeee8021xConfiguration
 	}
 
 	// translate from configuration to settings
@@ -182,32 +184,31 @@ func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, s
 	}
 
 	// add key and certs
-	var err error
-	handles.privateKeyHandle, err = service.AddPrivateKey(ieee8021xConfig.PrivateKey)
-	if err != nil {
-		return err
+	var resultCode int
+	handles.privateKeyHandle, resultCode = service.AddPrivateKey(ieee8021xConfig.PrivateKey)
+	if resultCode != utils.Success {
+		return resultCode
 	}
-	handles.clientCertHandle, err = service.AddClientCert(ieee8021xConfig.ClientCert)
-	if err != nil {
-		return err
+	handles.clientCertHandle, resultCode = service.AddClientCert(ieee8021xConfig.ClientCert)
+	if resultCode != utils.Success {
+		return resultCode
 	}
-	handles.rootCertHandle, err = service.AddTrustedRootCert(ieee8021xConfig.CACert)
-	if err != nil {
-		return err
-	}
-	return nil
+	handles.rootCertHandle, resultCode = service.AddTrustedRootCert(ieee8021xConfig.CACert)
+	return resultCode
 }
 
-func (service *ProvisioningService) EnableWifi() error {
+func (service *ProvisioningService) EnableWifi() int {
 	xmlMsg := service.amtMessages.WiFiPortConfigurationService.Get()
 	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
-		return err
+		log.Error(err)
+		return utils.WSMANMessageError
 	}
 	var wifiPortConfigResponse wifiportconfiguration.PortConfigurationResponse
 	err = xml.Unmarshal(xmlRsp, &wifiPortConfigResponse)
 	if err != nil {
-		return err
+		log.Error(err)
+		return utils.UnmarshalMessageFailed
 	}
 
 	// if local sync not enable, enable it
@@ -218,15 +219,18 @@ func (service *ProvisioningService) EnableWifi() error {
 		// no response struct in wsmang messages
 		xmlRsp, err = service.client.Post(xmlMsg)
 		if err != nil {
-			return err
+			log.Error(err)
+			return utils.WSMANMessageError
 		}
 		err = xml.Unmarshal(xmlRsp, &wifiPortConfigResponse)
 		if err != nil {
-			return err
+			log.Error(err)
+			return utils.UnmarshalMessageFailed
 		}
 
 		if wifiPortConfigResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == 0 {
-			return errors.New("failed to enable wifi local profile synchronization")
+			log.Errorf("failed to enable wifi local profile synchronization")
+			return utils.WiFiConfigurationFailed
 		}
 	}
 
@@ -235,19 +239,22 @@ func (service *ProvisioningService) EnableWifi() error {
 	xmlMsg = service.cimMessages.WiFiPort.RequestStateChange(32769)
 	xmlRsp, err = service.client.Post(xmlMsg)
 	if err != nil {
-		return err
+		log.Error(err)
+		return utils.WSMANMessageError
 	}
 	var stateChangeRsp wifi.RequestStateChangeResponse
 	err = xml.Unmarshal(xmlRsp, &stateChangeRsp)
 	if err != nil {
-		return err
+		log.Error(err)
+		return utils.UnmarshalMessageFailed
 	}
 	returnValue := stateChangeRsp.Body.RequestStateChange_OUTPUT.ReturnValue
 	if returnValue != 0 {
-		return fmt.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", returnValue)
+		log.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", returnValue)
+		return utils.AmtPtStatusCodeBase + returnValue
 	}
 
-	return nil
+	return utils.Success
 }
 
 type Handles struct {
@@ -290,72 +297,81 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	}
 }
 
-func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, error) {
+func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, int) {
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddTrustedRootCertificate(caCert)
 	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.WSMANMessageError
 	}
 	var pkResponse publickey.Response
 	err = xml.Unmarshal(xmlRsp, &pkResponse)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.UnmarshalMessageFailed
 	}
-	err = checkReturnValue(pkResponse.Body.AddTrustedRootCertificate_OUTPUT.ReturnValue, "root certificate")
-	if err != nil {
-		return "", err
+	resultCode := checkReturnValue(pkResponse.Body.AddTrustedRootCertificate_OUTPUT.ReturnValue, "root certificate")
+	if resultCode != utils.Success {
+		return "", resultCode
 	}
 	handle := pkResponse.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
-	return handle, nil
+	return handle, utils.Success
 }
 
-func (service *ProvisioningService) AddClientCert(clientCert string) (string, error) {
+func (service *ProvisioningService) AddClientCert(clientCert string) (string, int) {
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddCertificate(clientCert)
 	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.WSMANMessageError
 	}
 	var pkResponse publickey.Response
 	err = xml.Unmarshal(xmlRsp, &pkResponse)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.UnmarshalMessageFailed
 	}
-	err = checkReturnValue(pkResponse.Body.AddTrustedCertificate_OUTPUT.ReturnValue, "client certificate")
-	if err != nil {
-		return "", err
+	resultCode := checkReturnValue(pkResponse.Body.AddTrustedCertificate_OUTPUT.ReturnValue, "client certificate")
+	if resultCode != utils.Success {
+		return "", resultCode
 	}
 	handle := pkResponse.Body.AddTrustedCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
-	return handle, nil
+	return handle, utils.Success
 }
 
-func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, error) {
+func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, int) {
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddKey([]byte(privateKey))
 	xmlRsp, err := service.client.Post(xmlMsg)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.WSMANMessageError
 	}
 	var pkResponse publickey.Response
 	err = xml.Unmarshal(xmlRsp, &pkResponse)
 	if err != nil {
-		return "", err
+		log.Error(err)
+		return "", utils.UnmarshalMessageFailed
 	}
-	err = checkReturnValue(pkResponse.Body.AddKey_OUTPUT.ReturnValue, "private key")
-	if err != nil {
-		return "", err
+	resultCode := checkReturnValue(pkResponse.Body.AddKey_OUTPUT.ReturnValue, "private key")
+	if resultCode != utils.Success {
+		return "", resultCode
 	}
 	handle := pkResponse.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selector[0].Value
-	return handle, nil
+	return handle, utils.Success
 }
 
-func checkReturnValue(returnValue int, item string) error {
-	if returnValue != 0 {
+func checkReturnValue(returnValue int, item string) int {
+	if returnValue != common.PT_STATUS_SUCCESS {
 		if returnValue == common.PT_STATUS_DUPLICATE {
-			return fmt.Errorf("%s already exists and must be removed before continuing", item)
+			log.Errorf("%s already exists and must be removed before continuing", item)
+			return utils.AmtPtStatusCodeBase + returnValue
 		} else if returnValue == common.PT_STATUS_INVALID_CERT {
-			return fmt.Errorf("%s is invalid", item)
+			log.Errorf("%s is invalid", item)
+			return utils.AmtPtStatusCodeBase + returnValue
 		} else {
-			return fmt.Errorf("%s non-zero return code: %d", item, returnValue)
+			log.Errorf("%s non-zero return code: %d", item, returnValue)
+			return utils.AmtPtStatusCodeBase + returnValue
 		}
 	}
-	return nil
+	return utils.Success
 }

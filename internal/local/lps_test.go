@@ -83,6 +83,51 @@ var mockUnprovisionErr error = nil
 
 func (c MockAMT) Unprovision() (int, error) { return mockUnprovisionCode, mockUnprovisionErr }
 
+// TODO: remove these when local-acm-activation branch is available in main
+type ResponseFuncArray []func(w http.ResponseWriter, r *http.Request)
+
+func setupWsmanResponses(t *testing.T, f *flags.Flags, responses ResponseFuncArray) ProvisioningService {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		if len(responses) > 0 {
+			responses[0](w, r)
+			responses = responses[1:]
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
+	return setupWithWsmanClient(f, handler)
+}
+
+func respondServerErrFunc() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func respondBadXmlFunc(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, resultCode := w.Write([]byte(`not really xml is it?`))
+		assert.Nil(t, resultCode)
+	}
+}
+
+func respondMsgFunc(t *testing.T, msg any) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bytes, err := xml.Marshal(msg)
+		assert.Nil(t, err)
+		_, err = w.Write(bytes)
+		assert.Nil(t, err)
+	}
+}
+
+func respondStringFunc(t *testing.T, msg string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, err := w.Write([]byte(msg))
+		assert.Nil(t, err)
+	}
+}
+
 func setupService(f *flags.Flags) ProvisioningService {
 	service := NewProvisioningService(f)
 	service.amtCommand = MockAMT{}
@@ -117,10 +162,10 @@ func TestExecute(t *testing.T) {
 		assert.Equal(t, utils.Success, resultCode)
 	})
 
-	t.Run("execute CommandMaintenance with no SubCommand fails", func(t *testing.T) {
-		f.Command = utils.CommandMaintenance
+	t.Run("execute CommandConfigure with no SubCommand fails", func(t *testing.T) {
+		f.Command = utils.CommandConfigure
 		resultCode := ExecuteCommand(f)
-		assert.Equal(t, utils.InvalidParameterCombination, resultCode)
+		assert.Equal(t, utils.IncorrectCommandLineParameters, resultCode)
 	})
 }
 

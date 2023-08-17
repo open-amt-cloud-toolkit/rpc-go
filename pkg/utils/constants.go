@@ -67,21 +67,24 @@ const (
 	OSNetworkInterfacesLookupFailed = 72
 
 	// (100-149) Activation, and configuration errors
-	AMTAuthenticationFailed        = 100
-	WSMANMessageError              = 101
-	ActivationFailed               = 102
-	NetworkConfigurationFailed     = 103
-	CIRAConfigurationFailed        = 104
-	TLSConfigurationFailed         = 105
-	WiFiConfigurationFailed        = 106
-	AMTFeaturesConfigurationFailed = 107
-	Ieee8021xConfigurationFailed   = 108
-	UnableToDeactivate             = 109
-	DeactivationFailed             = 110
-	UnableToActivate               = 111
-	WifiConfigurationWithWarnings  = 112
-	UnmarshalMessageFailed         = 113 // Unmarshal wsman response failed
-	DeleteWifiConfigFailed         = 114 // Delete wifi configuration failed
+	AMTAuthenticationFailed           = 100
+	WSMANMessageError                 = 101
+	ActivationFailed                  = 102
+	NetworkConfigurationFailed        = 103
+	CIRAConfigurationFailed           = 104
+	TLSConfigurationFailed            = 105
+	WiFiConfigurationFailed           = 106
+	AMTFeaturesConfigurationFailed    = 107
+	Ieee8021xConfigurationFailed      = 108
+	UnableToDeactivate                = 109
+	DeactivationFailed                = 110
+	UnableToActivate                  = 111
+	WifiConfigurationWithWarnings     = 112
+	UnmarshalMessageFailed            = 113
+	DeleteWifiConfigFailed            = 114
+	MissingWifiConfiguration          = 115
+	MissingOrIncorrectWifiProfileName = 116
+	MissingIeee8021xConfiguration     = 117
 
 	// (150-199) Maintenance Errors
 	SyncClockFailed      = 150
@@ -92,4 +95,7 @@ const (
 	// (200-299) KPMU
 
 	// (300-399) Redfish
+
+	// (1000 - 3000) Amt PT Status Code Block
+	AmtPtStatusCodeBase = 1000
 )
