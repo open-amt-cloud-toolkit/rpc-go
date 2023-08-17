@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"os"
@@ -60,11 +61,13 @@ func (f *Flags) handleAddWifiSettings() int {
 	var err error
 	var resultCode int
 	var wifiSecretConfig config.SecretConfig
+	var configJson string
 	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
 	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.flagSetAddWifiSettings.StringVar(&f.LocalConfig.FilePath, "configFile", "", "specify a config file ")
+	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
 	f.flagSetAddWifiSettings.StringVar(&wifiSecretConfig.FilePath, "secretFile", "", "specify a secret file ")
 	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
@@ -96,12 +99,25 @@ func (f *Flags) handleAddWifiSettings() int {
 		ieee8021xCfg.ProfileName = wifiCfg.ProfileName
 	}
 
+	if configJson != "" {
+		err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
+		if err != nil {
+			log.Error(err)
+			return utils.IncorrectCommandLineParameters
+		}
+	}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
 	resultCode = f.handleLocalConfig()
 	if resultCode != utils.Success {
 		return resultCode
 	}
+	cfgs, err := json.Marshal(f.LocalConfig)
+	if err != nil {
+		log.Error("unable to marshal activationResponse to JSON")
+		return 0
+	}
+	fmt.Println(string(cfgs))
 
 	if wifiSecretConfig.FilePath != "" {
 		err = cleanenv.ReadConfig(wifiSecretConfig.FilePath, &wifiSecretConfig)

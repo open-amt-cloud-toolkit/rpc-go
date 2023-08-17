@@ -20,6 +20,14 @@ func TestConfigFiles(t *testing.T) {
 	assert.Equal(t, utils.Success, gotResult)
 }
 
+func TestConfigJson(t *testing.T) {
+	cmdLine := `rpc configure addwifisettings -secretFile ../../secrets-wifi.yaml -password test -configJson {"Password":"","FilePath":"../../config-wifi.yaml","WifiConfigs":[{"ProfileName":"wifiWPA2","SSID":"ssid","Priority":1,"AuthenticationMethod":6,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":""},{"ProfileName":"wifi8021x","SSID":"ssid","Priority":2,"AuthenticationMethod":7,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":"ieee8021xEAP-TLS"}],"Ieee8021xConfigs":[{"ProfileName":"ieee8021xEAP-TLS","Username":"test","Password":"","AuthenticationProtocol":0,"ClientCert":"test","CACert":"test","PrivateKey":""},{"ProfileName":"ieee8021xPEAPv0","Username":"test","Password":"","AuthenticationProtocol":2,"ClientCert":"testClientCert","CACert":"testCaCert","PrivateKey":"testPrivateKey"}],"AMTPassword":"","ProvisioningCert":"","ProvisioningCertPwd":""}`
+	defer userInput(t, "userInput\nuserInput\nuserInput")()
+	args := strings.Fields(cmdLine)
+	flags := NewFlags(args)
+	gotResult := flags.ParseFlags()
+	assert.Equal(t, utils.Success, gotResult)
+}
 func TestHandleConfigureCommand(t *testing.T) {
 	t.TempDir()
 	cases := []struct {
@@ -69,7 +77,7 @@ func TestHandleConfigureCommand(t *testing.T) {
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Valid with reading from file",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile ../../config-wifi.yaml",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile ../../config-wifi.yaml -secretFile ../../secrets-wifi.yaml",
 			flagsLocal:     true,
 			expectedResult: utils.Success,
 		},

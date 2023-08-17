@@ -180,15 +180,15 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 			wantResult: utils.MissingOrIncorrectPassword,
 		},
 		"should fail if acm and local config file error": {
-			cmdLine:    "./rpc activate -local -acm -config ./nofilehere.txt",
-			wantResult: utils.IncorrectCommandLineParameters,
+			cmdLine:    "./rpc activate -local -acm -configFile ./nofilehere.txt",
+			wantResult: utils.FailedReadingConfiguration,
 		},
 		"should fail if acm and ACM Settings not specified": {
 			cmdLine:    "./rpc activate -local -acm",
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should pass if acm with example config file": {
-			cmdLine:    "./rpc activate -local -acm -config ../../config.yaml",
+			cmdLine:    "./rpc activate -local -acm -configFile ../../config.yaml",
 			wantResult: utils.Success,
 		},
 		"should pass wif acm and ACM Settings specified": {

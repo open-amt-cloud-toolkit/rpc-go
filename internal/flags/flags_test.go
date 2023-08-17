@@ -231,10 +231,10 @@ func TestParseFlagsVersion(t *testing.T) {
 	assert.Equal(t, false, flags.JsonOutput)
 }
 func TestParseFlagsConfigure(t *testing.T) {
-	args := []string{"./rpc", "configure", "addwifisettings", "-config", "../../config-wifi.yaml", "-password", "Passw0rd!"}
+	args := []string{"./rpc", "configure"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, utils.IncorrectCommandLineParameters, result)
 	assert.Equal(t, flags.Command, utils.CommandConfigure)
 	assert.Equal(t, false, flags.JsonOutput)
 }
