@@ -62,9 +62,11 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file ")
+	f.flagSetAddWifiSettings.StringVar(&f.secretContent, "secret", "", "specify a config file ")
 	// TODO: these are the params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
+	secretCfg := config.SecretConfig{}
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
@@ -77,12 +79,20 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
+	f.flagSetAddWifiSettings.StringVar(&secretCfg.ClientCert, "secretClientCert", "", "specify client certificate")
+	f.flagSetAddWifiSettings.StringVar(&secretCfg.CACert, "secretCaCert", "", "specify CA certificate")
+	f.flagSetAddWifiSettings.StringVar(&secretCfg.PrivateKey, "secretPrivateKey", "", "specify private key")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
 	if err := f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
+		if f.Password == "" {
+			log.Error("commandline error: missing password")
+			return utils.MissingOrIncorrectPassword
+		} else {
+			return utils.IncorrectCommandLineParameters
+		}
 	}
 
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
@@ -95,6 +105,14 @@ func (f *Flags) handleAddWifiSettings() int {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)
+			return utils.IncorrectCommandLineParameters
+		}
+	}
+
+	if f.secretContent != "" {
+		err := cleanenv.ReadConfig(f.secretContent, &f.LocalConfig)
+		if err != nil {
+			log.Error("secrets error: ", err)
 			return utils.IncorrectCommandLineParameters
 		}
 	}

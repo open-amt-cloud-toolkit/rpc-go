@@ -6,6 +6,7 @@ type (
 		IEEE8021XSettings `yaml:"ieee801xConfig"`
 		WifiConfigs       `yaml:"wifiConfigs"`
 		Ieee8021xConfigs  `yaml:"ieee8021xConfigs"`
+		SecretConfigs     `yaml:"secretConfig"`
 		ACMSettings       `yaml:"acmactivate"`
 	}
 	IEEE8021XSettings struct {
@@ -30,6 +31,12 @@ type (
 		PskPassphrase        string `yaml:"pskPassphrase"`
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
+	SecretConfigs []SecretConfig
+	SecretConfig  struct {
+		ClientCert string `yaml:"secretClientCert"`
+		CACert     string `yaml:"secretCaCert"`
+		PrivateKey string `yaml:"secretPrivateKey"`
+	}
 	Ieee8021xConfigs []Ieee8021xConfig
 	Ieee8021xConfig  struct {
 		ProfileName            string `yaml:"profileName"`
@@ -40,6 +47,7 @@ type (
 		CACert                 string `yaml:"caCert"`
 		PrivateKey             string `yaml:"privateKey"`
 	}
+
 	ACMSettings struct {
 		AMTPassword         string `yaml:"amtPassword"`
 		ProvisioningCert    string `yaml:"provisioningCert"`

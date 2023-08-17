@@ -7,7 +7,6 @@ package flags
 import (
 	"flag"
 	"fmt"
-	"github.com/ilyakaznacheev/cleanenv"
 	"net"
 	"os"
 	"path/filepath"
@@ -16,6 +15,8 @@ import (
 	"rpc/pkg/utils"
 	"strconv"
 	"time"
+
+	"github.com/ilyakaznacheev/cleanenv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -65,6 +66,7 @@ type Flags struct {
 	UseCCM                               bool
 	UseACM                               bool
 	configContent                        string
+	secretContent                        string
 	LocalConfig                          config.Config
 	amtInfoCommand                       *flag.FlagSet
 	amtActivateCommand                   *flag.FlagSet
