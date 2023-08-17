@@ -21,7 +21,7 @@ func (f *Flags) handleActivateCommand() int {
 		return nil
 	})
 	// for local activation in ACM mode need a few more items
-	f.amtActivateCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
+	f.amtActivateCommand.StringVar(&f.LocalConfig.FilePath, "configFile", "", "specify a config file ")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.AMTPassword, "amtPassword", "", "amt password")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCert, "provisioningCert", "", "provisioning certificate")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCertPwd, "provisioningCertPwd", "", "provisioning certificate password")

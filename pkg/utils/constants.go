@@ -60,6 +60,8 @@ const (
 	MissingOrIncorrectPrimaryDNS       = 31
 	MissingOrIncorrectSecondaryDNS     = 32
 	InvalidParameterCombination        = 33
+	FailedReadingConfiguration         = 34
+	InvalidUserInput                   = 35
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         = 70

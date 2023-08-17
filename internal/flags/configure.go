@@ -2,6 +2,7 @@ package flags
 
 import (
 	"fmt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"os"
 	"path/filepath"
 	"rpc/internal/config"
@@ -29,20 +30,20 @@ func (f *Flags) handleConfigureCommand() int {
 		return utils.IncorrectCommandLineParameters
 	}
 
-	var errCode = utils.Success
+	var resultCode = utils.Success
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "addwifisettings":
-		errCode = f.handleAddWifiSettings()
+		resultCode = f.handleAddWifiSettings()
 		break
 	default:
 		f.printConfigurationUsage()
-		errCode = utils.IncorrectCommandLineParameters
+		resultCode = utils.IncorrectCommandLineParameters
 		break
 	}
-	if errCode != utils.Success {
-		return errCode
+	if resultCode != utils.Success {
+		return resultCode
 	}
 
 	f.Local = true
@@ -56,17 +57,18 @@ func (f *Flags) handleConfigureCommand() int {
 }
 
 func (f *Flags) handleAddWifiSettings() int {
-
+	var err error
+	var resultCode int
+	var wifiSecretConfig config.SecretConfig
 	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
 	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file ")
-	f.flagSetAddWifiSettings.StringVar(&f.secretContent, "secret", "", "specify a config file ")
-	// TODO: these are the params for entering a single wifi config from command line
+	f.flagSetAddWifiSettings.StringVar(&f.LocalConfig.FilePath, "configFile", "", "specify a config file ")
+	f.flagSetAddWifiSettings.StringVar(&wifiSecretConfig.FilePath, "secretFile", "", "specify a secret file ")
+	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
-	secretCfg := config.SecretConfig{}
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
@@ -79,54 +81,120 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
-	f.flagSetAddWifiSettings.StringVar(&secretCfg.ClientCert, "secretClientCert", "", "specify client certificate")
-	f.flagSetAddWifiSettings.StringVar(&secretCfg.CACert, "secretCaCert", "", "specify CA certificate")
-	f.flagSetAddWifiSettings.StringVar(&secretCfg.PrivateKey, "secretPrivateKey", "", "specify private key")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
-	if err := f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
+	if err = f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
-		if f.Password == "" {
-			log.Error("commandline error: missing password")
-			return utils.MissingOrIncorrectPassword
-		} else {
-			return utils.IncorrectCommandLineParameters
-		}
+		return utils.IncorrectCommandLineParameters
+	}
+
+	// port the profile name as it is understood a 8021x config will 'match' this wificfg
+	if wifiCfg.ProfileName != "" {
+		wifiCfg.Ieee8021xProfileName = wifiCfg.ProfileName
+		// don't worry if wifiCfg is not using 8021x, it will be ignored or verified later
+		ieee8021xCfg.ProfileName = wifiCfg.ProfileName
 	}
 
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
-	//Check if ieee8021x is empty, if so do not append.
-	if !ieee8021xCfgIsEmpty(ieee8021xCfg) {
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
+	resultCode = f.handleLocalConfig()
+	if resultCode != utils.Success {
+		return resultCode
 	}
 
-	if f.configContent != "" {
-		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
+	if wifiSecretConfig.FilePath != "" {
+		err = cleanenv.ReadConfig(wifiSecretConfig.FilePath, &wifiSecretConfig)
 		if err != nil {
-			log.Error("config error: ", err)
-			return utils.IncorrectCommandLineParameters
+			log.Error("error reading secrets file: ", err)
+			return utils.FailedReadingConfiguration
 		}
 	}
 
-	if f.secretContent != "" {
-		err := cleanenv.ReadConfig(f.secretContent, &f.LocalConfig)
-		if err != nil {
-			log.Error("secrets error: ", err)
-			return utils.IncorrectCommandLineParameters
-		}
+	// merge secrets with configs
+	resultCode = f.mergeWifiSecrets(wifiSecretConfig)
+	if resultCode != utils.Success {
+		return resultCode
 	}
-
-	configFileStatus := f.verifyWifiConfigurationFile()
-	if configFileStatus != 0 {
-		log.Error("config error")
-		// log.Error("config error: ", err)
-		return utils.IncorrectCommandLineParameters
+	// prompt for missing secrets
+	resultCode = f.promptForSecrets()
+	if resultCode != utils.Success {
+		return resultCode
+	}
+	// verify configs
+	resultCode = f.verifyWifiConfigurations()
+	if resultCode != utils.Success {
+		return resultCode
 	}
 	return utils.Success
 }
 
-func (f *Flags) verifyWifiConfigurationFile() int {
+func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
+	for _, secret := range wifiSecretConfig.Secrets {
+		if secret.ProfileName == "" {
+			continue
+		}
+		if secret.PskPassphrase != "" {
+			for i, _ := range f.LocalConfig.WifiConfigs {
+				item := &f.LocalConfig.WifiConfigs[i]
+				if item.ProfileName == secret.ProfileName {
+					item.PskPassphrase = secret.PskPassphrase
+				}
+			}
+		}
+		if secret.Password != "" {
+			for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+				item := &f.LocalConfig.Ieee8021xConfigs[i]
+				if item.ProfileName == secret.ProfileName {
+					item.Password = secret.Password
+				}
+			}
+		}
+		if secret.PrivateKey != "" {
+			for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+				item := &f.LocalConfig.Ieee8021xConfigs[i]
+				if item.ProfileName == secret.ProfileName {
+					item.PrivateKey = secret.PrivateKey
+				}
+			}
+		}
+	}
+	return utils.Success
+}
+
+func (f *Flags) promptForSecrets() int {
+	for i, _ := range f.LocalConfig.WifiConfigs {
+		item := &f.LocalConfig.WifiConfigs[i]
+		authMethod := models.AuthenticationMethod(item.AuthenticationMethod)
+		if authMethod == models.AuthenticationMethod_WPA2_PSK &&
+			item.PskPassphrase == "" {
+			resultCode := f.PromptUserInput("Please enter PskPassphrase for "+item.ProfileName+": ", &item.PskPassphrase)
+			if resultCode != utils.Success {
+				return resultCode
+			}
+		}
+	}
+	for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+		item := &f.LocalConfig.Ieee8021xConfigs[i]
+		authProtocol := models.AuthenticationProtocol(item.AuthenticationProtocol)
+		if authProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 &&
+			item.Password == "" {
+			resultCode := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
+			if resultCode != utils.Success {
+				return resultCode
+			}
+		}
+		if item.PrivateKey == "" {
+			resultCode := f.PromptUserInput("Please enter private key for "+item.ProfileName+": ", &item.PrivateKey)
+			if resultCode != utils.Success {
+				return resultCode
+			}
+		}
+	}
+	return utils.Success
+}
+
+func (f *Flags) verifyWifiConfigurations() int {
 	for _, wifiConfigs := range f.LocalConfig.WifiConfigs {
 		//Check profile name is not empty
 		if wifiConfigs.ProfileName == "" {

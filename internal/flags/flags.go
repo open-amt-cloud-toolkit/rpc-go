@@ -42,49 +42,46 @@ type HostnameInfo struct {
 
 // Flags holds data received from the command line
 type Flags struct {
-	commandLineArgs                      []string
-	URL                                  string
-	DNS                                  string
-	Hostname                             string
-	Proxy                                string
-	Command                              string
-	SubCommand                           string
-	Profile                              string
-	LMSAddress                           string
-	LMSPort                              string
-	SkipCertCheck                        bool
-	Verbose                              bool
-	Force                                bool
-	JsonOutput                           bool
-	RandomPassword                       bool
-	Local                                bool
-	StaticPassword                       string
-	Password                             string
-	LogLevel                             string
-	Token                                string
-	TenantID                             string
-	UseCCM                               bool
-	UseACM                               bool
-	configContent                        string
-	secretContent                        string
-	LocalConfig                          config.Config
-	amtInfoCommand                       *flag.FlagSet
-	amtActivateCommand                   *flag.FlagSet
-	amtDeactivateCommand                 *flag.FlagSet
-	amtMaintenanceAddWiFiSettingsCommand *flag.FlagSet
-	amtMaintenanceSyncIPCommand          *flag.FlagSet
-	amtMaintenanceSyncClockCommand       *flag.FlagSet
-	amtMaintenanceSyncHostnameCommand    *flag.FlagSet
-	amtMaintenanceChangePasswordCommand  *flag.FlagSet
-	versionCommand                       *flag.FlagSet
-	flagSetAddWifiSettings               *flag.FlagSet
-	amtCommand                           amt.AMTCommand
-	netEnumerator                        NetEnumerator
-	IpConfiguration                      IPConfiguration
-	HostnameInfo                         HostnameInfo
-	AMTTimeoutDuration                   time.Duration
-	FriendlyName                         string
-	AmtInfo                              AmtInfoFlags
+	commandLineArgs                     []string
+	URL                                 string
+	DNS                                 string
+	Hostname                            string
+	Proxy                               string
+	Command                             string
+	SubCommand                          string
+	Profile                             string
+	LMSAddress                          string
+	LMSPort                             string
+	SkipCertCheck                       bool
+	Verbose                             bool
+	Force                               bool
+	JsonOutput                          bool
+	RandomPassword                      bool
+	Local                               bool
+	StaticPassword                      string
+	Password                            string
+	LogLevel                            string
+	Token                               string
+	TenantID                            string
+	UseCCM                              bool
+	UseACM                              bool
+	LocalConfig                         config.Config
+	amtInfoCommand                      *flag.FlagSet
+	amtActivateCommand                  *flag.FlagSet
+	amtDeactivateCommand                *flag.FlagSet
+	amtMaintenanceSyncIPCommand         *flag.FlagSet
+	amtMaintenanceSyncClockCommand      *flag.FlagSet
+	amtMaintenanceSyncHostnameCommand   *flag.FlagSet
+	amtMaintenanceChangePasswordCommand *flag.FlagSet
+	versionCommand                      *flag.FlagSet
+	flagSetAddWifiSettings              *flag.FlagSet
+	amtCommand                          amt.AMTCommand
+	netEnumerator                       NetEnumerator
+	IpConfiguration                     IPConfiguration
+	HostnameInfo                        HostnameInfo
+	AMTTimeoutDuration                  time.Duration
+	FriendlyName                        string
+	AmtInfo                             AmtInfoFlags
 }
 
 func NewFlags(args []string) *Flags {
@@ -100,7 +97,6 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
 	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
-	flags.amtMaintenanceAddWiFiSettingsCommand = flag.NewFlagSet("addwifisettings", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
@@ -168,18 +164,15 @@ func (f *Flags) setupCommonFlags() {
 	for _, fs := range []*flag.FlagSet{
 		f.amtActivateCommand,
 		f.amtDeactivateCommand,
-		f.amtMaintenanceAddWiFiSettingsCommand,
 		f.amtMaintenanceChangePasswordCommand,
 		f.amtMaintenanceSyncClockCommand,
 		f.amtMaintenanceSyncHostnameCommand,
 		f.amtMaintenanceSyncIPCommand} {
-		if fs.Name() != "addiwfisettings" { // addwifisettings does not require remote settings since it is local
-			fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
-			fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
-			fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
-			fs.StringVar(&f.Token, "token", "", "JWT Token for Authorization")
-			fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
-		}
+		fs.StringVar(&f.URL, "u", "", "Websocket address of server to activate against") //required
+		fs.BoolVar(&f.SkipCertCheck, "n", false, "Skip Websocket server certificate verification")
+		fs.StringVar(&f.Proxy, "p", "", "Proxy address and port")
+		fs.StringVar(&f.Token, "token", "", "JWT Token for Authorization")
+		fs.StringVar(&f.TenantID, "tenant", "", "TenantID")
 		fs.StringVar(&f.LMSAddress, "lmsaddress", utils.LMSAddress, "LMS address. Can be used to change location of LMS for debugging.")
 		fs.StringVar(&f.LMSPort, "lmsport", utils.LMSPort, "LMS port")
 		fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
@@ -211,6 +204,16 @@ func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
+func (f *Flags) PromptUserInput(prompt string, value *string) int {
+	fmt.Println(prompt)
+	_, err := fmt.Scanln(value)
+	if err != nil {
+		log.Error(err)
+		return utils.InvalidUserInput
+	}
+	return utils.Success
+}
+
 func (f *Flags) ReadPasswordFromUser() (bool, int) {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
@@ -223,11 +226,11 @@ func (f *Flags) ReadPasswordFromUser() (bool, int) {
 }
 
 func (f *Flags) handleLocalConfig() int {
-	if f.configContent != "" {
-		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
+	if f.LocalConfig.FilePath != "" {
+		err := cleanenv.ReadConfig(f.LocalConfig.FilePath, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)
-			return utils.IncorrectCommandLineParameters
+			return utils.FailedReadingConfiguration
 		}
 	}
 	return utils.Success

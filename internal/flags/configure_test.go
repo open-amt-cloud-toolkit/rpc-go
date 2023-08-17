@@ -10,7 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestConfigFiles(t *testing.T) {
+	cmdLine := "rpc configure addwifisettings -configFile ../../config-wifi.yaml -password test"
+	defer userInput(t, "userInput\nuserInput\nuserInput")()
+	//cmdLine := "rpc configure addwifisettings -configFile ../../config-wifi.yaml -secretFile ../../secrets-wifi.yaml -password test"
+	args := strings.Fields(cmdLine)
+	flags := NewFlags(args)
+	gotResult := flags.ParseFlags()
+	assert.Equal(t, utils.Success, gotResult)
+}
+
 func TestHandleConfigureCommand(t *testing.T) {
+	t.TempDir()
 	cases := []struct {
 		description    string
 		cmdLine        string
@@ -58,7 +69,7 @@ func TestHandleConfigureCommand(t *testing.T) {
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Valid with reading from file",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config ../../config-wifi.yaml",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile ../../config-wifi.yaml",
 			flagsLocal:     true,
 			expectedResult: utils.Success,
 		},
@@ -140,7 +151,7 @@ func runVerifyWifiConfiguration(t *testing.T, expectedResult int, wifiCfgs confi
 	for _, cfg := range ieee8021xCfgs {
 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
 	}
-	gotResult := f.verifyWifiConfigurationFile()
+	gotResult := f.verifyWifiConfigurations()
 	assert.Equal(t, expectedResult, gotResult)
 }
 
