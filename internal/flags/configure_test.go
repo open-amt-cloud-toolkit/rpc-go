@@ -10,14 +10,117 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConfigFiles(t *testing.T) {
-	cmdLine := "rpc configure addwifisettings -configFile ../../config-wifi.yaml -password test"
-	defer userInput(t, "userInput\nuserInput\nuserInput")()
-	//cmdLine := "rpc configure addwifisettings -configFile ../../config-wifi.yaml -secretFile ../../secrets-wifi.yaml -password test"
-	args := strings.Fields(cmdLine)
-	flags := NewFlags(args)
-	gotResult := flags.ParseFlags()
-	assert.Equal(t, utils.Success, gotResult)
+func getPromptForSecretsFlags() Flags {
+	f := Flags{}
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA2)
+	f.LocalConfig.WifiConfigs[0].PskPassphrase = ""
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgPEAPv0_EAPMSCHAPv2)
+	f.LocalConfig.Ieee8021xConfigs[0].PrivateKey = ""
+	f.LocalConfig.Ieee8021xConfigs[0].Password = ""
+	return f
+}
+
+func TestPromptForSecrets(t *testing.T) {
+
+	t.Run("expect success on valid user input", func(t *testing.T) {
+		defer userInput(t, "userInput\nuserInput\nuserInput")()
+		f := getPromptForSecretsFlags()
+		resultCode := f.promptForSecrets()
+		assert.Equal(t, utils.Success, resultCode)
+		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
+		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
+		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].Password)
+	})
+	t.Run("expect InvalidUserInput", func(t *testing.T) {
+		defer userInput(t, "userInput\nuserInput")()
+		f := getPromptForSecretsFlags()
+		resultCode := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
+		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].Password)
+		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
+	})
+	t.Run("expect InvalidUserInput", func(t *testing.T) {
+		defer userInput(t, "userInput")()
+		f := getPromptForSecretsFlags()
+		resultCode := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
+		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].Password)
+		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
+	})
+	t.Run("expect InvalidUserInput", func(t *testing.T) {
+		f := getPromptForSecretsFlags()
+		resultCode := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		assert.Equal(t, "", f.LocalConfig.WifiConfigs[0].PskPassphrase)
+		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].Password)
+		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
+	})
+}
+
+func TestCmdLine(t *testing.T) {
+	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
+
+	t.Run("expect IncorrectCommandLineParameters with no subcommand", func(t *testing.T) {
+		f := NewFlags([]string{`rpc`, `configure`})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
+	t.Run("expect IncorrectCommandLineParameters with unknown subcommand", func(t *testing.T) {
+		f := NewFlags([]string{`rpc`, `configure`, `what-the-heck?`})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
+	t.Run("expect Success", func(t *testing.T) {
+		cmdLine := []string{
+			`rpc`, `configure`, `addwifisettings`,
+			`-password`, `cliP@ss0rd!`,
+			`-configJson`, jsonCfgStr,
+		}
+		f := NewFlags(cmdLine)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, true, f.Local)
+		assert.Equal(t, f.Password, f.LocalConfig.Password)
+	})
+	t.Run("expect MissingOrIncorrectPassword", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `addwifisettings`,
+			`-configJson`, jsonCfgStr,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
+	})
+	t.Run("expect Success on password prompt", func(t *testing.T) {
+		defer userInput(t, "userP@ssw0rd!")()
+		f := NewFlags([]string{
+			`rpc`, `configure`, `addwifisettings`,
+			`-configJson`, jsonCfgStr,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+	})
+	t.Run("expect Success when password is in config file", func(t *testing.T) {
+		defer userInput(t, "userP@ssw0rd!")()
+		f := NewFlags([]string{
+			`rpc`, `configure`, `addwifisettings`,
+			`-configJson`, jsonCfgStr,
+		})
+		f.LocalConfig.Password = "localP@ssw0rd!"
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+	})
+	t.Run("expect MissingOrIncorrectPassword when passwords do not match", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `addwifisettings`,
+			`-password`, `cliP@ss0rd!`,
+			`-configJson`, jsonCfgStr,
+		})
+		f.LocalConfig.Password = "localP@ssw0rd!"
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
+	})
 }
 
 func TestConfigJson(t *testing.T) {
@@ -28,57 +131,46 @@ func TestConfigJson(t *testing.T) {
 	gotResult := flags.ParseFlags()
 	assert.Equal(t, utils.Success, gotResult)
 }
-func TestHandleConfigureCommand(t *testing.T) {
-	t.TempDir()
+func TestHandleAddWifiSettings(t *testing.T) {
 	cases := []struct {
 		description    string
 		cmdLine        string
-		flagsLocal     bool
 		expectedResult int
 	}{
-		// {description: "Basic wifi config command line",
-		// 	cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName \"\"",
-		// 	flagsLocal:     true,
-		// 	expectedResult: utils.Success,
-		// },
 		{description: "Missing Ieee8021xProfileName value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing PskPassphrase value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing priority value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing ssid value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing authenticationMethod value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing profile name",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename",
-			flagsLocal:     false,
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing filename",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
-			flagsLocal:     false,
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing password",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Valid with reading from file",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile ../../config-wifi.yaml -secretFile ../../secrets-wifi.yaml",
-			flagsLocal:     true,
 			expectedResult: utils.Success,
 		},
 	}
@@ -86,12 +178,8 @@ func TestHandleConfigureCommand(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
 			flags := NewFlags(args)
-			gotResult := flags.ParseFlags()
-
-			assert.Equal(t, flags.Local, tc.flagsLocal)
+			gotResult := flags.handleAddWifiSettings()
 			assert.Equal(t, tc.expectedResult, gotResult)
-			assert.Equal(t, utils.CommandConfigure, flags.Command)
-			assert.Equal(t, utils.SubCommandAddWifiSettings, flags.SubCommand)
 		})
 	}
 }
@@ -101,7 +189,7 @@ var wifiCfgWPA = config.WifiConfig{
 	SSID:                 "ssid",
 	Priority:             1,
 	AuthenticationMethod: int(models.AuthenticationMethod_WPA_PSK),
-	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	EncryptionMethod:     int(models.EncryptionMethod_TKIP),
 }
 
 var wifiCfgWPA2 = config.WifiConfig{
@@ -196,7 +284,7 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 	})
 	t.Run("expect MissingOrIncorrectProfile with invalid AuthenticationMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.AuthenticationMethod
-		wifiCfgWPA.AuthenticationMethod = 0
+		wifiCfgWPA.AuthenticationMethod = int(models.AuthenticationMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
@@ -204,7 +292,7 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 	})
 	t.Run("expect MissingOrIncorrectProfile with invalid EncryptionMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.EncryptionMethod
-		wifiCfgWPA.EncryptionMethod = 0
+		wifiCfgWPA.EncryptionMethod = int(models.EncryptionMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
@@ -258,25 +346,69 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 	})
 }
 
-func TestIeee8021xCfgIsEmpty(t *testing.T) {
-	emptyConfig := config.Ieee8021xConfig{}
-	notEmptyConfig := config.Ieee8021xConfig{
-		ProfileName:            "wifi-8021x",
-		Username:               "user",
-		Password:               "pass",
-		AuthenticationProtocol: 1,
-		ClientCert:             "cert",
-		CACert:                 "caCert",
-		PrivateKey:             "key",
-	}
+func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
+	name := "profileName"
+	cfg := config.Ieee8021xConfig{}
+	t.Run("expect MissingOrIncorrectProfile with missing name", func(t *testing.T) {
+		f := Flags{}
+		resultCode := f.verifyMatchingIeee8021xConfig("")
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if no matching profile", func(t *testing.T) {
+		f := Flags{}
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing username", func(t *testing.T) {
+		f := Flags{}
+		cfg.ProfileName = name
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing ClientCert", func(t *testing.T) {
+		f := Flags{}
+		cfg.Username = "UserName"
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing CACert", func(t *testing.T) {
+		f := Flags{}
+		cfg.ClientCert = "AABBCCDDEEFF"
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing PrivateKey", func(t *testing.T) {
+		f := Flags{}
+		cfg.CACert = "AABBCCDDEEFF"
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if unsupported/invalid AuthenticationProtocol", func(t *testing.T) {
+		f := Flags{}
+		cfg.PrivateKey = "AABBCCDDEEFF"
+		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolEAP_AKA)
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing PskPassphrase", func(t *testing.T) {
+		f := Flags{}
+		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2)
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
+	})
+	t.Run("expect MissingOrIncorrectProfile if missing PskPassphrase", func(t *testing.T) {
+		f := Flags{}
+		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolEAPTLS)
+		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.Success, resultCode)
+	})
 
-	empty := ieee8021xCfgIsEmpty(emptyConfig)
-	if !empty {
-		t.Errorf("Expected empty config to return true, but got false")
-	}
-
-	notEmpty := ieee8021xCfgIsEmpty(notEmptyConfig)
-	if notEmpty {
-		t.Errorf("Expected non-empty config to return false, but got true")
-	}
 }

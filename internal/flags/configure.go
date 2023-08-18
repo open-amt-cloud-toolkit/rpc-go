@@ -49,11 +49,22 @@ func (f *Flags) handleConfigureCommand() int {
 
 	f.Local = true
 	if f.Password == "" {
-		if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+		if f.LocalConfig.Password != "" {
+			f.Password = f.LocalConfig.Password
+		} else {
+			if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+				return utils.MissingOrIncorrectPassword
+			}
+			f.LocalConfig.Password = f.Password
+		}
+	} else {
+		if f.LocalConfig.Password == "" {
+			f.LocalConfig.Password = f.Password
+		} else if f.LocalConfig.Password != f.Password {
+			log.Error("password does not match config file password")
 			return utils.MissingOrIncorrectPassword
 		}
 	}
-	f.LocalConfig.Password = f.Password
 	return utils.Success
 }
 
@@ -99,6 +110,12 @@ func (f *Flags) handleAddWifiSettings() int {
 		ieee8021xCfg.ProfileName = wifiCfg.ProfileName
 	}
 
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
+	resultCode = f.handleLocalConfig()
+	if resultCode != utils.Success {
+		return resultCode
+	}
 	if configJson != "" {
 		err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
 		if err != nil {
@@ -106,18 +123,6 @@ func (f *Flags) handleAddWifiSettings() int {
 			return utils.IncorrectCommandLineParameters
 		}
 	}
-	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
-	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
-	resultCode = f.handleLocalConfig()
-	if resultCode != utils.Success {
-		return resultCode
-	}
-	cfgs, err := json.Marshal(f.LocalConfig)
-	if err != nil {
-		log.Error("unable to marshal activationResponse to JSON")
-		return 0
-	}
-	fmt.Println(string(cfgs))
 
 	if wifiSecretConfig.FilePath != "" {
 		err = cleanenv.ReadConfig(wifiSecretConfig.FilePath, &wifiSecretConfig)
@@ -181,6 +186,9 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 func (f *Flags) promptForSecrets() int {
 	for i, _ := range f.LocalConfig.WifiConfigs {
 		item := &f.LocalConfig.WifiConfigs[i]
+		if item.ProfileName == "" {
+			continue
+		}
 		authMethod := models.AuthenticationMethod(item.AuthenticationMethod)
 		if authMethod == models.AuthenticationMethod_WPA2_PSK &&
 			item.PskPassphrase == "" {
@@ -192,6 +200,9 @@ func (f *Flags) promptForSecrets() int {
 	}
 	for i, _ := range f.LocalConfig.Ieee8021xConfigs {
 		item := &f.LocalConfig.Ieee8021xConfigs[i]
+		if item.ProfileName == "" {
+			continue
+		}
 		authProtocol := models.AuthenticationProtocol(item.AuthenticationProtocol)
 		if authProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 &&
 			item.Password == "" {
@@ -211,74 +222,131 @@ func (f *Flags) promptForSecrets() int {
 }
 
 func (f *Flags) verifyWifiConfigurations() int {
-	for _, wifiConfigs := range f.LocalConfig.WifiConfigs {
+	for _, cfg := range f.LocalConfig.WifiConfigs {
 		//Check profile name is not empty
-		if wifiConfigs.ProfileName == "" {
+		if cfg.ProfileName == "" {
 			log.Error("missing profile name")
 			return utils.MissingOrIncorrectProfile
 		}
 		//Check ssid is not empty
-		if wifiConfigs.SSID == "" {
-			log.Error("missing ssid for profile: ", wifiConfigs.ProfileName)
+		if cfg.SSID == "" {
+			log.Error("missing ssid for config: ", cfg.ProfileName)
 			return utils.MissingOrIncorrectProfile
 		}
 		//Check priority is not empty
-		if wifiConfigs.Priority == 0 {
-			log.Error("missing priority for profile: ", wifiConfigs.ProfileName)
+		if cfg.Priority <= 0 {
+			log.Error("invalid priority for config: ", cfg.ProfileName)
 			return utils.MissingOrIncorrectProfile
 		}
-		//Check authenticationMethod is not empty
-		if wifiConfigs.AuthenticationMethod == 0 {
-			log.Error("missing authenticationMethod for profile: ", wifiConfigs.ProfileName)
-			return utils.MissingOrIncorrectProfile
-		}
-		//Check encryptionMethod is not empty
-		if wifiConfigs.EncryptionMethod == 0 {
-			log.Error("missing encryptionMethod for profile: ", wifiConfigs.ProfileName)
-			return utils.MissingOrIncorrectProfile
-		}
-		//Check authentication method
-		if wifiConfigs.AuthenticationMethod == 6 && wifiConfigs.PskPassphrase == "" {
-			log.Error("wifi configuration missing passphrase: ", wifiConfigs.ProfileName)
-			return utils.MissingOrIncorrectProfile
-		}
-		if (wifiConfigs.AuthenticationMethod == 5 || wifiConfigs.AuthenticationMethod == 7) && wifiConfigs.PskPassphrase != "" {
-			log.Error("wifi configuration contains passphrase: ", wifiConfigs.ProfileName)
-			return utils.MissingOrIncorrectProfile
-		}
-		if wifiConfigs.AuthenticationMethod == 5 || wifiConfigs.AuthenticationMethod == 7 {
-			//Check for ieee8021xProfileName in IEEE8021XSettings
-			var matchedIeeeProfileName int = 0
 
-			for _, ieee802xSettings := range f.LocalConfig.Ieee8021xConfigs {
-				if wifiConfigs.Ieee8021xProfileName == ieee802xSettings.ProfileName {
-					matchedIeeeProfileName++
-				}
-				// fmt.Println("ieee:", ieee802xSettings)
-			}
-			//Check if more than on ieee profile name matched.
-			if matchedIeeeProfileName > 1 {
-				log.Error("duplicate IEEE802x Profile names")
+		authenticationMethod := models.AuthenticationMethod(cfg.AuthenticationMethod)
+		switch authenticationMethod {
+		case models.AuthenticationMethod_WPA_PSK:
+			break
+		case models.AuthenticationMethod_WPA2_PSK:
+			if cfg.PskPassphrase == "" {
+				log.Error("missing PskPassphrase for config: ", cfg.ProfileName)
 				return utils.MissingOrIncorrectProfile
 			}
+			break
+		case models.AuthenticationMethod_WPA_IEEE8021x:
+			fallthrough
+		case models.AuthenticationMethod_WPA2_IEEE8021x:
+			if cfg.PskPassphrase != "" {
+				log.Error("wifi configuration contains passphrase: ", cfg.ProfileName)
+				return utils.MissingOrIncorrectProfile
+			}
+			resultCode := f.verifyMatchingIeee8021xConfig(cfg.Ieee8021xProfileName)
+			if resultCode != utils.Success {
+				return resultCode
+			}
+			break
+		default:
+			log.Error("invalid AuthenticationMethod for config: ", cfg.ProfileName)
+			return utils.MissingOrIncorrectProfile
 		}
-		// fmt.Println("wifi: ", wifiConfigs)
-	}
-	for _, ieee8021xConfigs := range f.LocalConfig.Ieee8021xConfigs {
-		//Check profile name is not empty in IEEE802.1x config
-		if ieee8021xConfigs.ProfileName == "" {
-			log.Error("missing profile name in IEEE802.1x config")
+
+		encryptionMethod := models.EncryptionMethod(cfg.EncryptionMethod)
+		// NOTE: this is only
+		switch encryptionMethod {
+		case models.EncryptionMethod_TKIP:
+			fallthrough
+		case models.EncryptionMethod_CCMP:
+			break
+		default:
+			log.Error("invalid EncryptionMethod for config: ", cfg.ProfileName)
 			return utils.MissingOrIncorrectProfile
 		}
 	}
 	return utils.Success
 }
-func ieee8021xCfgIsEmpty(config config.Ieee8021xConfig) bool {
-	return config.ProfileName == "" &&
-		config.Username == "" &&
-		config.Password == "" &&
-		config.AuthenticationProtocol == 0 &&
-		config.ClientCert == "" &&
-		config.CACert == "" &&
-		config.PrivateKey == ""
+
+func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
+	if profileName == "" {
+		log.Error("empty ieee802xCfg profile name")
+		return utils.MissingOrIncorrectProfile
+	}
+	foundOne := false
+	for _, ieee802xCfg := range f.LocalConfig.Ieee8021xConfigs {
+		if profileName != ieee802xCfg.ProfileName {
+			continue
+		}
+		if foundOne {
+			log.Error("duplicate IEEE802x Profile names: ", ieee802xCfg.ProfileName)
+			return utils.MissingOrIncorrectProfile
+		}
+		foundOne = true
+		resultCode := f.verifyIeee8021xConfig(ieee802xCfg)
+		if resultCode != utils.Success {
+			return resultCode
+		}
+	}
+	if !foundOne {
+		log.Error("missing IEEE802x Profile: ", profileName)
+		return utils.MissingOrIncorrectProfile
+	}
+	return utils.Success
+}
+
+func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
+
+	if cfg.Username == "" {
+		log.Error("missing Username for Ieee8021xConfig: ", cfg.ProfileName)
+		return utils.MissingOrIncorrectProfile
+	}
+	if cfg.ClientCert == "" {
+		log.Error("missing ClientCert for Ieee8021xConfig: ", cfg.ProfileName)
+		return utils.MissingOrIncorrectProfile
+	}
+	if cfg.CACert == "" {
+		log.Error("missing CACert for Ieee8021xConfig: ", cfg.ProfileName)
+		return utils.MissingOrIncorrectProfile
+	}
+	if cfg.PrivateKey == "" {
+		log.Error("missing PrivateKey for Ieee8021xConfig: ", cfg.ProfileName)
+		return utils.MissingOrIncorrectProfile
+	}
+	authenticationProtocol := models.AuthenticationProtocol(cfg.AuthenticationProtocol)
+	// not all defined protocols are supported
+	switch authenticationProtocol {
+	case models.AuthenticationProtocolEAPTLS:
+		fallthrough
+	case models.AuthenticationProtocolPEAPv1_EAPGTC:
+		fallthrough
+	case models.AuthenticationProtocolEAPFAST_GTC:
+		fallthrough
+	case models.AuthenticationProtocolEAPFAST_TLS:
+		break
+	case models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2:
+		if cfg.Password == "" {
+			log.Error("missing Password for for PEAPv0_EAPMSCHAPv2 Ieee8021xConfig: ", cfg.ProfileName)
+			return utils.MissingOrIncorrectPassword
+		}
+		break
+	default:
+		log.Error("invalid AuthenticationProtocol for Ieee8021xConfig: ", cfg.ProfileName)
+		return utils.MissingOrIncorrectProfile
+	}
+
+	return utils.Success
 }
