@@ -1,30 +1,23 @@
 wifiConfigs:
-  - profileName: 'wifiWPA2'
-    ssid: 'ssid'
+  - profileName: 'exampleWifiWPA2' # friendly name (ex. Profile name)
+    ssid: 'exampleSSID'
     priority: 1
-    authenticationMethod: 6
+    authenticationMethod: 4
     encryptionMethod: 4
     pskPassphrase: ''
     ieee8021xProfileName: ''
-  - profileName: 'wifi8021x' # friendly name (ex. Profile name)
+  - profileName: 'exampleWifi8021x' # friendly name (ex. Profile name)
     ssid: 'ssid'
     priority: 2
     authenticationMethod: 7
     encryptionMethod: 4
     pskPassphrase: ''
-    ieee8021xProfileName: 'ieee8021xEAP-TLS'
+    ieee8021xProfileName: 'exampleIeee8021xEAP-TLS'
 ieee8021xConfigs:
-  - profileName: 'ieee8021xEAP-TLS'
-    username: "test"
+  - profileName: 'exampleIeee8021xEAP-TLS'
+    username: "exampleUserName"
     password: "" # 8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)
     authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
-    clientCert: 'test'
-    caCert: 'test'
-    privateKey: ''
-  - profileName: 'ieee8021xPEAPv0'
-    username: "test"
-    password: "" # 8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)
-    authenticationProtocol: 2 #8021x profile (ex. EAP-TLS(0))
-    clientCert: 'testClientCert'
-    caCert: 'testCaCert'
-    privateKey: 'testPrivateKey'
+    clientCert: 'testCert'
+    caCert: 'testCert'
+    privateKey: 'testKey'

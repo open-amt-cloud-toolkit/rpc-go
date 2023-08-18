@@ -71,6 +71,10 @@ func (f *Flags) handleConfigureCommand() int {
 func (f *Flags) handleAddWifiSettings() int {
 	var err error
 	var resultCode int
+	if len(f.commandLineArgs) == 3 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
 	var wifiSecretConfig config.SecretConfig
 	var configJson string
 	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
@@ -90,7 +94,7 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", "", "specify psk passphrase")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", "", "specify ieee8021x password")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", "", "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
 	f.flagSetAddWifiSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
@@ -103,11 +107,14 @@ func (f *Flags) handleAddWifiSettings() int {
 		return utils.IncorrectCommandLineParameters
 	}
 
-	// port the profile name as it is understood a 8021x config will 'match' this wificfg
 	if wifiCfg.ProfileName != "" {
-		wifiCfg.Ieee8021xProfileName = wifiCfg.ProfileName
-		// don't worry if wifiCfg is not using 8021x, it will be ignored or verified later
-		ieee8021xCfg.ProfileName = wifiCfg.ProfileName
+		authMethod := models.AuthenticationMethod(wifiCfg.AuthenticationMethod)
+		if authMethod == models.AuthenticationMethod_WPA_IEEE8021x ||
+			authMethod == models.AuthenticationMethod_WPA2_IEEE8021x {
+			// reuse profilename as configuration reference
+			wifiCfg.Ieee8021xProfileName = wifiCfg.ProfileName
+			ieee8021xCfg.ProfileName = wifiCfg.ProfileName
+		}
 	}
 
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
@@ -330,12 +337,6 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
 	// not all defined protocols are supported
 	switch authenticationProtocol {
 	case models.AuthenticationProtocolEAPTLS:
-		fallthrough
-	case models.AuthenticationProtocolPEAPv1_EAPGTC:
-		fallthrough
-	case models.AuthenticationProtocolEAPFAST_GTC:
-		fallthrough
-	case models.AuthenticationProtocolEAPFAST_TLS:
 		break
 	case models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2:
 		if cfg.Password == "" {
@@ -343,9 +344,36 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
 			return utils.MissingOrIncorrectPassword
 		}
 		break
+	case models.AuthenticationProtocolEAPTTLS_MSCHAPv2:
+		log.Errorf("Unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolPEAPv1_EAPGTC:
+		log.Errorf("Unsupported AuthenticationProtocolPEAPv1_EAPGTC (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAPFAST_MSCHAPv2:
+		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_MSCHAPv2 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAPFAST_GTC:
+		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_GTC (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAP_MD5:
+		log.Errorf("Unsupported AuthenticationProtocolEAP_MD5 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAP_PSK:
+		log.Errorf("Unsupported AuthenticationProtocolEAP_PSK (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAP_SIM:
+		log.Errorf("Unsupported AuthenticationProtocolEAP_SIM (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAP_AKA:
+		log.Errorf("Unsupported AuthenticationProtocolEAP_AKA (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
+	case models.AuthenticationProtocolEAPFAST_TLS:
+		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_TLS (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
 	default:
-		log.Error("invalid AuthenticationProtocol for Ieee8021xConfig: ", cfg.ProfileName)
-		return utils.MissingOrIncorrectProfile
+		log.Errorf("Invalid AuthenticationProtocol (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.Ieee8021xConfigurationFailed
 	}
 
 	return utils.Success

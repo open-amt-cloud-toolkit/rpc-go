@@ -162,12 +162,24 @@ func TestHandleAddWifiSettings(t *testing.T) {
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing filename",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing password",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
+			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile",
 			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Missing all params",
+			cmdLine:        "rpc configure addwifisettings",
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Unknown param",
+			cmdLine:        "rpc configure addwifisettings -h",
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{description: "Basic wifi config command line",
+			cmdLine:        `rpc configure addwifisettings -password Passw0rd! -profileName cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid "myclissid" -priority 1 -pskPassphrase "mypassword"`,
+			expectedResult: utils.Success,
 		},
 		{description: "Valid with reading from file",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -configFile ../../config-wifi.yaml -secretFile ../../secrets-wifi.yaml",
@@ -394,7 +406,7 @@ func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
 		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolEAP_AKA)
 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.Ieee8021xConfigurationFailed, resultCode)
 	})
 	t.Run("expect MissingOrIncorrectProfile if missing PskPassphrase", func(t *testing.T) {
 		f := Flags{}
