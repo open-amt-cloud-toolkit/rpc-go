@@ -61,7 +61,8 @@ const (
 	MissingOrIncorrectSecondaryDNS     = 32
 	InvalidParameterCombination        = 33
 	FailedReadingConfiguration         = 34
-	InvalidUserInput                   = 35
+	MissingOrInvalidConfiguration      = 35
+	InvalidUserInput                   = 36
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         = 70
@@ -84,7 +85,6 @@ const (
 	WifiConfigurationWithWarnings     = 112
 	UnmarshalMessageFailed            = 113
 	DeleteWifiConfigFailed            = 114
-	MissingWifiConfiguration          = 115
 	MissingOrIncorrectWifiProfileName = 116
 	MissingIeee8021xConfiguration     = 117
 

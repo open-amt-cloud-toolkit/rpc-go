@@ -65,6 +65,7 @@ type Flags struct {
 	TenantID                            string
 	UseCCM                              bool
 	UseACM                              bool
+	configContent                       string
 	LocalConfig                         config.Config
 	amtInfoCommand                      *flag.FlagSet
 	amtActivateCommand                  *flag.FlagSet
@@ -226,8 +227,8 @@ func (f *Flags) ReadPasswordFromUser() (bool, int) {
 }
 
 func (f *Flags) handleLocalConfig() int {
-	if f.LocalConfig.FilePath != "" {
-		err := cleanenv.ReadConfig(f.LocalConfig.FilePath, &f.LocalConfig)
+	if f.configContent != "" {
+		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)
 			return utils.FailedReadingConfiguration

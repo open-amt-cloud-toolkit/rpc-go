@@ -4,7 +4,7 @@ wifiConfigs:
     priority: 1
     authenticationMethod: 4
     encryptionMethod: 4
-    pskPassphrase: ''
+    pskPassphrase: 'example123!@#'
     ieee8021xProfileName: ''
   - profileName: 'exampleWifi8021x' # friendly name (ex. Profile name)
     ssid: 'ssid'

@@ -71,6 +71,7 @@ func (f *Flags) handleConfigureCommand() int {
 func (f *Flags) handleAddWifiSettings() int {
 	var err error
 	var resultCode int
+	var secretsFilePath string
 	if len(f.commandLineArgs) == 3 {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
@@ -81,9 +82,9 @@ func (f *Flags) handleAddWifiSettings() int {
 	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.flagSetAddWifiSettings.StringVar(&f.LocalConfig.FilePath, "configFile", "", "specify a config file ")
+	f.flagSetAddWifiSettings.StringVar(&f.configContent, "configFile", "", "specify a config file ")
 	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
-	f.flagSetAddWifiSettings.StringVar(&wifiSecretConfig.FilePath, "secretFile", "", "specify a secret file ")
+	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secretFile", "", "specify a secret file ")
 	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
@@ -131,8 +132,13 @@ func (f *Flags) handleAddWifiSettings() int {
 		}
 	}
 
-	if wifiSecretConfig.FilePath != "" {
-		err = cleanenv.ReadConfig(wifiSecretConfig.FilePath, &wifiSecretConfig)
+	if len(f.LocalConfig.WifiConfigs) == 0 {
+		log.Error("missing wifi configuration")
+		return utils.MissingOrInvalidConfiguration
+	}
+
+	if secretsFilePath != "" {
+		err = cleanenv.ReadConfig(secretsFilePath, &wifiSecretConfig)
 		if err != nil {
 			log.Error("error reading secrets file: ", err)
 			return utils.FailedReadingConfiguration
@@ -144,6 +150,10 @@ func (f *Flags) handleAddWifiSettings() int {
 	if resultCode != utils.Success {
 		return resultCode
 	}
+	xmlBytes, _ := json.Marshal(f.LocalConfig)
+	xmlStr := string(xmlBytes)
+	fmt.Println(xmlStr)
+
 	// prompt for missing secrets
 	resultCode = f.promptForSecrets()
 	if resultCode != utils.Success {
@@ -163,7 +173,7 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 			continue
 		}
 		if secret.PskPassphrase != "" {
-			for i, _ := range f.LocalConfig.WifiConfigs {
+			for i := range f.LocalConfig.WifiConfigs {
 				item := &f.LocalConfig.WifiConfigs[i]
 				if item.ProfileName == secret.ProfileName {
 					item.PskPassphrase = secret.PskPassphrase
@@ -171,7 +181,7 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 			}
 		}
 		if secret.Password != "" {
-			for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+			for i := range f.LocalConfig.Ieee8021xConfigs {
 				item := &f.LocalConfig.Ieee8021xConfigs[i]
 				if item.ProfileName == secret.ProfileName {
 					item.Password = secret.Password
@@ -179,7 +189,7 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 			}
 		}
 		if secret.PrivateKey != "" {
-			for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+			for i := range f.LocalConfig.Ieee8021xConfigs {
 				item := &f.LocalConfig.Ieee8021xConfigs[i]
 				if item.ProfileName == secret.ProfileName {
 					item.PrivateKey = secret.PrivateKey
@@ -191,13 +201,13 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 }
 
 func (f *Flags) promptForSecrets() int {
-	for i, _ := range f.LocalConfig.WifiConfigs {
+	for i := range f.LocalConfig.WifiConfigs {
 		item := &f.LocalConfig.WifiConfigs[i]
 		if item.ProfileName == "" {
 			continue
 		}
 		authMethod := models.AuthenticationMethod(item.AuthenticationMethod)
-		if authMethod == models.AuthenticationMethod_WPA2_PSK &&
+		if (authMethod == models.AuthenticationMethod_WPA_PSK || authMethod == models.AuthenticationMethod_WPA2_PSK) &&
 			item.PskPassphrase == "" {
 			resultCode := f.PromptUserInput("Please enter PskPassphrase for "+item.ProfileName+": ", &item.PskPassphrase)
 			if resultCode != utils.Success {
@@ -205,7 +215,7 @@ func (f *Flags) promptForSecrets() int {
 			}
 		}
 	}
-	for i, _ := range f.LocalConfig.Ieee8021xConfigs {
+	for i := range f.LocalConfig.Ieee8021xConfigs {
 		item := &f.LocalConfig.Ieee8021xConfigs[i]
 		if item.ProfileName == "" {
 			continue
@@ -233,44 +243,69 @@ func (f *Flags) verifyWifiConfigurations() int {
 		//Check profile name is not empty
 		if cfg.ProfileName == "" {
 			log.Error("missing profile name")
-			return utils.MissingOrIncorrectProfile
+			return utils.MissingOrInvalidConfiguration
 		}
 		//Check ssid is not empty
 		if cfg.SSID == "" {
 			log.Error("missing ssid for config: ", cfg.ProfileName)
-			return utils.MissingOrIncorrectProfile
+			return utils.MissingOrInvalidConfiguration
 		}
 		//Check priority is not empty
 		if cfg.Priority <= 0 {
 			log.Error("invalid priority for config: ", cfg.ProfileName)
-			return utils.MissingOrIncorrectProfile
+			return utils.MissingOrInvalidConfiguration
 		}
 
 		authenticationMethod := models.AuthenticationMethod(cfg.AuthenticationMethod)
 		switch authenticationMethod {
 		case models.AuthenticationMethod_WPA_PSK:
-			break
+			fallthrough
 		case models.AuthenticationMethod_WPA2_PSK:
 			if cfg.PskPassphrase == "" {
 				log.Error("missing PskPassphrase for config: ", cfg.ProfileName)
-				return utils.MissingOrIncorrectProfile
+				return utils.MissingOrInvalidConfiguration
 			}
 			break
 		case models.AuthenticationMethod_WPA_IEEE8021x:
 			fallthrough
 		case models.AuthenticationMethod_WPA2_IEEE8021x:
+			if cfg.ProfileName == "" {
+				log.Error("missing ieee8021x profile name")
+				return utils.MissingOrInvalidConfiguration
+			}
 			if cfg.PskPassphrase != "" {
-				log.Error("wifi configuration contains passphrase: ", cfg.ProfileName)
-				return utils.MissingOrIncorrectProfile
+				log.Errorf("wifi configuration for 8021x contains passphrase: %s", cfg.ProfileName)
+				return utils.MissingOrInvalidConfiguration
 			}
 			resultCode := f.verifyMatchingIeee8021xConfig(cfg.Ieee8021xProfileName)
 			if resultCode != utils.Success {
 				return resultCode
 			}
 			break
+		case models.AuthenticationMethod_Other:
+			log.Errorf("unsupported AuthenticationMethod_Other (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_OpenSystem:
+			log.Errorf("unsupported AuthenticationMethod_OpenSystem (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_SharedKey:
+			log.Errorf("unsupported AuthenticationMethod_SharedKey (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_DMTFReserved:
+			log.Errorf("unsupported AuthenticationMethod_DMTFReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_WPA3_SAE:
+			log.Errorf("unsupported AuthenticationMethod_WPA3_SAE (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_WPA3_OWE:
+			log.Errorf("unsupported AuthenticationMethod_WPA3_OWE (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.AuthenticationMethod_VendorReserved:
+			log.Errorf("unsupported AuthenticationMethod_VendorReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
 		default:
-			log.Error("invalid AuthenticationMethod for config: ", cfg.ProfileName)
-			return utils.MissingOrIncorrectProfile
+			log.Errorf("invalid AuthenticationMethod_VendorReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
 		}
 
 		encryptionMethod := models.EncryptionMethod(cfg.EncryptionMethod)
@@ -280,19 +315,27 @@ func (f *Flags) verifyWifiConfigurations() int {
 			fallthrough
 		case models.EncryptionMethod_CCMP:
 			break
+		case models.EncryptionMethod_Other:
+			log.Errorf("unsupported EncryptionMethod_Other (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.EncryptionMethod_WEP:
+			log.Errorf("unsupported EncryptionMethod_WEP (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.EncryptionMethod_None:
+			log.Errorf("unsupported EncryptionMethod_None (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		case models.EncryptionMethod_DMTFReserved:
+			log.Errorf("unsupported EncryptionMethod_DMTFReserved (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
 		default:
-			log.Error("invalid EncryptionMethod for config: ", cfg.ProfileName)
-			return utils.MissingOrIncorrectProfile
+			log.Errorf("invalid EncryptionMethod (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
 		}
 	}
 	return utils.Success
 }
 
 func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
-	if profileName == "" {
-		log.Error("empty ieee802xCfg profile name")
-		return utils.MissingOrIncorrectProfile
-	}
 	foundOne := false
 	for _, ieee802xCfg := range f.LocalConfig.Ieee8021xConfigs {
 		if profileName != ieee802xCfg.ProfileName {
@@ -300,7 +343,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
 		}
 		if foundOne {
 			log.Error("duplicate IEEE802x Profile names: ", ieee802xCfg.ProfileName)
-			return utils.MissingOrIncorrectProfile
+			return utils.MissingOrInvalidConfiguration
 		}
 		foundOne = true
 		resultCode := f.verifyIeee8021xConfig(ieee802xCfg)
@@ -310,7 +353,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
 	}
 	if !foundOne {
 		log.Error("missing IEEE802x Profile: ", profileName)
-		return utils.MissingOrIncorrectProfile
+		return utils.MissingOrInvalidConfiguration
 	}
 	return utils.Success
 }
@@ -318,20 +361,20 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
 func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
 
 	if cfg.Username == "" {
-		log.Error("missing Username for Ieee8021xConfig: ", cfg.ProfileName)
-		return utils.MissingOrIncorrectProfile
+		log.Error("missing username for config: ", cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	}
 	if cfg.ClientCert == "" {
-		log.Error("missing ClientCert for Ieee8021xConfig: ", cfg.ProfileName)
-		return utils.MissingOrIncorrectProfile
+		log.Error("missing clientCert for config: ", cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	}
 	if cfg.CACert == "" {
-		log.Error("missing CACert for Ieee8021xConfig: ", cfg.ProfileName)
-		return utils.MissingOrIncorrectProfile
+		log.Error("missing caCert for config: ", cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	}
 	if cfg.PrivateKey == "" {
-		log.Error("missing PrivateKey for Ieee8021xConfig: ", cfg.ProfileName)
-		return utils.MissingOrIncorrectProfile
+		log.Error("missing privateKey for config: ", cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	}
 	authenticationProtocol := models.AuthenticationProtocol(cfg.AuthenticationProtocol)
 	// not all defined protocols are supported
@@ -340,40 +383,40 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
 		break
 	case models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2:
 		if cfg.Password == "" {
-			log.Error("missing Password for for PEAPv0_EAPMSCHAPv2 Ieee8021xConfig: ", cfg.ProfileName)
-			return utils.MissingOrIncorrectPassword
+			log.Error("missing password for for PEAPv0_EAPMSCHAPv2 config: ", cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
 		}
 		break
 	case models.AuthenticationProtocolEAPTTLS_MSCHAPv2:
-		log.Errorf("Unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2 (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolPEAPv1_EAPGTC:
-		log.Errorf("Unsupported AuthenticationProtocolPEAPv1_EAPGTC (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolPEAPv1_EAPGTC (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAPFAST_MSCHAPv2:
-		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_MSCHAPv2 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAPFAST_MSCHAPv2 (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAPFAST_GTC:
-		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_GTC (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAPFAST_GTC (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAP_MD5:
-		log.Errorf("Unsupported AuthenticationProtocolEAP_MD5 (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAP_MD5 (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAP_PSK:
-		log.Errorf("Unsupported AuthenticationProtocolEAP_PSK (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAP_PSK (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAP_SIM:
-		log.Errorf("Unsupported AuthenticationProtocolEAP_SIM (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAP_SIM (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAP_AKA:
-		log.Errorf("Unsupported AuthenticationProtocolEAP_AKA (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAP_AKA (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	case models.AuthenticationProtocolEAPFAST_TLS:
-		log.Errorf("Unsupported AuthenticationProtocolEAPFAST_TLS (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("unsupported AuthenticationProtocolEAPFAST_TLS (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	default:
-		log.Errorf("Invalid AuthenticationProtocol (%d) for Ieee8021xConfig: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
-		return utils.Ieee8021xConfigurationFailed
+		log.Errorf("invalid AuthenticationProtocol (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
+		return utils.MissingOrInvalidConfiguration
 	}
 
 	return utils.Success

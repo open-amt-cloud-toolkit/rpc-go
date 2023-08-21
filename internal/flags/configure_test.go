@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"fmt"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
@@ -60,7 +61,7 @@ func TestPromptForSecrets(t *testing.T) {
 }
 
 func TestCmdLine(t *testing.T) {
-	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
+	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "PskPassphrase": "testPSK", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
 
 	t.Run("expect IncorrectCommandLineParameters with no subcommand", func(t *testing.T) {
 		f := NewFlags([]string{`rpc`, `configure`})
@@ -131,6 +132,7 @@ func TestConfigJson(t *testing.T) {
 	gotResult := flags.ParseFlags()
 	assert.Equal(t, utils.Success, gotResult)
 }
+
 func TestHandleAddWifiSettings(t *testing.T) {
 	cases := []struct {
 		description    string
@@ -202,6 +204,7 @@ var wifiCfgWPA = config.WifiConfig{
 	Priority:             1,
 	AuthenticationMethod: int(models.AuthenticationMethod_WPA_PSK),
 	EncryptionMethod:     int(models.EncryptionMethod_TKIP),
+	PskPassphrase:        "wifiWPAPassPhrase",
 }
 
 var wifiCfgWPA2 = config.WifiConfig{
@@ -210,7 +213,7 @@ var wifiCfgWPA2 = config.WifiConfig{
 	Priority:             2,
 	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_PSK),
 	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
-	PskPassphrase:        "wifiWPAPassPhrase",
+	PskPassphrase:        "wifiWPA2PassPhrase",
 }
 
 var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
@@ -263,94 +266,94 @@ func runVerifyWifiConfiguration(t *testing.T, expectedResult int, wifiCfgs confi
 	assert.Equal(t, expectedResult, gotResult)
 }
 
-func TestVerifyWifiConfigurationFile(t *testing.T) {
+func TestVerifyWifiConfiguration(t *testing.T) {
 
 	t.Run("expect Success for correct configs", func(t *testing.T) {
 		runVerifyWifiConfiguration(t, utils.Success,
 			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
 			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 	})
-	t.Run("expect MissingOrIncorrectProfile when missing ProfileName", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration when missing ProfileName", func(t *testing.T) {
 		orig := wifiCfgWPA.ProfileName
 		wifiCfgWPA.ProfileName = ""
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.ProfileName = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile when missing SSID", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration when missing SSID", func(t *testing.T) {
 		orig := wifiCfgWPA.SSID
 		wifiCfgWPA.SSID = ""
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.SSID = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile with invalid Priority", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with invalid Priority", func(t *testing.T) {
 		orig := wifiCfgWPA.Priority
 		wifiCfgWPA.Priority = 0
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.Priority = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile with invalid AuthenticationMethod", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with invalid AuthenticationMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.AuthenticationMethod
 		wifiCfgWPA.AuthenticationMethod = int(models.AuthenticationMethod_DMTFReserved)
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.AuthenticationMethod = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile with invalid EncryptionMethod", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with invalid EncryptionMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.EncryptionMethod
 		wifiCfgWPA.EncryptionMethod = int(models.EncryptionMethod_DMTFReserved)
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.EncryptionMethod = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile with missing passphrase", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with missing passphrase", func(t *testing.T) {
 		orig := wifiCfgWPA2.PskPassphrase
 		wifiCfgWPA2.PskPassphrase = ""
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA2},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA2.PskPassphrase = orig
 	})
-	t.Run("expect MissingOrIncorrectProfile with missing ieee8021x ProfileName", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with missing ieee8021x ProfileName", func(t *testing.T) {
 		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
 		ieee8021xCfgEAPTLS.ProfileName = ""
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
 			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
 	})
-	t.Run("expect MissingOrIncorrectProfile with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = "shouldn't be here"
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
 			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = ""
 	})
-	t.Run("expect MissingOrIncorrectProfile with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = "shouldn't be here"
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
 			config.Ieee8021xConfigs{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = ""
 	})
 
-	t.Run("expect MissingOrIncorrectProfile with duplicate ieee8021x ProfileName", func(t *testing.T) {
+	t.Run("expect MissingOrInvalidConfiguration with duplicate ieee8021x ProfileName", func(t *testing.T) {
 		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
 		ieee8021xCfgEAPTLS.ProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
 		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
 		// authMethod 5
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
 			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		// authMethod 7
-		runVerifyWifiConfiguration(t, utils.MissingOrIncorrectProfile,
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
 			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
@@ -360,67 +363,125 @@ func TestVerifyWifiConfigurationFile(t *testing.T) {
 
 func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
 	name := "profileName"
-	cfg := config.Ieee8021xConfig{}
-	t.Run("expect MissingOrIncorrectProfile with missing name", func(t *testing.T) {
-		f := Flags{}
-		resultCode := f.verifyMatchingIeee8021xConfig("")
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+	f := Flags{}
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, config.Ieee8021xConfig{})
+	t.Run("expect MissingOrInvalidConfiguration with missing configuration", func(t *testing.T) {
+		f2 := Flags{}
+		resultCode := f2.verifyMatchingIeee8021xConfig("")
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if no matching profile", func(t *testing.T) {
-		f := Flags{}
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if no matching profile", func(t *testing.T) {
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if missing username", func(t *testing.T) {
-		f := Flags{}
-		cfg.ProfileName = name
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if missing username", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].ProfileName = name
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if missing ClientCert", func(t *testing.T) {
-		f := Flags{}
-		cfg.Username = "UserName"
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if missing ClientCert", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].Username = "UserName"
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if missing CACert", func(t *testing.T) {
-		f := Flags{}
-		cfg.ClientCert = "AABBCCDDEEFF"
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if missing CACert", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].ClientCert = "AABBCCDDEEFF"
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if missing PrivateKey", func(t *testing.T) {
-		f := Flags{}
-		cfg.CACert = "AABBCCDDEEFF"
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if missing PrivateKey", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].CACert = "AABBCCDDEEFF"
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectProfile, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if unsupported/invalid AuthenticationProtocol", func(t *testing.T) {
-		f := Flags{}
-		cfg.PrivateKey = "AABBCCDDEEFF"
-		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolEAP_AKA)
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect MissingOrInvalidConfiguration if missing PskPassphrase", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].PrivateKey = "AABBCCDDEEFF"
+		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2)
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.Ieee8021xConfigurationFailed, resultCode)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
 	})
-	t.Run("expect MissingOrIncorrectProfile if missing PskPassphrase", func(t *testing.T) {
-		f := Flags{}
-		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2)
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
-	})
-	t.Run("expect MissingOrIncorrectProfile if missing PskPassphrase", func(t *testing.T) {
-		f := Flags{}
-		cfg.AuthenticationProtocol = int(models.AuthenticationProtocolEAPTLS)
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
+	t.Run("expect Success", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTLS)
 		resultCode := f.verifyMatchingIeee8021xConfig(name)
 		assert.Equal(t, utils.Success, resultCode)
 	})
+	t.Run("expect MissingOrInvalidConfiguration for unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2", func(t *testing.T) {
+		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTTLS_MSCHAPv2)
+		resultCode := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+	})
+}
 
+func TestInvalidAuthenticationMethods(t *testing.T) {
+	f := Flags{}
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
+	cases := []struct {
+		method models.AuthenticationMethod
+	}{
+		{method: models.AuthenticationMethod_Other},
+		{method: models.AuthenticationMethod_OpenSystem},
+		{method: models.AuthenticationMethod_SharedKey},
+		{method: models.AuthenticationMethod_DMTFReserved},
+		{method: models.AuthenticationMethod_WPA3_SAE},
+		{method: models.AuthenticationMethod_WPA3_OWE},
+		{method: models.AuthenticationMethod_VendorReserved},
+		{method: 599},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.method),
+			func(t *testing.T) {
+				f.LocalConfig.WifiConfigs[0].AuthenticationMethod = int(tc.method)
+				resultCode := f.verifyWifiConfigurations()
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+			})
+	}
+}
+
+func TestInvalidEncryptionMethods(t *testing.T) {
+	f := Flags{}
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
+	cases := []struct {
+		method models.EncryptionMethod
+	}{
+		{method: models.EncryptionMethod_Other},
+		{method: models.EncryptionMethod_WEP},
+		{method: models.EncryptionMethod_None},
+		{method: models.EncryptionMethod_DMTFReserved},
+		{method: 599},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.method),
+			func(t *testing.T) {
+				f.LocalConfig.WifiConfigs[0].EncryptionMethod = int(tc.method)
+				resultCode := f.verifyWifiConfigurations()
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+			})
+	}
+}
+
+func TestInvalidAuthenticationProtocols(t *testing.T) {
+	f := Flags{}
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+	cases := []struct {
+		protocol models.AuthenticationProtocol
+	}{
+		{protocol: models.AuthenticationProtocolEAPTTLS_MSCHAPv2},
+		{protocol: models.AuthenticationProtocolPEAPv1_EAPGTC},
+		{protocol: models.AuthenticationProtocolEAPFAST_MSCHAPv2},
+		{protocol: models.AuthenticationProtocolEAPFAST_GTC},
+		{protocol: models.AuthenticationProtocolEAP_MD5},
+		{protocol: models.AuthenticationProtocolEAP_PSK},
+		{protocol: models.AuthenticationProtocolEAP_SIM},
+		{protocol: models.AuthenticationProtocolEAP_AKA},
+		{protocol: models.AuthenticationProtocolEAPFAST_TLS},
+		{protocol: 599},
+	}
+	for _, tc := range cases {
+		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.protocol),
+			func(t *testing.T) {
+				f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(tc.protocol)
+				resultCode := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+			})
+	}
 }

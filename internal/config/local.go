@@ -2,8 +2,7 @@ package config
 
 type (
 	Config struct {
-		Password         string
-		FilePath         string
+		Password         string `yaml:"password"`
 		WifiConfigs      `yaml:"wifiConfigs"`
 		Ieee8021xConfigs `yaml:"ieee8021xConfigs"`
 		ACMSettings      `yaml:"acmactivate"`
@@ -19,8 +18,7 @@ type (
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
 	SecretConfig struct {
-		FilePath string
-		Secrets  []Secret `yaml:"secrets"`
+		Secrets []Secret `yaml:"secrets"`
 	}
 	Secret struct {
 		ProfileName   string `yaml:"profileName"`
