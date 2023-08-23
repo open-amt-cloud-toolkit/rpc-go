@@ -3,12 +3,13 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) DisplayAMTInfo() int {
@@ -153,6 +154,8 @@ func (service *ProvisioningService) DisplayAMTInfo() int {
 		}
 	}
 	if service.flags.AmtInfo.Cert {
+		// TODO: process flag -system and -user
+
 		result, err := amtCommand.GetCertificateHashes()
 		if err != nil {
 			log.Error(err)

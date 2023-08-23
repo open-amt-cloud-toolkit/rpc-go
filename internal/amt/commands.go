@@ -227,6 +227,7 @@ func (amt AMTCommand) GetDNSSuffix() (string, error) {
 }
 
 func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
+	// TODO: process flag -system and -user
 	err := amt.PTHI.Open(false)
 	amtEntryList := []CertHashEntry{}
 	if err != nil {
