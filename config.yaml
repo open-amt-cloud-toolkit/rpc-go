@@ -1,15 +1,38 @@
-ieee801xConfig:
-  name: 'test' # friendly name (ex. Profile name)
-  authenticationMethod: 5 # wifi authentication method
-  encryptionMethod: 4 # wifi encryption method
-  clientCert: 'test'
-  caCert: 'test'
-  privateKey: 'test'
-  ssid: 'ssid' # wifi ssd
-  username: "test" # 8021x username
-  authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
-  priority: 1
 acmactivate:
   amtPassword: 'test'
   provisioningCert: 'your provisioning certificate'
   provisioningCertPwd: 'test'
+wifiConfigs:
+  - profileName: 'exampleWifiWPA2' # friendly name
+    ssid: 'exampleSSID'
+    priority: 1
+    authenticationMethod: 6
+    encryptionMethod: 4
+    pskPassphrase: 'example123!@#'  # pskPassphrase can be provided in this file or a seoarate secrets file
+    ieee8021xProfileName: ''
+  - profileName: 'exampleWifiWPA' # friendly name
+    ssid: 'exampleSSID'
+    priority: 2
+    authenticationMethod: 4
+    encryptionMethod: 4
+    pskPassphrase: ''  # pskPassphrase can be provided in this file or a seoarate secrets file
+    ieee8021xProfileName: ''
+  - profileName: 'exampleWifi8021xTLS' # friendly name
+    ssid: 'ssid'
+    priority: 2
+    authenticationMethod: 7
+    encryptionMethod: 4
+    pskPassphrase: ''
+    ieee8021xProfileName: 'exampleIeee8021xEAP-TLS'
+ieee8021xConfigs:
+  - profileName: 'exampleIeee8021xEAP-TLS'
+    username: "exampleUserName"
+    authenticationProtocol: 0 #8021x profile (ex. EAP-TLS(0))
+    clientCert: 'testClientCertString'
+    caCert: 'testCaCertString'
+    privateKey: '' # private key can be provided in this file or a seoarate secrets file
+  - profileName: 'exampleIeee8021xMSCHAPv2'
+    username: "exampleUserName"
+    password: "" # password can be provided in this file or a separate secrets file
+    authenticationProtocol: 2 #8021x profile (ex. EAP-TLS(0))
+    caCert: 'testCaCertString'

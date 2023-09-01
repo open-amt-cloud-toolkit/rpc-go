@@ -2,6 +2,7 @@ package local
 
 import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	internalAMT "rpc/internal/amt"
@@ -17,6 +18,7 @@ type ProvisioningService struct {
 	config      *config.Config
 	amtCommand  internalAMT.Interface
 	amtMessages amt.Messages
+	cimMessages cim.Messages
 	ipsMessages ips.Messages
 }
 
@@ -30,6 +32,7 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 		config:      &flags.LocalConfig,
 		amtCommand:  internalAMT.NewAMTCommand(),
 		amtMessages: amt.NewMessages(),
+		cimMessages: cim.NewMessages(),
 		ipsMessages: ips.NewMessages(),
 	}
 }
@@ -47,7 +50,7 @@ func ExecuteCommand(flags *flags.Flags) int {
 	case utils.CommandDeactivate:
 		resultCode = service.Deactivate()
 		break
-	case utils.CommandMaintenance:
+	case utils.CommandConfigure:
 		resultCode = service.Configure()
 		break
 	case utils.CommandVersion:
