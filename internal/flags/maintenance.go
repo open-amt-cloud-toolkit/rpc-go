@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
@@ -28,8 +27,6 @@ func (f *Flags) printMaintenanceUsage() string {
 	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
 	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
-	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage = usage + "                 Example: " + executable + " maintenance addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
 	usage = usage + "\nRun '" + executable + " maintenance COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -46,9 +43,6 @@ func (f *Flags) handleMaintenanceCommand() int {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
-	case "addwifisettings":
-		errCode = f.handleAddWifiSettings()
-		break
 	case "syncclock":
 		errCode = f.handleMaintenanceSyncClock()
 		break
@@ -81,7 +75,7 @@ func (f *Flags) handleMaintenanceCommand() int {
 	if !f.Local {
 		if f.URL == "" {
 			fmt.Print("\n-u flag is required and cannot be empty\n\n")
-			f.amtMaintenanceCommand.Usage()
+			f.printMaintenanceUsage()
 			return utils.MissingOrIncorrectURL
 		}
 	}
@@ -89,46 +83,6 @@ func (f *Flags) handleMaintenanceCommand() int {
 	return utils.Success
 }
 
-func (f *Flags) handleAddWifiSettings() int {
-	// this is an implied local command
-	f.Local = true
-
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
-
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.Name, "name", "", "specify name")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.SSID, "ssid", "", "specify ssid")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.Username, "username", "", "specify username")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.Priority, "priority", 0, "specify priority")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.ClientCert, "clientCert", "", "specify client certificate")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.CACert, "caCert", "", "specify CA certificate")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.PrivateKey, "privateKey", "", "specify private key")
-
-	if err := f.amtMaintenanceAddWiFiSettingsCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtMaintenanceAddWiFiSettingsCommand.Usage()
-		return utils.IncorrectCommandLineParameters
-	}
-
-	if f.JsonOutput {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-	resultCode := f.handleLocalConfig()
-	if resultCode != utils.Success {
-		return resultCode
-	}
-	// Check if all fields are filled
-	v := reflect.ValueOf(f.LocalConfig.IEEE8021XSettings)
-	for i := 0; i < v.NumField(); i++ {
-		if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
-			log.Error("Missing value for field: ", v.Type().Field(i).Name)
-			return utils.IncorrectCommandLineParameters
-		}
-	}
-
-	return utils.Success
-}
 func (f *Flags) handleMaintenanceSyncClock() int {
 	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return utils.IncorrectCommandLineParameters

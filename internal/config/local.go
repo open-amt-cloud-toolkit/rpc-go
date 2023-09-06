@@ -2,22 +2,41 @@ package config
 
 type (
 	Config struct {
-		Password          string
-		IEEE8021XSettings `yaml:"ieee801xConfig"`
-		ACMSettings       `yaml:"acmactivate"`
+		Password         string `yaml:"password"`
+		WifiConfigs      `yaml:"wifiConfigs"`
+		Ieee8021xConfigs `yaml:"ieee8021xConfigs"`
+		ACMSettings      `yaml:"acmactivate"`
 	}
-	IEEE8021XSettings struct {
-		Name                   string `yaml:"name"`
-		AuthenticationMethod   int    `yaml:"authenticationMethod"`
-		EncryptionMethod       int    `yaml:"encryptionMethod"`
-		SSID                   string `yaml:"ssid"`
+	WifiConfigs []WifiConfig
+	WifiConfig  struct {
+		ProfileName          string `yaml:"profileName"`
+		SSID                 string `yaml:"ssid"`
+		Priority             int    `yaml:"priority"`
+		AuthenticationMethod int    `yaml:"authenticationMethod"`
+		EncryptionMethod     int    `yaml:"encryptionMethod"`
+		PskPassphrase        string `yaml:"pskPassphrase"`
+		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
+	}
+	SecretConfig struct {
+		Secrets []Secret `yaml:"secrets"`
+	}
+	Secret struct {
+		ProfileName   string `yaml:"profileName"`
+		PskPassphrase string `yaml:"pskPassphrase"`
+		PrivateKey    string `yaml:"privateKey"`
+		Password      string `yaml:"password"`
+	}
+	Ieee8021xConfigs []Ieee8021xConfig
+	Ieee8021xConfig  struct {
+		ProfileName            string `yaml:"profileName"`
 		Username               string `yaml:"username"`
+		Password               string `yaml:"password"`
 		AuthenticationProtocol int    `yaml:"authenticationProtocol"`
-		Priority               int    `yaml:"priority"`
 		ClientCert             string `yaml:"clientCert"`
 		CACert                 string `yaml:"caCert"`
 		PrivateKey             string `yaml:"privateKey"`
 	}
+
 	ACMSettings struct {
 		AMTPassword         string `yaml:"amtPassword"`
 		ProvisioningCert    string `yaml:"provisioningCert"`

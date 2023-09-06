@@ -8,7 +8,7 @@ const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
 	// ProjectVersion is the full version of this executable
-	ProjectVersion  = "2.13.0"
+	ProjectVersion  = "2.14.0"
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable
 	ClientName = "RPC"
@@ -60,6 +60,9 @@ const (
 	MissingOrIncorrectPrimaryDNS       = 31
 	MissingOrIncorrectSecondaryDNS     = 32
 	InvalidParameterCombination        = 33
+	FailedReadingConfiguration         = 34
+	MissingOrInvalidConfiguration      = 35
+	InvalidUserInput                   = 36
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         = 70
@@ -67,19 +70,23 @@ const (
 	OSNetworkInterfacesLookupFailed = 72
 
 	// (100-149) Activation, and configuration errors
-	AMTAuthenticationFailed        = 100
-	WSMANMessageError              = 101
-	ActivationFailed               = 102
-	NetworkConfigurationFailed     = 103
-	CIRAConfigurationFailed        = 104
-	TLSConfigurationFailed         = 105
-	WiFiConfigurationFailed        = 106
-	AMTFeaturesConfigurationFailed = 107
-	Ieee8021xConfigurationFailed   = 108
-	UnableToDeactivate             = 109
-	DeactivationFailed             = 110
-	UnableToActivate               = 111
-	WifiConfigurationWithWarnings  = 112
+	AMTAuthenticationFailed           = 100
+	WSMANMessageError                 = 101
+	ActivationFailed                  = 102
+	NetworkConfigurationFailed        = 103
+	CIRAConfigurationFailed           = 104
+	TLSConfigurationFailed            = 105
+	WiFiConfigurationFailed           = 106
+	AMTFeaturesConfigurationFailed    = 107
+	Ieee8021xConfigurationFailed      = 108
+	UnableToDeactivate                = 109
+	DeactivationFailed                = 110
+	UnableToActivate                  = 111
+	WifiConfigurationWithWarnings     = 112
+	UnmarshalMessageFailed            = 113
+	DeleteWifiConfigFailed            = 114
+	MissingOrIncorrectWifiProfileName = 116
+	MissingIeee8021xConfiguration     = 117
 
 	// (150-199) Maintenance Errors
 	SyncClockFailed      = 150
@@ -90,4 +97,7 @@ const (
 	// (200-299) KPMU
 
 	// (300-399) Redfish
+
+	// (1000 - 3000) Amt PT Status Code Block
+	AmtPtStatusCodeBase = 1000
 )

@@ -161,6 +161,8 @@ func TestPrintUsage(t *testing.T) {
 	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
+	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
 	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"
@@ -232,9 +234,25 @@ func TestParseFlagsConfigure(t *testing.T) {
 	args := []string{"./rpc", "configure"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, utils.IncorrectCommandLineParameters, result)
 	assert.Equal(t, flags.Command, utils.CommandConfigure)
 	assert.Equal(t, false, flags.JsonOutput)
+}
+
+func TestParseFlagsConfigureEmpty(t *testing.T) {
+	args := []string{"./rpc", "configure"}
+	flags := NewFlags(args)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+	assert.Equal(t, "configure", flags.Command)
+}
+
+func TestParseFlagsConfigureNoFile(t *testing.T) {
+	args := []string{"./rpc", "configure", "-config"}
+	flags := NewFlags(args)
+	result := flags.ParseFlags()
+	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
+	assert.Equal(t, "configure", flags.Command)
 }
 
 func TestParseFlagsVersionJSON(t *testing.T) {

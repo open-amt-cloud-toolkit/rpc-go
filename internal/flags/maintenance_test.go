@@ -27,8 +27,6 @@ func TestPrintMaintenanceUsage(t *testing.T) {
 	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
 	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
-	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage = usage + "                 Example: " + executable + " maintenance addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
 	usage = usage + "\nRun '" + executable + " maintenance COMMAND -h' for more information on a command.\n"
 	assert.Equal(t, usage, output)
 }
@@ -180,24 +178,6 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantResult: utils.Success,
 			userInput:  trickyPassword,
 		},
-		"should fail - addwifisettings cannot find file": {
-			cmdLine:    cmdBase + " " + argAddWiFiSettings + " ",
-			wantResult: utils.IncorrectCommandLineParameters,
-		},
-		"should fail - addwifisettings fail empty password user input": {
-			cmdLine:    cmdBase + " " + argAddWiFiSettings + " --config ../../config.yaml",
-			wantResult: utils.MissingOrIncorrectPassword,
-			userInput:  "",
-		},
-		"should pass - addwifisettings password user input": {
-			cmdLine:    cmdBase + " " + argAddWiFiSettings + " --config ../../config.yaml",
-			wantResult: utils.Success,
-			userInput:  trickyPassword,
-		},
-		"should pass - addwifisettings": {
-			cmdLine:    cmdBase + " " + argAddWiFiSettings + " --config ../../config.yaml " + argCurPw,
-			wantResult: utils.Success,
-		},
 	}
 
 	for name, tc := range tests {
@@ -219,21 +199,5 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			assert.Equal(t, utils.CommandMaintenance, flags.Command)
 			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)
 		})
-	}
-}
-
-// TestHandleLocalCommand is a test function for handleAddWifiSettings method of Flags struct.
-func TestHandleLocalCommand(t *testing.T) {
-	// Setup environment
-	os.Setenv("AMT_PASSWORD", "test_password")
-	defer os.Unsetenv("AMT_PASSWORD")
-	args := []string{"./rpc", "maintenance", "addwifisetting", ""}
-	// Setup flags
-	flags := NewFlags(args)
-	flags.amtCommand.PTHI = MockPTHICommands{}
-	expectedErrorCode := utils.IncorrectCommandLineParameters
-	errorCode := flags.handleAddWifiSettings()
-	if errorCode != expectedErrorCode {
-		t.Errorf("handleAddWifiSettings() error code = %v; want %v", errorCode, expectedErrorCode)
 	}
 }
