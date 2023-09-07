@@ -3,11 +3,12 @@ package flags
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"os"
 	"path/filepath"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -25,26 +26,26 @@ func (f *Flags) printConfigurationUsage() string {
 	return usage
 }
 
-func (f *Flags) handleConfigureCommand() int {
+func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 	if len(f.commandLineArgs) == 2 {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
 
-	var resultCode = utils.Success
+	var rc = utils.Success
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "addwifisettings":
-		resultCode = f.handleAddWifiSettings()
+		rc = f.handleAddWifiSettings()
 		break
 	default:
 		f.printConfigurationUsage()
-		resultCode = utils.IncorrectCommandLineParameters
+		rc = utils.IncorrectCommandLineParameters
 		break
 	}
-	if resultCode != utils.Success {
-		return resultCode
+	if rc != utils.Success {
+		return rc
 	}
 
 	f.Local = true
@@ -52,7 +53,7 @@ func (f *Flags) handleConfigureCommand() int {
 		if f.LocalConfig.Password != "" {
 			f.Password = f.LocalConfig.Password
 		} else {
-			if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+			if _, rc = f.ReadPasswordFromUser(); rc != utils.Success {
 				return utils.MissingOrIncorrectPassword
 			}
 			f.LocalConfig.Password = f.Password
@@ -68,9 +69,9 @@ func (f *Flags) handleConfigureCommand() int {
 	return utils.Success
 }
 
-func (f *Flags) handleAddWifiSettings() int {
+func (f *Flags) handleAddWifiSettings() utils.ReturnCode {
 	var err error
-	var resultCode int
+	var rc utils.ReturnCode
 	var secretsFilePath string
 	if len(f.commandLineArgs) == 3 {
 		f.printConfigurationUsage()
@@ -120,9 +121,9 @@ func (f *Flags) handleAddWifiSettings() int {
 
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
-	resultCode = f.handleLocalConfig()
-	if resultCode != utils.Success {
-		return resultCode
+	rc = f.handleLocalConfig()
+	if rc != utils.Success {
+		return rc
 	}
 	if configJson != "" {
 		err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
@@ -146,25 +147,25 @@ func (f *Flags) handleAddWifiSettings() int {
 	}
 
 	// merge secrets with configs
-	resultCode = f.mergeWifiSecrets(wifiSecretConfig)
-	if resultCode != utils.Success {
-		return resultCode
+	rc = f.mergeWifiSecrets(wifiSecretConfig)
+	if rc != utils.Success {
+		return rc
 	}
 
 	// prompt for missing secrets
-	resultCode = f.promptForSecrets()
-	if resultCode != utils.Success {
-		return resultCode
+	rc = f.promptForSecrets()
+	if rc != utils.Success {
+		return rc
 	}
 	// verify configs
-	resultCode = f.verifyWifiConfigurations()
-	if resultCode != utils.Success {
-		return resultCode
+	rc = f.verifyWifiConfigurations()
+	if rc != utils.Success {
+		return rc
 	}
 	return utils.Success
 }
 
-func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
+func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) utils.ReturnCode {
 	for _, secret := range wifiSecretConfig.Secrets {
 		if secret.ProfileName == "" {
 			continue
@@ -197,7 +198,7 @@ func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) int {
 	return utils.Success
 }
 
-func (f *Flags) promptForSecrets() int {
+func (f *Flags) promptForSecrets() utils.ReturnCode {
 	for i := range f.LocalConfig.WifiConfigs {
 		item := &f.LocalConfig.WifiConfigs[i]
 		if item.ProfileName == "" {
@@ -206,9 +207,9 @@ func (f *Flags) promptForSecrets() int {
 		authMethod := models.AuthenticationMethod(item.AuthenticationMethod)
 		if (authMethod == models.AuthenticationMethod_WPA_PSK || authMethod == models.AuthenticationMethod_WPA2_PSK) &&
 			item.PskPassphrase == "" {
-			resultCode := f.PromptUserInput("Please enter PskPassphrase for "+item.ProfileName+": ", &item.PskPassphrase)
-			if resultCode != utils.Success {
-				return resultCode
+			rc := f.PromptUserInput("Please enter PskPassphrase for "+item.ProfileName+": ", &item.PskPassphrase)
+			if rc != utils.Success {
+				return rc
 			}
 		}
 	}
@@ -219,22 +220,22 @@ func (f *Flags) promptForSecrets() int {
 		}
 		authProtocol := models.AuthenticationProtocol(item.AuthenticationProtocol)
 		if authProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
-			resultCode := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
-			if resultCode != utils.Success {
-				return resultCode
+			rc := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
+			if rc != utils.Success {
+				return rc
 			}
 		}
 		if authProtocol == models.AuthenticationProtocolEAPTLS && item.PrivateKey == "" {
-			resultCode := f.PromptUserInput("Please enter private key for "+item.ProfileName+": ", &item.PrivateKey)
-			if resultCode != utils.Success {
-				return resultCode
+			rc := f.PromptUserInput("Please enter private key for "+item.ProfileName+": ", &item.PrivateKey)
+			if rc != utils.Success {
+				return rc
 			}
 		}
 	}
 	return utils.Success
 }
 
-func (f *Flags) verifyWifiConfigurations() int {
+func (f *Flags) verifyWifiConfigurations() utils.ReturnCode {
 	for _, cfg := range f.LocalConfig.WifiConfigs {
 		//Check profile name is not empty
 		if cfg.ProfileName == "" {
@@ -273,9 +274,9 @@ func (f *Flags) verifyWifiConfigurations() int {
 				log.Errorf("wifi configuration for 8021x contains passphrase: %s", cfg.ProfileName)
 				return utils.MissingOrInvalidConfiguration
 			}
-			resultCode := f.verifyMatchingIeee8021xConfig(cfg.Ieee8021xProfileName)
-			if resultCode != utils.Success {
-				return resultCode
+			rc := f.verifyMatchingIeee8021xConfig(cfg.Ieee8021xProfileName)
+			if rc != utils.Success {
+				return rc
 			}
 			break
 		case models.AuthenticationMethod_Other:
@@ -331,7 +332,7 @@ func (f *Flags) verifyWifiConfigurations() int {
 	return utils.Success
 }
 
-func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
+func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) utils.ReturnCode {
 	foundOne := false
 	for _, ieee802xCfg := range f.LocalConfig.Ieee8021xConfigs {
 		if profileName != ieee802xCfg.ProfileName {
@@ -342,9 +343,9 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
 			return utils.MissingOrInvalidConfiguration
 		}
 		foundOne = true
-		resultCode := f.verifyIeee8021xConfig(ieee802xCfg)
-		if resultCode != utils.Success {
-			return resultCode
+		rc := f.verifyIeee8021xConfig(ieee802xCfg)
+		if rc != utils.Success {
+			return rc
 		}
 	}
 	if !foundOne {
@@ -354,7 +355,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) int {
 	return utils.Success
 }
 
-func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) int {
+func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) utils.ReturnCode {
 
 	if cfg.Username == "" {
 		log.Error("missing username for config: ", cfg.ProfileName)

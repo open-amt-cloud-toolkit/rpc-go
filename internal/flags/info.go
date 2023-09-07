@@ -19,7 +19,7 @@ type AmtInfoFlags struct {
 }
 
 // TODO: write unit tests
-func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) int {
+func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 	amtInfoCommand.BoolVar(&f.AmtInfo.Ver, "ver", false, "BIOS Version")
 	amtInfoCommand.BoolVar(&f.AmtInfo.Bld, "bld", false, "Build Number")
 	amtInfoCommand.BoolVar(&f.AmtInfo.Sku, "sku", false, "Product SKU")

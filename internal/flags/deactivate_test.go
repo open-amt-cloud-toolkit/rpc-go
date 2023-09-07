@@ -77,8 +77,8 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 func TestHandleLocalDeactivation(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-local"}
 	flags := NewFlags(args)
-	errCode := flags.ParseFlags()
-	assert.Equal(t, errCode, utils.Success)
+	rc := flags.ParseFlags()
+	assert.Equal(t, rc, utils.Success)
 }
 
 func TestParseFlagsDeactivate(t *testing.T) {
