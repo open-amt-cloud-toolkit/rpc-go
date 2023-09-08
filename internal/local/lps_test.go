@@ -84,7 +84,6 @@ var mockUnprovisionErr error = nil
 
 func (c MockAMT) Unprovision() (int, error) { return mockUnprovisionCode, mockUnprovisionErr }
 
-// TODO: remove these when local-acm-activation branch is available in main
 type ResponseFuncArray []func(w http.ResponseWriter, r *http.Request)
 
 func setupWsmanResponses(t *testing.T, f *flags.Flags, responses ResponseFuncArray) ProvisioningService {

@@ -6,6 +6,8 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
+
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
@@ -24,6 +26,9 @@ func (service *ProvisioningService) Configure() utils.ReturnCode {
 }
 
 func (service *ProvisioningService) AddWifiSettings() utils.ReturnCode {
+	// start with fresh map
+	service.handlesWithCerts = make(map[string]string)
+
 	// PruneWifiConfigs is best effort
 	// it will log error messages, but doesn't stop the configuration flow
 	service.PruneWifiConfigs()
@@ -79,12 +84,16 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 		rc := service.DeletePublicCert(handle)
 		if rc != utils.Success {
 			failedCertHandles = append(failedCertHandles, handle)
+		} else {
+			delete(service.handlesWithCerts, handle)
 		}
 	}
 	for _, handle := range keyPairHandles {
 		rc := service.DeletePublicPrivateKeyPair(handle)
 		if rc != utils.Success {
 			failedKeyPairHandles = append(failedKeyPairHandles, handle)
+		} else {
+			delete(service.handlesWithCerts, handle)
 		}
 	}
 	return failedCertHandles, failedKeyPairHandles
@@ -92,41 +101,62 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 
 func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []string, keyPairHandles []string) {
 
+	var publicCerts []publickey.PublicKeyCertificate
+	service.GetPublicKeyCerts(&publicCerts)
+	var keyPairs []publicprivate.PublicPrivateKeyPair
+	service.GetPublicPrivateKeyPairs(&keyPairs)
 	credentials, rc := service.GetCredentialRelationships()
 	if rc != utils.Success {
 		return certHandles, keyPairHandles
 	}
+	certHandleMap := make(map[string]bool)
 	for i := range credentials {
 		inParams := &credentials[i].ElementInContext.ReferenceParameters
 		providesPrams := &credentials[i].ElementProvidingContext.ReferenceParameters
 		if providesPrams.ResourceURI == `http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings` {
-			handle := inParams.GetSelectorValue("InstanceID")
-			if handle != "" {
-				certHandles = append(certHandles, handle)
+			id := inParams.GetSelectorValue("InstanceID")
+			certHandleMap[id] = true
+			for j := range publicCerts {
+				if publicCerts[j].InstanceID == id {
+					service.handlesWithCerts[id] = publicCerts[j].X509Certificate
+				}
 			}
+		}
+	}
+	for k := range certHandleMap {
+		if k != "" {
+			certHandles = append(certHandles, k)
 		}
 	}
 	if len(certHandles) == 0 {
 		return certHandles, keyPairHandles
 	}
 
+	keyPairHandleMap := make(map[string]bool)
 	dependencies, _ := service.GetConcreteDependencies()
 	for i := range dependencies {
 		antecedent := &dependencies[i].Antecedent.ReferenceParameters
+		if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
+			continue
+		}
 		dependent := &dependencies[i].Dependent.ReferenceParameters
+		if dependent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair` {
+			continue
+		}
 		for _, certHandle := range certHandles {
-			if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
-				continue
-			}
 			if !antecedent.HasSelector("InstanceID", certHandle) {
 				continue
 			}
-			if dependent.ResourceURI == `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair` {
-				handle := dependent.GetSelectorValue("InstanceID")
-				keyPairHandles = append(keyPairHandles, handle)
-			}
+			id := dependent.GetSelectorValue("InstanceID")
+			keyPairHandleMap[id] = true
 		}
 	}
+	for k := range keyPairHandleMap {
+		if k != "" {
+			keyPairHandles = append(keyPairHandles, k)
+		}
+	}
+
 	return certHandles, keyPairHandles
 }
 
@@ -212,13 +242,16 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, settings *models.IEEE8021xSettings, handles *Handles) utils.ReturnCode {
 
 	// find the matching configuration
-	var ieee8021xConfig *config.Ieee8021xConfig
+	var ieee8021xConfig config.Ieee8021xConfig
+	var found bool
 	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
 		if curCfg.ProfileName == profileName {
-			ieee8021xConfig = &curCfg
+			ieee8021xConfig = curCfg
+			found = true
+			break
 		}
 	}
-	if ieee8021xConfig == nil {
+	if !found {
 		log.Errorf("missing Ieee8021xConfig %s", profileName)
 		return utils.MissingIeee8021xConfiguration
 	}
@@ -302,9 +335,9 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
-			log.Errorf("failed deleting client certificate: %s", handles.privateKeyHandle)
+			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
 		} else {
-			log.Debugf("successfully deleted client certificate: %s", handles.privateKeyHandle)
+			log.Debugf("successfully deleted private key: %s", handles.privateKeyHandle)
 		}
 	}
 	if handles.clientCertHandle != "" {
@@ -313,25 +346,31 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
-			log.Errorf("failed deleting client certificate: %s", handles.clientCertHandle)
+			log.Errorf("failed deleting client cert: %s", handles.clientCertHandle)
 		} else {
-			log.Debugf("successfully deleted client certificate: %s", handles.clientCertHandle)
+			log.Debugf("successfully deleted client cert: %s", handles.clientCertHandle)
 		}
 	}
 	if handles.rootCertHandle != "" {
-		log.Infof("rolling back client cert %s", handles.rootCertHandle)
+		log.Infof("rolling back root cert %s", handles.rootCertHandle)
 		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.rootCertHandle)
 		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
-			log.Errorf("failed deleting client certificate: %s", handles.rootCertHandle)
+			log.Errorf("failed deleting root cert: %s", handles.rootCertHandle)
 		} else {
-			log.Debugf("successfully deleted client certificate: %s", handles.rootCertHandle)
+			log.Debugf("successfully deleted root cert: %s", handles.rootCertHandle)
 		}
 	}
 }
 
 func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, utils.ReturnCode) {
+	// check if this has been added already
+	for k, v := range service.handlesWithCerts {
+		if v == caCert {
+			return k, utils.Success
+		}
+	}
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddTrustedRootCertificate(caCert)
 	var rspEnv publickey.Response
 	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
@@ -346,10 +385,17 @@ func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, u
 	if len(rspEnv.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector) > 0 {
 		handle = rspEnv.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
 	}
+	service.handlesWithCerts[handle] = caCert
 	return handle, utils.Success
 }
 
 func (service *ProvisioningService) AddClientCert(clientCert string) (string, utils.ReturnCode) {
+	// check if this has been added already
+	for k, v := range service.handlesWithCerts {
+		if v == clientCert {
+			return k, utils.Success
+		}
+	}
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddCertificate(clientCert)
 	var rspEnv publickey.Response
 	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
@@ -364,10 +410,17 @@ func (service *ProvisioningService) AddClientCert(clientCert string) (string, ut
 	if len(rspEnv.Body.AddTrustedCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector) > 0 {
 		handle = rspEnv.Body.AddTrustedCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
 	}
+	service.handlesWithCerts[handle] = clientCert
 	return handle, utils.Success
 }
 
 func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, utils.ReturnCode) {
+	// check if this has been added already, but need the publik key of the pair
+	for k, v := range service.handlesWithCerts {
+		if v == privateKey {
+			return k, utils.Success
+		}
+	}
 	xmlMsg := service.amtMessages.PublicKeyManagementService.AddKey([]byte(privateKey))
 	var rspEnv publickey.Response
 	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
@@ -382,6 +435,7 @@ func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, ut
 	if len(rspEnv.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selector) > 0 {
 		handle = rspEnv.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selector[0].Value
 	}
+	service.handlesWithCerts[handle] = privateKey
 	return handle, utils.Success
 }
 

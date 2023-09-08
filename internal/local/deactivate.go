@@ -47,6 +47,9 @@ func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 }
 
 func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
+	if service.flags.Password != "" {
+		log.Warn("Password not required for CCM deactivation")
+	}
 	status, err := service.amtCommand.Unprovision()
 	if err != nil || status != 0 {
 		log.Error("Status: Failed to deactivate ", err)

@@ -351,22 +351,18 @@ var concreteDependencyPullRspString = `
           <h:Antecedent>
             <b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address>
             <b:ReferenceParameters>
-              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTableService</c:ResourceURI>
+              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI>
               <c:SelectorSet>
-                <c:Selector Name="CreationClassName">AMT_AssetTableService</c:Selector>
-                <c:Selector Name="Name">Intel(r) AMT Asset Table Service</c:Selector>
-                <c:Selector Name="SystemCreationClassName">CIM_ComputerSystem</c:Selector>
-                <c:Selector Name="SystemName">Intel(r) AMT</c:Selector>
+                <c:Selector Name="InstanceID">Intel(r) AMT Certificate: Handle: 1</c:Selector>
               </c:SelectorSet>
             </b:ReferenceParameters>
           </h:Antecedent>
           <h:Dependent>
             <b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address>
             <b:ReferenceParameters>
-              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTable</c:ResourceURI>
+              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI>
               <c:SelectorSet>
-                <c:Selector Name="InstanceID">1</c:Selector>
-                <c:Selector Name="TableType">130</c:Selector>
+                <c:Selector Name="InstanceID">Intel(r) AMT Key: Handle: 0</c:Selector>
               </c:SelectorSet>
             </b:ReferenceParameters>
           </h:Dependent>
@@ -384,7 +380,7 @@ var concreteDependencyPullRspString = `
           <h:Dependent>
             <b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address>
             <b:ReferenceParameters>
-              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI>
+              <c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_SOME_UNHANDLED_RESOURCE_FOR_TESTING</c:ResourceURI>
               <c:SelectorSet>
                 <c:Selector Name="InstanceID">Intel(r) AMT Key: Handle: 0</c:Selector>
               </c:SelectorSet>

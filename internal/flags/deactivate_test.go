@@ -74,7 +74,14 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	assert.Equal(t, expected, flags.Command)
 }
 
-func TestHandleLocalDeactivation(t *testing.T) {
+func TestHandleLocalDeactivationWithPassword(t *testing.T) {
+	args := []string{"./rpc", "deactivate", "-local", "--password", "p@ssword"}
+	flags := NewFlags(args)
+	errCode := flags.ParseFlags()
+	assert.Equal(t, errCode, utils.Success)
+}
+
+func TestHandleLocalDeactivationWithoutPassword(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-local"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
