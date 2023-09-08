@@ -12,28 +12,30 @@ import (
 )
 
 type ProvisioningService struct {
-	flags       *flags.Flags
-	serverURL   string
-	client      *wsman.Client
-	config      *config.Config
-	amtCommand  internalAMT.Interface
-	amtMessages amt.Messages
-	cimMessages cim.Messages
-	ipsMessages ips.Messages
+	flags            *flags.Flags
+	serverURL        string
+	client           *wsman.Client
+	config           *config.Config
+	amtCommand       internalAMT.Interface
+	amtMessages      amt.Messages
+	cimMessages      cim.Messages
+	ipsMessages      ips.Messages
+	handlesWithCerts map[string]string
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 	// supports unit testing
 	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
 	return ProvisioningService{
-		flags:       flags,
-		client:      nil,
-		serverURL:   serverURL,
-		config:      &flags.LocalConfig,
-		amtCommand:  internalAMT.NewAMTCommand(),
-		amtMessages: amt.NewMessages(),
-		cimMessages: cim.NewMessages(),
-		ipsMessages: ips.NewMessages(),
+		flags:            flags,
+		client:           nil,
+		serverURL:        serverURL,
+		config:           &flags.LocalConfig,
+		amtCommand:       internalAMT.NewAMTCommand(),
+		amtMessages:      amt.NewMessages(),
+		cimMessages:      cim.NewMessages(),
+		ipsMessages:      ips.NewMessages(),
+		handlesWithCerts: make(map[string]string),
 	}
 }
 

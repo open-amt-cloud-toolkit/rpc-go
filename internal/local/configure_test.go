@@ -1,7 +1,8 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/concrete"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
 	"regexp"
 	"rpc/internal/config"
@@ -83,6 +84,25 @@ var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
 	PrivateKey:             "privateKey",
 }
 
+func emptyPublicPrivateCertsResponsers(t *testing.T) ResponseFuncArray {
+	return ResponseFuncArray{
+		respondMsgFunc(t, common.EnumerationResponse{}),
+		respondMsgFunc(t, publickey.PullResponseEnvelope{}),
+		respondMsgFunc(t, common.EnumerationResponse{}),
+		respondMsgFunc(t, publicprivate.PullResponseEnvelope{}),
+	}
+}
+
+func emptyGetWifiIeee8021xCerts(t *testing.T) ResponseFuncArray {
+	return append(
+		emptyPublicPrivateCertsResponsers(t),
+		ResponseFuncArray{
+			respondMsgFunc(t, common.EnumerationResponse{}),
+			respondMsgFunc(t, credential.ContextPullResponseEnvelope{}),
+		}...,
+	)
+}
+
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
 
@@ -106,17 +126,16 @@ func TestAddWifiSettings(t *testing.T) {
 	pcsRsp := wifiportconfiguration.Response{}
 	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
 	t.Run("expect Success on happy path", func(t *testing.T) {
-		rfa := ResponseFuncArray{
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, credential.ContextPullResponseEnvelope{}),
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, concrete.DependencyPullResponseEnvelope{}),
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, wifi.PullResponseEnvelope{}),
-			respondMsgFunc(t, pcsRsp),
-			respondMsgFunc(t, wifi.RequestStateChangeResponse{}),
-			respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
-		}
+		rfa := append(
+			emptyGetWifiIeee8021xCerts(t),
+			ResponseFuncArray{
+				respondMsgFunc(t, common.EnumerationResponse{}),
+				respondMsgFunc(t, wifi.PullResponseEnvelope{}),
+				respondMsgFunc(t, pcsRsp),
+				respondMsgFunc(t, wifi.RequestStateChangeResponse{}),
+				respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
+			}...,
+		)
 		lps := setupWsmanResponses(t, f, rfa)
 		resultCode := lps.AddWifiSettings()
 		assert.Equal(t, utils.Success, resultCode)
@@ -205,11 +224,13 @@ func TestPruneWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
 
 	t.Run("expect Success when there are no configs", func(t *testing.T) {
-		rfa := ResponseFuncArray{
-			respondServerErrFunc(), // no ieee8021x relationships
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, wifi.PullResponseEnvelope{}),
-		}
+		rfa := append(
+			emptyGetWifiIeee8021xCerts(t),
+			ResponseFuncArray{
+				respondMsgFunc(t, common.EnumerationResponse{}),
+				respondMsgFunc(t, wifi.PullResponseEnvelope{}),
+			}...,
+		)
 		lps := setupWsmanResponses(t, f, rfa)
 		errCode := lps.PruneWifiConfigs()
 		assert.Equal(t, utils.Success, errCode)
@@ -219,14 +240,16 @@ func TestPruneWifiConfigs(t *testing.T) {
 		pullEnvelope.Body.PullResponse.Items = append(pullEnvelope.Body.PullResponse.Items, wifi.CIMWiFiEndpointSettings{InstanceID: "Config1"})
 		pullEnvelope.Body.PullResponse.Items = append(pullEnvelope.Body.PullResponse.Items, wifi.CIMWiFiEndpointSettings{InstanceID: "Config2"})
 		pullEnvelope.Body.PullResponse.Items = append(pullEnvelope.Body.PullResponse.Items, wifi.CIMWiFiEndpointSettings{InstanceID: ""})
-		rfa := ResponseFuncArray{
-			respondServerErrFunc(), // no ieee8021x relationships
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, pullEnvelope),
-			respondMsgFunc(t, "Config1 Deleted"),
-			respondMsgFunc(t, "Config2 Deleted"),
-			respondServerErrFunc(), // this one should NOT get called
-		}
+		rfa := append(
+			emptyGetWifiIeee8021xCerts(t),
+			ResponseFuncArray{
+				respondMsgFunc(t, common.EnumerationResponse{}),
+				respondMsgFunc(t, pullEnvelope),
+				respondMsgFunc(t, "Config1 Deleted"),
+				respondMsgFunc(t, "Config2 Deleted"),
+				respondServerErrFunc(), // this one should NOT get called
+			}...,
+		)
 		lps := setupWsmanResponses(t, f, rfa)
 		errCode := lps.PruneWifiConfigs()
 		assert.Equal(t, utils.Success, errCode)
@@ -235,22 +258,26 @@ func TestPruneWifiConfigs(t *testing.T) {
 		pullEnvelope := wifi.PullResponseEnvelope{}
 		pullEnvelope.Body.PullResponse.Items = append(pullEnvelope.Body.PullResponse.Items, wifi.CIMWiFiEndpointSettings{InstanceID: "Config1"})
 		pullEnvelope.Body.PullResponse.Items = append(pullEnvelope.Body.PullResponse.Items, wifi.CIMWiFiEndpointSettings{InstanceID: "Config2"})
-		rfa := ResponseFuncArray{
-			respondServerErrFunc(), // no ieee8021x relationships
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, pullEnvelope),
-			respondMsgFunc(t, "Config1 Deleted"),
-			respondServerErrFunc(),
-		}
+		rfa := append(
+			emptyGetWifiIeee8021xCerts(t),
+			ResponseFuncArray{
+				respondMsgFunc(t, common.EnumerationResponse{}),
+				respondMsgFunc(t, pullEnvelope),
+				respondMsgFunc(t, "Config1 Deleted"),
+				respondServerErrFunc(),
+			}...,
+		)
 		lps := setupWsmanResponses(t, f, rfa)
 		errCode := lps.PruneWifiConfigs()
 		assert.Equal(t, utils.DeleteWifiConfigFailed, errCode)
 	})
 	t.Run("expect WSMANMessageError error on EnumPullUnmarshal", func(t *testing.T) {
-		rfa := ResponseFuncArray{
-			respondServerErrFunc(), // no ieee8021x relationships
-			respondServerErrFunc(),
-		}
+		rfa := append(
+			emptyGetWifiIeee8021xCerts(t),
+			ResponseFuncArray{
+				respondServerErrFunc(),
+			}...,
+		)
 		lps := setupWsmanResponses(t, f, rfa)
 		errCode := lps.PruneWifiConfigs()
 		assert.Equal(t, utils.WSMANMessageError, errCode)
@@ -261,13 +288,13 @@ func TestPruneIeee8012xConfig(t *testing.T) {
 	f := &flags.Flags{}
 	certHandles := []string{"handle 1", "handle 2"}
 	keyPairHandles := []string{"handle 3", "handle 4"}
-	r := ResponseFuncArray{
+	rfa := ResponseFuncArray{
 		respondMsgFunc(t, "Deleted"),
 		respondServerErrFunc(),
 		respondMsgFunc(t, "Deleted"),
 		respondServerErrFunc(),
 	}
-	lps := setupWsmanResponses(t, f, r)
+	lps := setupWsmanResponses(t, f, rfa)
 	failCerts, failKeyPairs := lps.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
 	assert.NotEmpty(t, failCerts)
 	assert.Equal(t, "handle 2", failCerts[0])
@@ -280,16 +307,31 @@ func TestGetWifiIeee8021xCerts(t *testing.T) {
 	re := regexp.MustCompile(enumCtxElement)
 	relationshipsEOS := re.ReplaceAllString(credCtxPullRspString, endOfSequenceElement)
 	dependenciesEOS := re.ReplaceAllString(concreteDependencyPullRspString, endOfSequenceElement)
-	r := ResponseFuncArray{
+	// make a puclickey response to match the credCtx
+	instanceId := "Intel(r) AMT Certificate: Handle: 1"
+	x509CertString := "ThisIsJustFakeCertBytes"
+	pkPullRspEnv := publickey.PullResponseEnvelope{}
+	pkPullRspEnv.Body.PullResponse.Items = []publickey.PublicKeyCertificate{
+		{
+			InstanceID:      instanceId,
+			X509Certificate: x509CertString,
+		},
+	}
+	rfa := ResponseFuncArray{
+		respondMsgFunc(t, common.EnumerationResponse{}),
+		respondMsgFunc(t, pkPullRspEnv),
+		respondMsgFunc(t, common.EnumerationResponse{}),
+		respondMsgFunc(t, publicprivate.PullResponseEnvelope{}),
 		respondMsgFunc(t, common.EnumerationResponse{}),
 		respondStringFunc(t, relationshipsEOS),
 		respondMsgFunc(t, common.EnumerationResponse{}),
 		respondStringFunc(t, dependenciesEOS),
 	}
-	lps := setupWsmanResponses(t, f, r)
+	lps := setupWsmanResponses(t, f, rfa)
 	certHandles, keyPairHandles := lps.GetWifiIeee8021xCerts()
 	assert.Equal(t, 2, len(certHandles))
 	assert.Equal(t, 1, len(keyPairHandles))
+	assert.Equal(t, x509CertString, lps.handlesWithCerts[instanceId])
 }
 
 func TestProcessIeee8012xConfig(t *testing.T) {
@@ -518,6 +560,15 @@ func TestAddTrustedRootCert(t *testing.T) {
 		assert.Equal(t, expected, resultCode)
 		assert.Empty(t, handle)
 	})
+	t.Run("expect success when credential already added", func(t *testing.T) {
+		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
+		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
+		associatedCredential := `THISISAFAKECERTSTRING`
+		lps.handlesWithCerts[instanceId] = associatedCredential
+		handle, resultCode := lps.AddTrustedRootCert(associatedCredential)
+		assert.Equal(t, utils.Success, resultCode)
+		assert.Equal(t, instanceId, handle)
+	})
 }
 
 func TestAddClientCert(t *testing.T) {
@@ -545,6 +596,15 @@ func TestAddClientCert(t *testing.T) {
 		assert.Equal(t, expected, resultCode)
 		assert.Empty(t, handle)
 	})
+	t.Run("expect success when credential already added", func(t *testing.T) {
+		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
+		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
+		associatedCredential := `THISISAFAKECERTSTRING`
+		lps.handlesWithCerts[instanceId] = associatedCredential
+		handle, resultCode := lps.AddClientCert(associatedCredential)
+		assert.Equal(t, utils.Success, resultCode)
+		assert.Equal(t, instanceId, handle)
+	})
 }
 
 func TestAddPrivateKey(t *testing.T) {
@@ -571,6 +631,15 @@ func TestAddPrivateKey(t *testing.T) {
 		handle, resultCode := lps.AddPrivateKey("AABBCCDD")
 		assert.Equal(t, expected, resultCode)
 		assert.Empty(t, handle)
+	})
+	t.Run("expect success when credential already added", func(t *testing.T) {
+		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
+		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
+		associatedCredential := `THISISAFAKECERTSTRING`
+		lps.handlesWithCerts[instanceId] = associatedCredential
+		handle, resultCode := lps.AddPrivateKey(associatedCredential)
+		assert.Equal(t, utils.Success, resultCode)
+		assert.Equal(t, instanceId, handle)
 	})
 }
 
