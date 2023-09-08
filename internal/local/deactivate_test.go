@@ -39,6 +39,13 @@ func TestDeactivateCCM(t *testing.T) {
 	mockControlMode = 1
 
 	t.Run("returns Success for happy path", func(t *testing.T) {
+		f.Password = ""
+		lps := setupService(f)
+		resultCode := lps.Deactivate()
+		assert.Equal(t, utils.Success, resultCode)
+	})
+	t.Run("returns Success for happy path with password warning", func(t *testing.T) {
+		f.Password = "P@ssw0rd"
 		lps := setupService(f)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.Success, resultCode)

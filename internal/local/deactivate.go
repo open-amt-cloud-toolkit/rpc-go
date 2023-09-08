@@ -2,9 +2,10 @@ package local
 
 import (
 	"encoding/xml"
+	"rpc/pkg/utils"
+
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
 	log "github.com/sirupsen/logrus"
-	"rpc/pkg/utils"
 )
 
 func (service *ProvisioningService) Deactivate() int {
@@ -24,6 +25,9 @@ func (service *ProvisioningService) Deactivate() int {
 }
 
 func (service *ProvisioningService) DeactivateACM() int {
+	if service.flags.Password == "" {
+		service.flags.ReadPasswordFromUser()
+	}
 	service.setupWsmanClient("admin", service.flags.Password)
 	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
 	response, err := service.client.Post(msg)
@@ -41,11 +45,15 @@ func (service *ProvisioningService) DeactivateACM() int {
 		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
 		return utils.DeactivationFailed
 	}
+
 	log.Info("Status: Device deactivated in ACM.")
 	return utils.Success
 }
 
 func (service *ProvisioningService) DeactivateCCM() int {
+	if service.flags.Password != "" {
+		log.Warn("Password not required for CCM deactivation")
+	}
 	status, err := service.amtCommand.Unprovision()
 	if err != nil || status != 0 {
 		log.Error("Status: Failed to deactivate ", err)
