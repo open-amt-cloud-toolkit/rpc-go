@@ -38,7 +38,14 @@ func TestDeactivateCCM(t *testing.T) {
 	f.LocalConfig.Password = "P@ssw0rd"
 	mockControlMode = 1
 
-	t.Run("returns Success for happy path", func(t *testing.T) {
+	t.Run("returns Success without password", func(t *testing.T) {
+		f.Password = ""
+		lps := setupService(f)
+		resultCode := lps.Deactivate()
+		assert.Equal(t, utils.Success, resultCode)
+	})
+	t.Run("returns Success with warning, given the password", func(t *testing.T) {
+		f.Password = "P@ssw0rd"
 		lps := setupService(f)
 		resultCode := lps.Deactivate()
 		assert.Equal(t, utils.Success, resultCode)
