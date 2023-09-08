@@ -1,5 +1,85 @@
-<a name="2.11.0"></a>
-## [2.11.0] - 2023-07-10
+<a name="v2.14.1"></a>
+## [v2.14.1] - 2023-09-06
+### Fix
+- addwifisettings - track added certs to prevent duplicates error
+
+<a name="v2.14.0"></a>
+## [v2.14.0] - 2023-09-06
+### Build
+- bump go-wsman-messages to v1.8.2 ([#205](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/205))
+- **deps:** bump actions/checkout from 3.6.0 to 4.0.0
+- **deps:** bump aquasecurity/trivy-action
+- **deps:** bump go-wsman-messages to v1.8.1
+- **deps:** bump cycjimmy/semantic-release-action from 3.4.2 to 4.0.0
+- **deps:** bump github/codeql-action from 2.21.4 to 2.21.5
+- **deps:** bump actions/checkout from 3.5.3 to 3.6.0
+
+### Feat
+- local wifi configuration
+
+<a name="v2.13.1"></a>
+## [v2.13.1] - 2023-08-16
+### Build
+- **deps:** bump github/codeql-action from 2.21.3 to 2.21.4
+- **deps:** bump docker/login-action from 1.6.0 to 2.2.0
+
+### Ci
+- push another image with a github tag
+
+### Fix
+- update ProjectVersion to 2.13.0
+
+<a name="v2.13.0"></a>
+## [v2.13.0] - 2023-08-14
+### Build
+- **deps:** bump github/codeql-action from 1.1.39 to 2.21.3
+- **deps:** bump step-security/harden-runner from 2.5.0 to 2.5.1
+- **deps:** bump aquasecurity/trivy-action
+- **deps:** bump codecov/codecov-action from 3.1.3 to 3.1.4
+- **deps:** bump golang.org/x/sys from 0.10.0 to 0.11.0
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump actions/upload-artifact from 2.3.1 to 3.1.2
+- **deps:** bump golang from 1.20-alpine to 1.21-alpine
+- **deps:** bump actions/checkout from 3.1.0 to 3.5.3
+- **deps:** bump actions/setup-dotnet from 2.1.1 to 3.2.0
+- **deps:** bump danhellem/github-actions-issue-to-work-item
+- **deps:** bump wagoid/commitlint-github-action from 4.1.15 to 5.4.3
+- **deps:** bump actions/add-to-project from 0.3.0 to 0.5.0
+- **deps:** bump ossf/scorecard-action from 2.0.6 to 2.2.0
+
+### Ci
+- [StepSecurity] Apply security best practices
+- adds release notes generator and github to semantic release
+
+### Feat
+- activate in acm using local command
+
+### Refactor
+- result codes ([#185](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/185))
+- add configure command
+
+<a name="v2.12.0"></a>
+## [v2.12.0] - 2023-07-27
+### Build
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump github.com/ilyakaznacheev/cleanenv from 1.4.2 to 1.5.0
+
+### Feat
+- add local deactivation in ACM
+
+### Refactor
+- move command execution out of flags package
+
+<a name="v2.11.1"></a>
+## [v2.11.0] - 2023-07-14
+### Fix
+- password not set correctly for ccm activate
+
+### Refactor
+- **internal:** remove .parsed check
+
+<a name="v2.11.0"></a>
+## [v2.11.0] - 2023-07-10
 ### Build
 - update version to v2.11.0
 - **deps:** bump golang.org/x/sys from 0.9.0 to 0.10.0
@@ -18,8 +98,8 @@
 ### Refactor
 - simplify friendly name
 
-<a name="2.10.0"></a>
-## [2.10.0] - 2023-06-16
+<a name="v2.10.0"></a>
+## [v2.10.0] - 2023-06-16
 ### Build
 - update version and changelog to v2.10.0
 
@@ -27,8 +107,8 @@
 - adds AMT Features to amtinfo
 - support device friendly name
 
-<a name="2.9.1"></a>
-## [2.9.1] - 2023-06-08
+<a name="v2.9.1"></a>
+## [v2.9.1] - 2023-06-08
 ### Build
 - update version and changelog to v2.9.1
 - **deps:** bump github.com/sirupsen/logrus from 1.9.2 to 1.9.3
@@ -37,8 +117,8 @@
 ### Fix
 - **internal:** GetOSDnsSuffixOS bug with docker desktop
 
-<a name="2.9.0"></a>
-## [2.9.0] - 2023-05-25
+<a name="v2.9.0"></a>
+## [v2.9.0] - 2023-05-25
 ### Build
 - update version and changelog for v2.9.0
 - **deps:** bump github.com/stretchr/testify from 1.8.2 to 1.8.3
@@ -55,8 +135,8 @@
 ### Test
 - move flag tests to respective files for better organization
 
-<a name="2.8.0"></a>
-## [2.8.0] - 2023-05-18
+<a name="v2.8.0"></a>
+## [v2.8.0] - 2023-05-18
 ### Build
 - update version to 2.8.0 and changelog
 - add tasks.json for vscode
@@ -68,8 +148,8 @@
 ### Feat
 - deactivate a device in CCM from RPC
 
-<a name="2.7.0"></a>
-## [2.7.0] - 2023-05-04
+<a name="v2.7.0"></a>
+## [v2.7.0] - 2023-05-04
 ### Build
 - update version to 2.7.0, update changelogbuild: update version to 2.6.0, update changelog
 - update go to 1.20
