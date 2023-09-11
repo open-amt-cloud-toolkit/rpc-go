@@ -1,10 +1,11 @@
 package local
 
 import (
-	"github.com/stretchr/testify/assert"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDisplayAMTInfo(t *testing.T) {
@@ -23,15 +24,15 @@ func TestDisplayAMTInfo(t *testing.T) {
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
 		lps := setupService(f)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, rc)
 	})
 
 	t.Run("returns Success with json output", func(t *testing.T) {
 		f.JsonOutput = true
 		lps := setupService(f)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, rc)
 		f.JsonOutput = false
 	})
 
@@ -47,8 +48,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 
 		f.JsonOutput = true
 		lps := setupService(f)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, rc)
 		f.JsonOutput = false
 
 		mockUUIDErr = nil

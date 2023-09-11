@@ -4,6 +4,8 @@
  **********************************************************************/
 package utils
 
+type ReturnCode int
+
 const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
@@ -35,69 +37,69 @@ const (
 	SubCommandSyncIP          = "syncip"
 
 	// Return Codes
-	Success = 0
+	Success ReturnCode = 0
 
 	// (1-99) General Errors
 
 	// (1-19) Basic errors outside of Open AMT Cloud Toolkit
-	IncorrectPermissions  = 1 // (not admin or sudo)
-	HECIDriverNotDetected = 2
-	AmtNotDetected        = 3
-	AmtNotReady           = 4
+	IncorrectPermissions  ReturnCode = 1 // (not admin or sudo)
+	HECIDriverNotDetected ReturnCode = 2
+	AmtNotDetected        ReturnCode = 3
+	AmtNotReady           ReturnCode = 4
 
 	// (20-69) Input errors to RPC
-	MissingOrIncorrectURL              = 20
-	MissingOrIncorrectProfile          = 21
-	ServerCerificateVerificationFailed = 22
-	MissingOrIncorrectPassword         = 23
-	MissingDNSSuffix                   = 24
-	MissingHostname                    = 25
-	MissingProxyAddressAndPort         = 26
-	MissingOrIncorrectStaticIP         = 27
-	IncorrectCommandLineParameters     = 28
-	MissingOrIncorrectNetworkMask      = 29
-	MissingOrIncorrectGateway          = 30
-	MissingOrIncorrectPrimaryDNS       = 31
-	MissingOrIncorrectSecondaryDNS     = 32
-	InvalidParameterCombination        = 33
-	FailedReadingConfiguration         = 34
-	MissingOrInvalidConfiguration      = 35
-	InvalidUserInput                   = 36
+	MissingOrIncorrectURL              ReturnCode = 20
+	MissingOrIncorrectProfile          ReturnCode = 21
+	ServerCerificateVerificationFailed ReturnCode = 22
+	MissingOrIncorrectPassword         ReturnCode = 23
+	MissingDNSSuffix                   ReturnCode = 24
+	MissingHostname                    ReturnCode = 25
+	MissingProxyAddressAndPort         ReturnCode = 26
+	MissingOrIncorrectStaticIP         ReturnCode = 27
+	IncorrectCommandLineParameters     ReturnCode = 28
+	MissingOrIncorrectNetworkMask      ReturnCode = 29
+	MissingOrIncorrectGateway          ReturnCode = 30
+	MissingOrIncorrectPrimaryDNS       ReturnCode = 31
+	MissingOrIncorrectSecondaryDNS     ReturnCode = 32
+	InvalidParameterCombination        ReturnCode = 33
+	FailedReadingConfiguration         ReturnCode = 34
+	MissingOrInvalidConfiguration      ReturnCode = 35
+	InvalidUserInput                   ReturnCode = 36
 
 	// (70-99) Connection Errors
-	RPSAuthenticationFailed         = 70
-	AMTConnectionFailed             = 71
-	OSNetworkInterfacesLookupFailed = 72
+	RPSAuthenticationFailed         ReturnCode = 70
+	AMTConnectionFailed             ReturnCode = 71
+	OSNetworkInterfacesLookupFailed ReturnCode = 72
 
 	// (100-149) Activation, and configuration errors
-	AMTAuthenticationFailed           = 100
-	WSMANMessageError                 = 101
-	ActivationFailed                  = 102
-	NetworkConfigurationFailed        = 103
-	CIRAConfigurationFailed           = 104
-	TLSConfigurationFailed            = 105
-	WiFiConfigurationFailed           = 106
-	AMTFeaturesConfigurationFailed    = 107
-	Ieee8021xConfigurationFailed      = 108
-	UnableToDeactivate                = 109
-	DeactivationFailed                = 110
-	UnableToActivate                  = 111
-	WifiConfigurationWithWarnings     = 112
-	UnmarshalMessageFailed            = 113
-	DeleteWifiConfigFailed            = 114
-	MissingOrIncorrectWifiProfileName = 116
-	MissingIeee8021xConfiguration     = 117
+	AMTAuthenticationFailed           ReturnCode = 100
+	WSMANMessageError                 ReturnCode = 101
+	ActivationFailed                  ReturnCode = 102
+	NetworkConfigurationFailed        ReturnCode = 103
+	CIRAConfigurationFailed           ReturnCode = 104
+	TLSConfigurationFailed            ReturnCode = 105
+	WiFiConfigurationFailed           ReturnCode = 106
+	AMTFeaturesConfigurationFailed    ReturnCode = 107
+	Ieee8021xConfigurationFailed      ReturnCode = 108
+	UnableToDeactivate                ReturnCode = 109
+	DeactivationFailed                ReturnCode = 110
+	UnableToActivate                  ReturnCode = 111
+	WifiConfigurationWithWarnings     ReturnCode = 112
+	UnmarshalMessageFailed            ReturnCode = 113
+	DeleteWifiConfigFailed            ReturnCode = 114
+	MissingOrIncorrectWifiProfileName ReturnCode = 116
+	MissingIeee8021xConfiguration     ReturnCode = 117
 
 	// (150-199) Maintenance Errors
-	SyncClockFailed      = 150
-	SyncHostnameFailed   = 151
-	SyncIpFailed         = 152
-	ChangePasswordFailed = 153
+	SyncClockFailed      ReturnCode = 150
+	SyncHostnameFailed   ReturnCode = 151
+	SyncIpFailed         ReturnCode = 152
+	ChangePasswordFailed ReturnCode = 153
 
 	// (200-299) KPMU
 
 	// (300-399) Redfish
 
 	// (1000 - 3000) Amt PT Status Code Block
-	AmtPtStatusCodeBase = 1000
+	AmtPtStatusCodeBase ReturnCode = 1000
 )

@@ -114,29 +114,29 @@ func NewFlags(args []string) *Flags {
 }
 
 // ParseFlags is used for understanding the command line flags
-func (f *Flags) ParseFlags() int {
-	var resultCode int
+func (f *Flags) ParseFlags() utils.ReturnCode {
+	var rc utils.ReturnCode
 	if len(f.commandLineArgs) > 1 {
 		f.Command = f.commandLineArgs[1]
 	}
 	switch f.Command {
 	case utils.CommandAMTInfo:
-		resultCode = f.handleAMTInfo(f.amtInfoCommand)
+		rc = f.handleAMTInfo(f.amtInfoCommand)
 	case utils.CommandActivate:
-		resultCode = f.handleActivateCommand()
+		rc = f.handleActivateCommand()
 	case utils.CommandDeactivate:
-		resultCode = f.handleDeactivateCommand()
+		rc = f.handleDeactivateCommand()
 	case utils.CommandMaintenance:
-		resultCode = f.handleMaintenanceCommand()
+		rc = f.handleMaintenanceCommand()
 	case utils.CommandVersion:
-		resultCode = f.handleVersionCommand()
+		rc = f.handleVersionCommand()
 	case utils.CommandConfigure:
-		resultCode = f.handleConfigureCommand()
+		rc = f.handleConfigureCommand()
 	default:
-		resultCode = utils.IncorrectCommandLineParameters
+		rc = utils.IncorrectCommandLineParameters
 		f.printUsage()
 	}
-	return resultCode
+	return rc
 }
 
 func (f *Flags) printUsage() string {
@@ -205,7 +205,7 @@ func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func (f *Flags) PromptUserInput(prompt string, value *string) int {
+func (f *Flags) PromptUserInput(prompt string, value *string) utils.ReturnCode {
 	fmt.Println(prompt)
 	_, err := fmt.Scanln(value)
 	if err != nil {
@@ -215,7 +215,7 @@ func (f *Flags) PromptUserInput(prompt string, value *string) int {
 	return utils.Success
 }
 
-func (f *Flags) ReadPasswordFromUser() (bool, int) {
+func (f *Flags) ReadPasswordFromUser() (bool, utils.ReturnCode) {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
 	_, err := fmt.Scanln(&password)
@@ -226,7 +226,7 @@ func (f *Flags) ReadPasswordFromUser() (bool, int) {
 	return true, utils.Success
 }
 
-func (f *Flags) handleLocalConfig() int {
+func (f *Flags) handleLocalConfig() utils.ReturnCode {
 	if f.configContent != "" {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {

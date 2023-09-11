@@ -62,7 +62,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	}
 	tests := map[string]struct {
 		cmdLine      string
-		wantResult   int
+		wantResult   utils.ReturnCode
 		wantIPConfig IPConfiguration
 		userInput    string
 	}{

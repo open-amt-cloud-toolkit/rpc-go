@@ -1,10 +1,11 @@
 package local
 
 import (
-	"github.com/stretchr/testify/assert"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDisplayVersion(t *testing.T) {
@@ -13,15 +14,15 @@ func TestDisplayVersion(t *testing.T) {
 
 	t.Run("should return Success", func(t *testing.T) {
 		lps := setupService(f)
-		resultCode := lps.DisplayVersion()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.DisplayVersion()
+		assert.Equal(t, utils.Success, rc)
 	})
 
 	t.Run("should return Success with json output", func(t *testing.T) {
 		f.JsonOutput = true
 		lps := setupService(f)
-		resultCode := lps.DisplayVersion()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.DisplayVersion()
+		assert.Equal(t, utils.Success, rc)
 		f.JsonOutput = false
 	})
 

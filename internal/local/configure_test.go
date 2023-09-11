@@ -1,15 +1,14 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
 	"regexp"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
@@ -18,6 +17,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 )
 
 const trustedRootXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>2</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddTrustedRootCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A988</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddTrustedRootCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 2</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddTrustedRootCertificate_OUTPUT></a:Body></a:Envelope>"
@@ -108,15 +110,15 @@ func TestConfigure(t *testing.T) {
 
 	t.Run("expect error for unhandled Subcommand", func(t *testing.T) {
 		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
-		resultCode := lps.Configure()
-		assert.Equal(t, utils.IncorrectCommandLineParameters, resultCode)
+		rc := lps.Configure()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 	})
 	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.Configure()
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.Configure()
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 }
 
@@ -137,14 +139,14 @@ func TestAddWifiSettings(t *testing.T) {
 			}...,
 		)
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.AddWifiSettings()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.AddWifiSettings()
+		assert.Equal(t, utils.Success, rc)
 	})
 	t.Run("expect error from PruneWifiConfigs path", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.AddWifiSettings()
-		assert.NotEqual(t, utils.Success, resultCode)
+		rc := lps.AddWifiSettings()
+		assert.NotEqual(t, utils.Success, rc)
 	})
 	t.Run("expect error from EnableWifi path", func(t *testing.T) {
 		rfa := ResponseFuncArray{
@@ -153,8 +155,8 @@ func TestAddWifiSettings(t *testing.T) {
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.AddWifiSettings()
-		assert.NotEqual(t, utils.Success, resultCode)
+		rc := lps.AddWifiSettings()
+		assert.NotEqual(t, utils.Success, rc)
 	})
 }
 
@@ -168,8 +170,8 @@ func TestProcessWifiConfigs(t *testing.T) {
 			respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfigs()
-		assert.Equal(t, utils.WifiConfigurationWithWarnings, resultCode)
+		rc := lps.ProcessWifiConfigs()
+		assert.Equal(t, utils.WifiConfigurationWithWarnings, rc)
 	})
 	t.Run("expect WiFiConfigurationFailed if all configs fail", func(t *testing.T) {
 		f.LocalConfig.WifiConfigs[1].ProfileName = "bad-name"
@@ -177,8 +179,8 @@ func TestProcessWifiConfigs(t *testing.T) {
 			respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfigs()
-		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
+		rc := lps.ProcessWifiConfigs()
+		assert.Equal(t, utils.WiFiConfigurationFailed, rc)
 	})
 }
 
@@ -193,30 +195,30 @@ func TestProcessWifiConfig(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = orig
 	})
 	t.Run("expect WSMANMessageError for AddWiFiSettings()", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfig(&wifiCfgWPA2)
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 	t.Run("expect UnmarshalMessageFailed for AddWiFiSettings()", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondBadXmlFunc(t)}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfig(&wifiCfgWPA2)
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 	})
 	t.Run("expect unsuccessful return value error for AddWiFiSettings()", func(t *testing.T) {
 		msgRsp := wifiportconfiguration.AddWiFiSettingsResponse{}
 		msgRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue = 1
-		expected := utils.AmtPtStatusCodeBase + msgRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue
+		expected := utils.AmtPtStatusCodeBase + utils.ReturnCode(msgRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue)
 		rfa := ResponseFuncArray{respondMsgFunc(t, msgRsp)}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessWifiConfig(&wifiCfgWPA2)
-		assert.Equal(t, expected, resultCode)
+		rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.Equal(t, expected, rc)
 	})
 }
 
@@ -232,8 +234,8 @@ func TestPruneWifiConfigs(t *testing.T) {
 			}...,
 		)
 		lps := setupWsmanResponses(t, f, rfa)
-		errCode := lps.PruneWifiConfigs()
-		assert.Equal(t, utils.Success, errCode)
+		rc := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.Success, rc)
 	})
 	t.Run("expect success when there are configs", func(t *testing.T) {
 		pullEnvelope := wifi.PullResponseEnvelope{}
@@ -251,8 +253,8 @@ func TestPruneWifiConfigs(t *testing.T) {
 			}...,
 		)
 		lps := setupWsmanResponses(t, f, rfa)
-		errCode := lps.PruneWifiConfigs()
-		assert.Equal(t, utils.Success, errCode)
+		rc := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.Success, rc)
 	})
 	t.Run("expect DeleteWifiConfigFailed", func(t *testing.T) {
 		pullEnvelope := wifi.PullResponseEnvelope{}
@@ -268,8 +270,8 @@ func TestPruneWifiConfigs(t *testing.T) {
 			}...,
 		)
 		lps := setupWsmanResponses(t, f, rfa)
-		errCode := lps.PruneWifiConfigs()
-		assert.Equal(t, utils.DeleteWifiConfigFailed, errCode)
+		rc := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.DeleteWifiConfigFailed, rc)
 	})
 	t.Run("expect WSMANMessageError error on EnumPullUnmarshal", func(t *testing.T) {
 		rfa := append(
@@ -279,8 +281,8 @@ func TestPruneWifiConfigs(t *testing.T) {
 			}...,
 		)
 		lps := setupWsmanResponses(t, f, rfa)
-		errCode := lps.PruneWifiConfigs()
-		assert.Equal(t, utils.WSMANMessageError, errCode)
+		rc := lps.PruneWifiConfigs()
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 }
 
@@ -343,8 +345,8 @@ func TestProcessIeee8012xConfig(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
 		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
-		resultCode := lps.ProcessIeee8012xConfig("someothername", ieee8021xSettings, &handles)
-		assert.Equal(t, utils.MissingIeee8021xConfiguration, resultCode)
+		rc := lps.ProcessIeee8012xConfig("someothername", ieee8021xSettings, &handles)
+		assert.Equal(t, utils.MissingIeee8021xConfiguration, rc)
 		assert.Empty(t, ieee8021xSettings.ElementName)
 		assert.Empty(t, handles.privateKeyHandle)
 		assert.Empty(t, handles.clientCertHandle)
@@ -357,8 +359,8 @@ func TestProcessIeee8012xConfig(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgPEAPv0_EAPMSCHAPv2)
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessIeee8012xConfig(ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings, &handles)
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.ProcessIeee8012xConfig(ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings, &handles)
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Equal(t, ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings.ElementName)
 		assert.Empty(t, handles.privateKeyHandle)
 		assert.Empty(t, handles.clientCertHandle)
@@ -373,8 +375,8 @@ func TestProcessIeee8012xConfig(t *testing.T) {
 			respondStringFunc(t, addKeyXMLResponse),
 			respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
 		assert.NotEmpty(t, handles.privateKeyHandle)
 		assert.Empty(t, handles.clientCertHandle)
@@ -391,8 +393,8 @@ func TestProcessIeee8012xConfig(t *testing.T) {
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
 		assert.NotEmpty(t, handles.privateKeyHandle)
 		assert.NotEmpty(t, handles.clientCertHandle)
@@ -409,8 +411,8 @@ func TestProcessIeee8012xConfig(t *testing.T) {
 			respondStringFunc(t, trustedRootXMLResponse),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
+		assert.Equal(t, utils.Success, rc)
 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
 		assert.NotEmpty(t, handles.privateKeyHandle)
 		assert.NotEmpty(t, handles.clientCertHandle)
@@ -423,14 +425,14 @@ func TestEnableWifiErrors(t *testing.T) {
 	t.Run("expect WSMANMessageError for WiFiPortConfigurationService.Get()", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 	t.Run("expect UnmarshalMessageFailed for WiFiPortConfigurationService.Get()", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondBadXmlFunc(t)}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 	})
 	t.Run("expect WSMANMessageError for WiFiPortConfigurationService.Put()", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -439,8 +441,8 @@ func TestEnableWifiErrors(t *testing.T) {
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 	t.Run("expect UnmarshalMessageFailed for WiFiPortConfigurationService.Put()", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -449,8 +451,8 @@ func TestEnableWifiErrors(t *testing.T) {
 			respondBadXmlFunc(t),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 	})
 	t.Run("expect WiFiConfigurationFailed when enable is unsuccessful", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -460,8 +462,8 @@ func TestEnableWifiErrors(t *testing.T) {
 			respondMsgFunc(t, pcsResponseFailed),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.WiFiConfigurationFailed, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.WiFiConfigurationFailed, rc)
 	})
 	t.Run("expect WSMANMessageError for RequestStateChange()", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -473,8 +475,8 @@ func TestEnableWifiErrors(t *testing.T) {
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
 	t.Run("expect UnmarshalMessageFailed for RequestStateChange()", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -486,8 +488,8 @@ func TestEnableWifiErrors(t *testing.T) {
 			respondBadXmlFunc(t),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 	})
 	t.Run("expect non-zero error for RequestStateChange()", func(t *testing.T) {
 		pcsResponse := wifiportconfiguration.Response{}
@@ -495,15 +497,15 @@ func TestEnableWifiErrors(t *testing.T) {
 		pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
 		stateChangeResponse := wifi.RequestStateChangeResponse{}
 		stateChangeResponse.Body.RequestStateChange_OUTPUT.ReturnValue = 1
-		expected := utils.AmtPtStatusCodeBase + stateChangeResponse.Body.RequestStateChange_OUTPUT.ReturnValue
+		expected := utils.AmtPtStatusCodeBase + utils.ReturnCode(stateChangeResponse.Body.RequestStateChange_OUTPUT.ReturnValue)
 		rfa := ResponseFuncArray{
 			respondMsgFunc(t, pcsResponse),
 			respondMsgFunc(t, pcsResponseEnabled),
 			respondMsgFunc(t, stateChangeResponse),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.EnableWifi()
-		assert.Equal(t, expected, resultCode)
+		rc := lps.EnableWifi()
+		assert.Equal(t, expected, rc)
 	})
 }
 
@@ -540,15 +542,15 @@ func TestAddTrustedRootCert(t *testing.T) {
 	t.Run("expect WSMANMessageError", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddTrustedRootCert("AABBCCDD")
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		handle, rc := lps.AddTrustedRootCert("AABBCCDD")
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect UnmarshalMessageFailed", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondBadXmlFunc(t)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddTrustedRootCert("AABBCCDD")
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		handle, rc := lps.AddTrustedRootCert("AABBCCDD")
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect non-zero error ", func(t *testing.T) {
@@ -556,8 +558,8 @@ func TestAddTrustedRootCert(t *testing.T) {
 		expected := utils.AmtPtStatusCodeBase + 1
 		rfa := ResponseFuncArray{respondStringFunc(t, dup)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddTrustedRootCert("AABBCCDD")
-		assert.Equal(t, expected, resultCode)
+		handle, rc := lps.AddTrustedRootCert("AABBCCDD")
+		assert.Equal(t, expected, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect success when credential already added", func(t *testing.T) {
@@ -576,15 +578,15 @@ func TestAddClientCert(t *testing.T) {
 	t.Run("expect WSMANMessageError", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddClientCert("AABBCCDD")
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		handle, rc := lps.AddClientCert("AABBCCDD")
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect UnmarshalMessageFailed", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondBadXmlFunc(t)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddClientCert("AABBCCDD")
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		handle, rc := lps.AddClientCert("AABBCCDD")
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect non-zero error ", func(t *testing.T) {
@@ -592,8 +594,8 @@ func TestAddClientCert(t *testing.T) {
 		expected := utils.AmtPtStatusCodeBase + 1
 		rfa := ResponseFuncArray{respondStringFunc(t, dup)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddClientCert("AABBCCDD")
-		assert.Equal(t, expected, resultCode)
+		handle, rc := lps.AddClientCert("AABBCCDD")
+		assert.Equal(t, expected, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect success when credential already added", func(t *testing.T) {
@@ -612,15 +614,15 @@ func TestAddPrivateKey(t *testing.T) {
 	t.Run("expect WSMANMessageError", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondServerErrFunc()}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddPrivateKey("AABBCCDD")
-		assert.Equal(t, utils.WSMANMessageError, resultCode)
+		handle, rc := lps.AddPrivateKey("AABBCCDD")
+		assert.Equal(t, utils.WSMANMessageError, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect UnmarshalMessageFailed", func(t *testing.T) {
 		rfa := ResponseFuncArray{respondBadXmlFunc(t)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddPrivateKey("AABBCCDD")
-		assert.Equal(t, utils.UnmarshalMessageFailed, resultCode)
+		handle, rc := lps.AddPrivateKey("AABBCCDD")
+		assert.Equal(t, utils.UnmarshalMessageFailed, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect non-zero error ", func(t *testing.T) {
@@ -628,8 +630,8 @@ func TestAddPrivateKey(t *testing.T) {
 		expected := utils.AmtPtStatusCodeBase + 1
 		rfa := ResponseFuncArray{respondStringFunc(t, dup)}
 		lps := setupWsmanResponses(t, f, rfa)
-		handle, resultCode := lps.AddPrivateKey("AABBCCDD")
-		assert.Equal(t, expected, resultCode)
+		handle, rc := lps.AddPrivateKey("AABBCCDD")
+		assert.Equal(t, expected, rc)
 		assert.Empty(t, handle)
 	})
 	t.Run("expect success when credential already added", func(t *testing.T) {
@@ -646,9 +648,9 @@ func TestAddPrivateKey(t *testing.T) {
 func TestCheckReturnValue(t *testing.T) {
 	tests := []struct {
 		name string
-		in   int
+		in   utils.ReturnCode
 		item string
-		want int
+		want utils.ReturnCode
 	}{
 		{"TestNoError", 0, "item", utils.Success},
 		{"TestAlreadyExists", common.PT_STATUS_DUPLICATE, "item", utils.AmtPtStatusCodeBase + common.PT_STATUS_DUPLICATE},

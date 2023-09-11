@@ -24,8 +24,8 @@ type AMTActivationServer struct {
 	flags *flags.Flags
 }
 
-func ExecuteCommand(flags *flags.Flags) int {
-	resultCode := utils.Success
+func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
+	rc := utils.Success
 	setCommandMethod(flags)
 
 	startMessage, err := PrepareInitialMessage(flags)
@@ -44,7 +44,7 @@ func ExecuteCommand(flags *flags.Flags) int {
 
 	executor.MakeItSo(startMessage)
 
-	return resultCode
+	return rc
 }
 
 func setCommandMethod(flags *flags.Flags) {
