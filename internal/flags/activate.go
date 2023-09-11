@@ -2,13 +2,14 @@ package flags
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"reflect"
 	"regexp"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func (f *Flags) handleActivateCommand() int {
+func (f *Flags) handleActivateCommand() utils.ReturnCode {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
@@ -32,20 +33,20 @@ func (f *Flags) handleActivateCommand() int {
 	}
 	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
 		re := regexp.MustCompile(`: .*`)
-		var errCode = utils.IncorrectCommandLineParameters
+		var rc = utils.IncorrectCommandLineParameters
 		switch re.FindString(err.Error()) {
 		case ": -d":
-			errCode = utils.MissingDNSSuffix
+			rc = utils.MissingDNSSuffix
 		case ": -p":
-			errCode = utils.MissingProxyAddressAndPort
+			rc = utils.MissingProxyAddressAndPort
 		case ": -h":
-			errCode = utils.MissingHostname
+			rc = utils.MissingHostname
 		case ": -profile":
-			errCode = utils.MissingOrIncorrectProfile
+			rc = utils.MissingOrIncorrectProfile
 		default:
-			errCode = utils.IncorrectCommandLineParameters
+			rc = utils.IncorrectCommandLineParameters
 		}
-		return errCode
+		return rc
 	}
 	if f.Local && f.URL != "" {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
@@ -70,9 +71,9 @@ func (f *Flags) handleActivateCommand() int {
 		}
 
 		if f.UseACM {
-			resultCode := f.handleLocalConfig()
-			if resultCode != utils.Success {
-				return resultCode
+			rc := f.handleLocalConfig()
+			if rc != utils.Success {
+				return rc
 			}
 			// Check if all fields are filled
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
@@ -87,7 +88,7 @@ func (f *Flags) handleActivateCommand() int {
 
 		// Only for CCM it asks for password.
 		if !f.UseACM && f.Password == "" {
-			if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+			if _, rc := f.ReadPasswordFromUser(); rc != utils.Success {
 				return utils.MissingOrIncorrectPassword
 			}
 		}

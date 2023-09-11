@@ -54,8 +54,8 @@ func TestExecuteCommand(t *testing.T) {
 	f := &flags.Flags{}
 	f.Command = utils.CommandActivate
 	f.Profile = "profile01"
-	resultCode := ExecuteCommand(f)
-	assert.NotEqual(t, utils.Success, resultCode)
+	rc := ExecuteCommand(f)
+	assert.NotEqual(t, utils.Success, rc)
 }
 
 func TestSetCommandMethodActivate(t *testing.T) {
