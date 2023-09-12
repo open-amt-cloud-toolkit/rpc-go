@@ -1,11 +1,19 @@
 {
   "branches": [
-      "main",
-      "next"
+    "main",
+    "next"
   ],
   "plugins": [
-      "@semantic-release/commit-analyzer",
-      "@semantic-release/release-notes-generator",
-      "@semantic-release/github"
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/github",
+    "@semantic-release/exec",
+    {
+      "prepareCmd": "docker build -t vprodemo.azurecr.io/rpc-go ."
+    },
+    "semantic-release-docker",
+    {
+      "name": "vprodemo.azurecr.io/rpc-go"
+    }
   ]
 }
