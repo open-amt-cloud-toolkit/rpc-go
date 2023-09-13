@@ -20,32 +20,32 @@ const AccessErrMsg = "Failed to execute due to access issues. " +
 	"the MEI driver is installed, " +
 	"and the runtime has administrator or root privileges."
 
-func checkAccess() (int, error) {
+func checkAccess() (utils.ReturnCode, error) {
 	amtCommand := amt.NewAMTCommand()
-	result, err := amtCommand.Initialize()
-	if result != utils.Success || err != nil {
+	rc, err := amtCommand.Initialize()
+	if rc != utils.Success || err != nil {
 		return utils.AmtNotDetected, err
 	}
 	return utils.Success, nil
 }
 
-func runRPC(args []string) int {
-	flags, resultCode := parseCommandLine(args)
-	if resultCode != utils.Success {
-		return resultCode
+func runRPC(args []string) utils.ReturnCode {
+	flags, rc := parseCommandLine(args)
+	if rc != utils.Success {
+		return rc
 	}
 	if flags.Local {
-		resultCode = local.ExecuteCommand(flags)
+		rc = local.ExecuteCommand(flags)
 	} else {
-		resultCode = rps.ExecuteCommand(flags)
+		rc = rps.ExecuteCommand(flags)
 	}
-	return resultCode
+	return rc
 }
 
-func parseCommandLine(args []string) (*flags.Flags, int) {
+func parseCommandLine(args []string) (*flags.Flags, utils.ReturnCode) {
 	//process flags
 	flags := flags.NewFlags(args)
-	resultCode := flags.ParseFlags()
+	rc := flags.ParseFlags()
 
 	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
@@ -67,21 +67,21 @@ func parseCommandLine(args []string) (*flags.Flags, int) {
 			FullTimestamp: true,
 		})
 	}
-	return flags, resultCode
+	return flags, rc
 }
 
 func main() {
-	status, err := checkAccess()
-	if status != utils.Success {
+	rc, err := checkAccess()
+	if rc != utils.Success {
 		if err != nil {
 			log.Error(err.Error())
 		}
 		log.Error(AccessErrMsg)
-		os.Exit(status)
+		os.Exit(int(rc))
 	}
-	status = runRPC(os.Args)
+	rc = runRPC(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 	}
-	os.Exit(status)
+	os.Exit(int(rc))
 }

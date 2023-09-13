@@ -20,7 +20,7 @@ import (
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-func (service *ProvisioningService) Activate() int {
+func (service *ProvisioningService) Activate() utils.ReturnCode {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
@@ -40,18 +40,18 @@ func (service *ProvisioningService) Activate() int {
 	}
 	service.setupWsmanClient(lsa.Username, lsa.Password)
 
-	resultCode := utils.Success
+	rc := utils.Success
 
 	if service.flags.UseACM {
-		resultCode = service.ActivateACM()
+		rc = service.ActivateACM()
 	} else if service.flags.UseCCM {
-		resultCode = service.ActivateCCM()
+		rc = service.ActivateCCM()
 	}
 
-	return resultCode
+	return rc
 }
 
-func (service *ProvisioningService) ActivateACM() int {
+func (service *ProvisioningService) ActivateACM() utils.ReturnCode {
 	checkErrorAndLog := func(err error) bool {
 		if err != nil {
 			log.Error(err)
@@ -106,7 +106,7 @@ func (service *ProvisioningService) ActivateACM() int {
 	return utils.Success
 }
 
-func (service *ProvisioningService) ActivateCCM() int {
+func (service *ProvisioningService) ActivateCCM() utils.ReturnCode {
 	generalSettings, err := service.GetGeneralSettings()
 	if err != nil {
 		log.Error(err)
@@ -135,7 +135,7 @@ func (service *ProvisioningService) GetGeneralSettings() (general.Response, erro
 	return generalSettings, nil
 }
 
-func (service *ProvisioningService) HostBasedSetup(digestRealm string, password string) (int, error) {
+func (service *ProvisioningService) HostBasedSetup(digestRealm string, password string) (utils.ReturnCode, error) {
 	message := service.ipsMessages.HostBasedSetupService.Setup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password)
 	response, err := service.client.Post(message)
 	if err != nil {
@@ -356,7 +356,7 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 	return signature, nil
 }
 
-func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []byte, signature string) (int, error) {
+func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []byte, signature string) (utils.ReturnCode, error) {
 	password := service.config.ACMSettings.AMTPassword
 	message := service.ipsMessages.HostBasedSetupService.AdminSetup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password, base64.StdEncoding.EncodeToString(nonce), hostbasedsetup.SigningAlgorithmRSASHA2256, signature)
 	response, err := service.client.Post(message)

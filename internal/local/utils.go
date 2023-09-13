@@ -2,14 +2,15 @@ package local
 
 import (
 	"encoding/xml"
+	"reflect"
+	"rpc/pkg/utils"
+
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/concrete"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	log "github.com/sirupsen/logrus"
-	"reflect"
-	"rpc/pkg/utils"
 )
 
 func reflectObjectName(v any) string {
@@ -25,7 +26,7 @@ func reflectObjectName(v any) string {
 type EnumMessageFunc func() string
 type PullMessageFunc func(string) string
 
-func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pullFn PullMessageFunc, outObj any) int {
+func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pullFn PullMessageFunc, outObj any) utils.ReturnCode {
 	xmlMsg := enumFn()
 	log.Trace(xmlMsg)
 	xmlRsp, err := service.client.Post(xmlMsg)
@@ -43,7 +44,7 @@ func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pu
 	return service.PostAndUnmarshal(xmlMsg, outObj)
 }
 
-func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) int {
+func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) utils.ReturnCode {
 	log.Trace(xmlMsg)
 	xmlRsp, err := service.client.Post(xmlMsg)
 	log.Trace(string(xmlRsp))
@@ -58,16 +59,16 @@ func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) 
 	return utils.Success
 }
 
-func (service *ProvisioningService) GetPublicKeyCerts(certs *[]publickey.PublicKeyCertificate) int {
+func (service *ProvisioningService) GetPublicKeyCerts(certs *[]publickey.PublicKeyCertificate) utils.ReturnCode {
 
 	var pullRspEnv publickey.PullResponseEnvelope
-	resultCode := service.EnumPullUnmarshal(
+	rc := service.EnumPullUnmarshal(
 		service.amtMessages.PublicKeyCertificate.Enumerate,
 		service.amtMessages.PublicKeyCertificate.Pull,
 		&pullRspEnv,
 	)
-	if resultCode != utils.Success {
-		return resultCode
+	if rc != utils.Success {
+		return rc
 	}
 	for _, publicKeyCert := range pullRspEnv.Body.PullResponse.Items {
 		*certs = append(*certs, publicKeyCert)
@@ -79,16 +80,16 @@ func (service *ProvisioningService) GetPublicKeyCerts(certs *[]publickey.PublicK
 // NOTE: RSA Key encoded as DES PKCS#1. The Exponent (E) is 65537 (0x010001).
 // When this structure is used as an output parameter (GET or PULL method),
 // only the public section of the key is exported.
-func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicprivate.PublicPrivateKeyPair) int {
+func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicprivate.PublicPrivateKeyPair) utils.ReturnCode {
 
 	var pullRspEnv publicprivate.PullResponseEnvelope
-	resultCode := service.EnumPullUnmarshal(
+	rc := service.EnumPullUnmarshal(
 		service.amtMessages.PublicPrivateKeyPair.Enumerate,
 		service.amtMessages.PublicPrivateKeyPair.Pull,
 		&pullRspEnv,
 	)
-	if resultCode != utils.Success {
-		return resultCode
+	if rc != utils.Success {
+		return rc
 	}
 	for _, keyPair := range pullRspEnv.Body.PullResponse.Items {
 		*keyPairs = append(*keyPairs, keyPair)
@@ -96,7 +97,7 @@ func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicp
 	return utils.Success
 }
 
-func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string) int {
+func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string) utils.ReturnCode {
 	log.Infof("deleting public private key pair instance: %s", instanceId)
 	xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(instanceId)
 	// the response has no addiitonal information
@@ -109,7 +110,7 @@ func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string
 	return utils.Success
 }
 
-func (service *ProvisioningService) DeletePublicCert(instanceId string) int {
+func (service *ProvisioningService) DeletePublicCert(instanceId string) utils.ReturnCode {
 	log.Infof("deleting public key certificate instance: %s", instanceId)
 	xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(instanceId)
 	// the response has no addiitonal information
@@ -122,16 +123,16 @@ func (service *ProvisioningService) DeletePublicCert(instanceId string) int {
 	return utils.Success
 }
 
-func (service *ProvisioningService) GetCredentialRelationships() ([]credential.Relationship, int) {
+func (service *ProvisioningService) GetCredentialRelationships() ([]credential.Relationship, utils.ReturnCode) {
 	var items []credential.Relationship
 	var pullRspEnv credential.ContextPullResponseEnvelope
-	resultCode := service.EnumPullUnmarshal(
+	rc := service.EnumPullUnmarshal(
 		service.cimMessages.CredentialContext.Enumerate,
 		service.cimMessages.CredentialContext.Pull,
 		&pullRspEnv,
 	)
-	if resultCode != utils.Success {
-		return items, resultCode
+	if rc != utils.Success {
+		return items, rc
 	}
 	for {
 		for i := range pullRspEnv.Body.PullResponse.Items {
@@ -142,27 +143,27 @@ func (service *ProvisioningService) GetCredentialRelationships() ([]credential.R
 			break
 		}
 		pullRspEnv = credential.ContextPullResponseEnvelope{}
-		resultCode = service.PostAndUnmarshal(
+		rc = service.PostAndUnmarshal(
 			service.cimMessages.CredentialContext.Pull(enumContext),
 			&pullRspEnv,
 		)
-		if resultCode != utils.Success {
-			return items, resultCode
+		if rc != utils.Success {
+			return items, rc
 		}
 	}
 	return items, utils.Success
 }
 
-func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.Relationship, int) {
+func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.Relationship, utils.ReturnCode) {
 	var items []concrete.Relationship
 	var pullRspEnv concrete.DependencyPullResponseEnvelope
-	resultCode := service.EnumPullUnmarshal(
+	rc := service.EnumPullUnmarshal(
 		service.cimMessages.ConcreteDependency.Enumerate,
 		service.cimMessages.ConcreteDependency.Pull,
 		&pullRspEnv,
 	)
-	if resultCode != utils.Success {
-		return items, resultCode
+	if rc != utils.Success {
+		return items, rc
 	}
 	for {
 		for i := range pullRspEnv.Body.PullResponse.Items {
@@ -173,12 +174,12 @@ func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.Relati
 			break
 		}
 		pullRspEnv = concrete.DependencyPullResponseEnvelope{}
-		resultCode = service.PostAndUnmarshal(
+		rc = service.PostAndUnmarshal(
 			service.cimMessages.ConcreteDependency.Pull(enumContext),
 			&pullRspEnv,
 		)
-		if resultCode != utils.Success {
-			return items, resultCode
+		if rc != utils.Success {
+			return items, rc
 		}
 	}
 	return items, utils.Success

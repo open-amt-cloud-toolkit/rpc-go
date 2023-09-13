@@ -3,15 +3,16 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) DisplayAMTInfo() int {
+func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 	dataStruct := make(map[string]interface{})
 
 	amtCommand := amt.NewAMTCommand()
