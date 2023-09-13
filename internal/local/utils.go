@@ -2,8 +2,6 @@ package local
 
 import (
 	"encoding/xml"
-	"reflect"
-	"rpc/pkg/utils"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
@@ -11,6 +9,9 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	log "github.com/sirupsen/logrus"
+	"reflect"
+	"rpc/pkg/utils"
+	"strings"
 )
 
 func reflectObjectName(v any) string {
@@ -57,6 +58,16 @@ func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) 
 		return utils.UnmarshalMessageFailed
 	}
 	return utils.Success
+}
+
+func GetTokenFromKeyValuePairs(kvList string, token string) string {
+	attributes := strings.Split(kvList, ",")
+	tokenMap := make(map[string]string)
+	for _, att := range attributes {
+		parts := strings.Split(att, "=")
+		tokenMap[parts[0]] = parts[1]
+	}
+	return tokenMap[token]
 }
 
 func (service *ProvisioningService) GetPublicKeyCerts(certs *[]publickey.PublicKeyCertificate) utils.ReturnCode {
