@@ -52,6 +52,27 @@ var mockOSDNSSuffixErr error = nil
 
 func (c MockAMT) GetOSDNSSuffix() (string, error) { return mockOSDNSSuffix, mockOSDNSSuffixErr }
 
+var mockCertHashesDefault = []amt2.CertHashEntry{
+	{
+		Hash:      "ABCDEFG",
+		Name:      "Cert 01 Big Important CA",
+		Algorithm: "SHA256",
+		IsDefault: true,
+	},
+	{
+		Hash:      "424242",
+		Name:      "Cert 02 Small Important CA",
+		Algorithm: "SHA256",
+		IsActive:  true,
+	},
+	{
+		Hash:      "wiggledywaggledy",
+		Name:      "Cert 03 NotAtAll Important CA",
+		Algorithm: "SHA256",
+		IsActive:  true,
+		IsDefault: true,
+	},
+}
 var mockCertHashes []amt2.CertHashEntry
 var mockCertHashesErr error = nil
 

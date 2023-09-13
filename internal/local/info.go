@@ -3,6 +3,8 @@ package local
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 	"os"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
@@ -12,12 +14,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type PrivateKeyPairReference struct {
+	KeyPair         publicprivate.KeyPair
+	AssociatedCerts []string
+}
+
 func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 	dataStruct := make(map[string]interface{})
-
-	amtCommand := amt.NewAMTCommand()
+	cmd := service.amtCommand
 	if service.flags.AmtInfo.Ver {
-		result, err := amtCommand.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
+		result, err := cmd.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
 		if err != nil {
 			log.Error(err)
 		}
@@ -27,7 +33,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Bld {
-		result, err := amtCommand.GetVersionDataFromME("Build Number", service.flags.AMTTimeoutDuration)
+		result, err := cmd.GetVersionDataFromME("Build Number", service.flags.AMTTimeoutDuration)
 		if err != nil {
 			log.Error(err)
 		}
@@ -38,7 +44,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Sku {
-		result, err := amtCommand.GetVersionDataFromME("Sku", service.flags.AMTTimeoutDuration)
+		result, err := cmd.GetVersionDataFromME("Sku", service.flags.AMTTimeoutDuration)
 		if err != nil {
 			log.Error(err)
 		}
@@ -56,7 +62,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.UUID {
-		result, err := amtCommand.GetUUID()
+		result, err := cmd.GetUUID()
 		if err != nil {
 			log.Error(err)
 		}
@@ -67,7 +73,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Mode {
-		result, err := amtCommand.GetControlMode()
+		result, err := cmd.GetControlMode()
 		if err != nil {
 			log.Error(err)
 		}
@@ -78,7 +84,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.DNS {
-		result, err := amtCommand.GetDNSSuffix()
+		result, err := cmd.GetDNSSuffix()
 		if err != nil {
 			log.Error(err)
 		}
@@ -87,7 +93,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		if !service.flags.JsonOutput {
 			println("DNS Suffix		: " + string(result))
 		}
-		result, err = amtCommand.GetOSDNSSuffix()
+		result, err = cmd.GetOSDNSSuffix()
 		if err != nil {
 			log.Error(err)
 		}
@@ -109,7 +115,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 	}
 
 	if service.flags.AmtInfo.Ras {
-		result, err := amtCommand.GetRemoteAccessConnectionStatus()
+		result, err := cmd.GetRemoteAccessConnectionStatus()
 		if err != nil {
 			log.Error(err)
 		}
@@ -123,7 +129,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Lan {
-		wired, err := amtCommand.GetLANInterfaceSettings(false)
+		wired, err := cmd.GetLANInterfaceSettings(false)
 		if err != nil {
 			log.Error(err)
 		}
@@ -138,7 +144,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 			println("MAC Address  		: " + wired.MACAddress)
 		}
 
-		wireless, err := amtCommand.GetLANInterfaceSettings(true)
+		wireless, err := cmd.GetLANInterfaceSettings(true)
 		if err != nil {
 			log.Error(err)
 		}
@@ -154,30 +160,72 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Cert {
-		result, err := amtCommand.GetCertificateHashes()
+		result, err := cmd.GetCertificateHashes()
 		if err != nil {
 			log.Error(err)
 		}
-		certs := make(map[string]interface{})
+		sysCertMap := map[string]amt.CertHashEntry{}
 		for _, v := range result {
-			certs[v.Name] = v
+			sysCertMap[v.Name] = v
 		}
-		dataStruct["certificateHashes"] = certs
+		dataStruct["certificateHashes"] = sysCertMap
 		if !service.flags.JsonOutput {
-			println("Certificate Hashes	:")
-			for _, v := range result {
-				print(v.Name + " (")
-				if v.IsDefault {
-					print("Default,")
+			if len(result) == 0 {
+				fmt.Println("---No Certificate Hashes Found---")
+			} else {
+				fmt.Println("---Certificate Hashes---")
+			}
+			for k, v := range sysCertMap {
+				fmt.Printf("%s", k)
+				if v.IsDefault && v.IsActive {
+					fmt.Printf("  (Default, Active)")
+				} else if v.IsDefault {
+					fmt.Printf("  (Default)")
+				} else if v.IsActive {
+					fmt.Printf("  (Active)")
 				}
-				if v.IsActive {
-					print("Active)")
-				}
-				println()
-				println("   " + v.Algorithm + ": " + v.Hash)
+				fmt.Println()
+				fmt.Println("   " + v.Algorithm + ": " + v.Hash)
 			}
 		}
 	}
+	if service.flags.AmtInfo.UserCert {
+		service.setupWsmanClient("admin", service.flags.Password)
+		var userCerts []publickey.PublicKeyCertificate
+		service.GetPublicKeyCerts(&userCerts)
+		userCertMap := map[string]publickey.PublicKeyCertificate{}
+		for i := range userCerts {
+			c := userCerts[i]
+			name := GetTokenFromKeyValuePairs(c.Subject, "CN")
+			// CN is not required by spec, but should work
+			// just in case, provide something accurate
+			if name == "" {
+				name = c.InstanceID
+			}
+			userCertMap[name] = c
+		}
+		dataStruct["publicKeyCerts"] = userCertMap
+
+		if !service.flags.JsonOutput {
+			if len(userCertMap) == 0 {
+				fmt.Println("---No Public Key Certs Found---")
+			} else {
+				fmt.Println("---Public Key Certs---")
+			}
+			for k, c := range userCertMap {
+				fmt.Printf("%s", k)
+				if c.TrustedRootCertficate && c.ReadOnlyCertificate {
+					fmt.Printf("  (TrustedRoot, ReadOnly)")
+				} else if c.TrustedRootCertficate {
+					fmt.Printf("  (TrustedRoot)")
+				} else if c.ReadOnlyCertificate {
+					fmt.Printf("  (ReadOnly)")
+				}
+				fmt.Println()
+			}
+		}
+	}
+
 	if service.flags.JsonOutput {
 		outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
 		output := string(outBytes)

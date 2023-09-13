@@ -1,3 +1,23 @@
+<a name="v2.15.0"></a>
+## [v2.15.0] - 2023-09-13
+### Build
+- **deps:** bump docker/login-action from 2.2.0 to 3.0.0
+- **deps:** bump golang from `445f340` to `96634e5`
+- **deps:** bump actions/upload-artifact from 3.1.2 to 3.1.3
+- **deps:** bump golang.org/x/sys from 0.11.0 to 0.12.0
+
+### Ci
+- add release tag to docker image
+
+### Docs
+- update badges
+
+### Feat
+- amtinfo display user certificates
+
+### Refactor
+- **utils:** creates type for return codes and makes variable names consistent ([#212](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/212))
+
 <a name="v2.14.2"></a>
 ## [v2.14.2] - 2023-09-08
 ### Fix

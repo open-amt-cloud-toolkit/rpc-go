@@ -1,39 +1,64 @@
 package local
 
 import (
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/stretchr/testify/assert"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDisplayAMTInfo(t *testing.T) {
-	f := &flags.Flags{}
-	f.Command = utils.CommandVersion
-	f.AmtInfo.Ver = true
-	f.AmtInfo.Bld = true
-	f.AmtInfo.Sku = true
-	f.AmtInfo.UUID = true
-	f.AmtInfo.Mode = true
-	f.AmtInfo.DNS = true
-	f.AmtInfo.Cert = true
-	f.AmtInfo.Ras = true
-	f.AmtInfo.Lan = true
-	f.AmtInfo.Hostname = true
+	//f := &flags.Flags{}
+	defaultFlags := flags.AmtInfoFlags{
+		Ver:      true,
+		Bld:      true,
+		Sku:      true,
+		UUID:     true,
+		Mode:     true,
+		DNS:      true,
+		Ras:      true,
+		Lan:      true,
+		Hostname: true,
+	}
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo = defaultFlags
 		lps := setupService(f)
 		rc := lps.DisplayAMTInfo()
 		assert.Equal(t, utils.Success, rc)
 	})
 
 	t.Run("returns Success with json output", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 		lps := setupService(f)
-		rc := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, rc)
-		f.JsonOutput = false
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+	})
+
+	t.Run("returns Success with certs", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo.Cert = true
+		f.AmtInfo.UserCert = true
+		f.Password = "testPassword"
+		mockCertHashes = mockCertHashesDefault
+		pullEnvelope := publickey.PullResponseEnvelope{}
+		pullEnvelope.Body.PullResponse.Items = []publickey.PublicKeyCertificate{
+			mpsCert,
+			clientCert,
+			caCert,
+		}
+		rfa := ResponseFuncArray{
+			respondMsgFunc(t, common.EnumerationResponse{}),
+			respondMsgFunc(t, pullEnvelope),
+		}
+		lps := setupWsmanResponses(t, f, rfa)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
 	})
 
 	t.Run("returns Success but logs errors on error conditions", func(t *testing.T) {
@@ -46,7 +71,10 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockLANInterfaceSettingsErr = mockStandardErr
 		mockCertHashesErr = mockStandardErr
 
+		f := &flags.Flags{}
+		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
+
 		lps := setupService(f)
 		rc := lps.DisplayAMTInfo()
 		assert.Equal(t, utils.Success, rc)
