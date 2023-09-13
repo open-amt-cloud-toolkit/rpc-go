@@ -3,13 +3,14 @@ package local
 import (
 	"crypto/x509"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	amt2 "rpc/internal/amt"
 	"rpc/internal/certtest"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var sortaSingletonCerts *certtest.TestCerts = nil
@@ -31,36 +32,36 @@ func TestActivation(t *testing.T) {
 
 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
 		mockControlModeErr = errors.New("yep it failed")
-		resultCode := lps.Activate()
-		assert.Equal(t, utils.AMTConnectionFailed, resultCode)
+		rc := lps.Activate()
+		assert.Equal(t, utils.AMTConnectionFailed, rc)
 		mockControlModeErr = nil
 	})
 
 	t.Run("returns UnableToActivate when already activated", func(t *testing.T) {
 		mockControlMode = 1
-		resultCode := lps.Activate()
-		assert.Equal(t, utils.UnableToActivate, resultCode)
+		rc := lps.Activate()
+		assert.Equal(t, utils.UnableToActivate, rc)
 		mockControlMode = 0
 	})
 
 	t.Run("returns AMTConnectionFailed when GetLocalSystemAccount fails", func(t *testing.T) {
 		mockLocalSystemAccountErr = errors.New("yep it failed")
-		resultCode := lps.Activate()
-		assert.Equal(t, utils.AMTConnectionFailed, resultCode)
+		rc := lps.Activate()
+		assert.Equal(t, utils.AMTConnectionFailed, rc)
 		mockLocalSystemAccountErr = nil
 	})
 
 	t.Run("returns ActivationFailed when UseACM and responses are not mocked", func(t *testing.T) {
 		lps.flags.UseACM = true
-		resultCode := lps.Activate()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.Activate()
+		assert.Equal(t, utils.ActivationFailed, rc)
 		lps.flags.UseACM = false
 	})
 
 	t.Run("returns ActivationFailed when UseCCM and responses are not mocked", func(t *testing.T) {
 		lps.flags.UseCCM = true
-		resultCode := lps.Activate()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.Activate()
+		assert.Equal(t, utils.ActivationFailed, rc)
 		lps.flags.UseCCM = false
 	})
 }
@@ -73,8 +74,8 @@ func TestActivateCCM(t *testing.T) {
 			respondServerError(w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on GeneralSettings.Get() xml.unmarshal error", func(t *testing.T) {
@@ -82,8 +83,8 @@ func TestActivateCCM(t *testing.T) {
 			respondBadXML(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup server error", func(t *testing.T) {
@@ -97,8 +98,8 @@ func TestActivateCCM(t *testing.T) {
 			}
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup xml.unmarshal error", func(t *testing.T) {
@@ -112,8 +113,8 @@ func TestActivateCCM(t *testing.T) {
 			}
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup ReturnValue is not success (0)", func(t *testing.T) {
@@ -129,8 +130,8 @@ func TestActivateCCM(t *testing.T) {
 			}
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
@@ -144,8 +145,8 @@ func TestActivateCCM(t *testing.T) {
 			}
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.ActivateCCM()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := lps.ActivateCCM()
+		assert.Equal(t, utils.Success, rc)
 	})
 }
 
@@ -248,8 +249,8 @@ func TestActivateACM(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	lps := setupWithWsmanClient(f, handler)
-	resultCode := lps.ActivateACM()
-	assert.Equal(t, utils.Success, resultCode)
+	rc := lps.ActivateACM()
+	assert.Equal(t, utils.Success, rc)
 }
 
 func TestInjectCertsErrors(t *testing.T) {

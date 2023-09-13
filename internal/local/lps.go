@@ -1,63 +1,66 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 )
 
 type ProvisioningService struct {
-	flags       *flags.Flags
-	serverURL   string
-	client      *wsman.Client
-	config      *config.Config
-	amtCommand  internalAMT.Interface
-	amtMessages amt.Messages
-	cimMessages cim.Messages
-	ipsMessages ips.Messages
+	flags            *flags.Flags
+	serverURL        string
+	client           *wsman.Client
+	config           *config.Config
+	amtCommand       internalAMT.Interface
+	amtMessages      amt.Messages
+	cimMessages      cim.Messages
+	ipsMessages      ips.Messages
+	handlesWithCerts map[string]string
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 	// supports unit testing
 	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
 	return ProvisioningService{
-		flags:       flags,
-		client:      nil,
-		serverURL:   serverURL,
-		config:      &flags.LocalConfig,
-		amtCommand:  internalAMT.NewAMTCommand(),
-		amtMessages: amt.NewMessages(),
-		cimMessages: cim.NewMessages(),
-		ipsMessages: ips.NewMessages(),
+		flags:            flags,
+		client:           nil,
+		serverURL:        serverURL,
+		config:           &flags.LocalConfig,
+		amtCommand:       internalAMT.NewAMTCommand(),
+		amtMessages:      amt.NewMessages(),
+		cimMessages:      cim.NewMessages(),
+		ipsMessages:      ips.NewMessages(),
+		handlesWithCerts: make(map[string]string),
 	}
 }
 
-func ExecuteCommand(flags *flags.Flags) int {
-	resultCode := utils.Success
+func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
+	rc := utils.Success
 	service := NewProvisioningService(flags)
 	switch flags.Command {
 	case utils.CommandActivate:
-		resultCode = service.Activate()
+		rc = service.Activate()
 		break
 	case utils.CommandAMTInfo:
-		resultCode = service.DisplayAMTInfo()
+		rc = service.DisplayAMTInfo()
 		break
 	case utils.CommandDeactivate:
-		resultCode = service.Deactivate()
+		rc = service.Deactivate()
 		break
 	case utils.CommandConfigure:
-		resultCode = service.Configure()
+		rc = service.Configure()
 		break
 	case utils.CommandVersion:
-		resultCode = service.DisplayVersion()
+		rc = service.DisplayVersion()
 		break
 	}
-	return resultCode
+	return rc
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {
