@@ -2,12 +2,13 @@ package local
 
 import (
 	"encoding/xml"
+	"rpc/pkg/utils"
+
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
 	log "github.com/sirupsen/logrus"
-	"rpc/pkg/utils"
 )
 
-func (service *ProvisioningService) Deactivate() int {
+func (service *ProvisioningService) Deactivate() utils.ReturnCode {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
@@ -23,7 +24,7 @@ func (service *ProvisioningService) Deactivate() int {
 	return utils.UnableToDeactivate
 }
 
-func (service *ProvisioningService) DeactivateACM() int {
+func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 	if service.flags.Password == "" {
 		if _, rc := service.flags.ReadPasswordFromUser(); rc != utils.Success {
 			return rc
@@ -50,7 +51,7 @@ func (service *ProvisioningService) DeactivateACM() int {
 	return utils.Success
 }
 
-func (service *ProvisioningService) DeactivateCCM() int {
+func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
 	if service.flags.Password != "" {
 		log.Warn("Password not required for CCM deactivation")
 	}

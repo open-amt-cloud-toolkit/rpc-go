@@ -32,40 +32,40 @@ func (f *Flags) printMaintenanceUsage() string {
 	return usage
 }
 
-func (f *Flags) handleMaintenanceCommand() int {
+func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
 	//validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
 		return utils.IncorrectCommandLineParameters
 	}
 
-	var errCode = utils.Success
+	var rc = utils.Success
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "syncclock":
-		errCode = f.handleMaintenanceSyncClock()
+		rc = f.handleMaintenanceSyncClock()
 		break
 	case "synchostname":
-		errCode = f.handleMaintenanceSyncHostname()
+		rc = f.handleMaintenanceSyncHostname()
 		break
 	case "syncip":
-		errCode = f.handleMaintenanceSyncIP()
+		rc = f.handleMaintenanceSyncIP()
 		break
 	case "changepassword":
-		errCode = f.handleMaintenanceSyncChangePassword()
+		rc = f.handleMaintenanceSyncChangePassword()
 		break
 	default:
 		f.printMaintenanceUsage()
-		errCode = utils.IncorrectCommandLineParameters
+		rc = utils.IncorrectCommandLineParameters
 		break
 	}
-	if errCode != utils.Success {
-		return errCode
+	if rc != utils.Success {
+		return rc
 	}
 
 	if f.Password == "" {
-		if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
+		if _, rc := f.ReadPasswordFromUser(); rc != 0 {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
@@ -83,14 +83,14 @@ func (f *Flags) handleMaintenanceCommand() int {
 	return utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncClock() int {
+func (f *Flags) handleMaintenanceSyncClock() utils.ReturnCode {
 	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return utils.IncorrectCommandLineParameters
 	}
 	return utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncHostname() int {
+func (f *Flags) handleMaintenanceSyncHostname() utils.ReturnCode {
 	var err error
 	if err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtMaintenanceSyncHostnameCommand.Usage()
@@ -122,7 +122,7 @@ func validateIP(assignee *string) func(string) error {
 	}
 }
 
-func (f *Flags) handleMaintenanceSyncIP() int {
+func (f *Flags) handleMaintenanceSyncIP() utils.ReturnCode {
 	f.amtMaintenanceSyncIPCommand.Func(
 		"staticip",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
@@ -139,23 +139,23 @@ func (f *Flags) handleMaintenanceSyncIP() int {
 		f.amtMaintenanceSyncIPCommand.Usage()
 		// Parse the error message to find the problematic flag.
 		// The problematic flag is of the following format '-' followed by flag name and then a ':'
-		var errCode int
+		var rc utils.ReturnCode
 		re := regexp.MustCompile(`-.*:`)
 		switch re.FindString(err.Error()) {
 		case "-netmask:":
-			errCode = utils.MissingOrIncorrectNetworkMask
+			rc = utils.MissingOrIncorrectNetworkMask
 		case "-staticip:":
-			errCode = utils.MissingOrIncorrectStaticIP
+			rc = utils.MissingOrIncorrectStaticIP
 		case "-gateway:":
-			errCode = utils.MissingOrIncorrectGateway
+			rc = utils.MissingOrIncorrectGateway
 		case "-primarydns:":
-			errCode = utils.MissingOrIncorrectPrimaryDNS
+			rc = utils.MissingOrIncorrectPrimaryDNS
 		case "-secondarydns:":
-			errCode = utils.MissingOrIncorrectSecondaryDNS
+			rc = utils.MissingOrIncorrectSecondaryDNS
 		default:
-			errCode = utils.IncorrectCommandLineParameters
+			rc = utils.IncorrectCommandLineParameters
 		}
-		return errCode
+		return rc
 	} else if len(f.IpConfiguration.IpAddress) != 0 {
 		return utils.Success
 	}
@@ -200,7 +200,7 @@ func (f *Flags) handleMaintenanceSyncIP() int {
 	return utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncChangePassword() int {
+func (f *Flags) handleMaintenanceSyncChangePassword() utils.ReturnCode {
 	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
 	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtMaintenanceChangePasswordCommand.Usage()

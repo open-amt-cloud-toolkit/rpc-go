@@ -2,11 +2,12 @@ package flags
 
 import (
 	"fmt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,8 +28,8 @@ func TestPromptForSecrets(t *testing.T) {
 	t.Run("expect success on valid user input", func(t *testing.T) {
 		defer userInput(t, "userInput\nuserInput\nuserInput")()
 		f := getPromptForSecretsFlags()
-		resultCode := f.promptForSecrets()
-		assert.Equal(t, utils.Success, resultCode)
+		rc := f.promptForSecrets()
+		assert.Equal(t, utils.Success, rc)
 		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
 		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
 		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[1].Password)
@@ -36,8 +37,8 @@ func TestPromptForSecrets(t *testing.T) {
 	t.Run("expect InvalidUserInput", func(t *testing.T) {
 		defer userInput(t, "userInput\nuserInput")()
 		f := getPromptForSecretsFlags()
-		resultCode := f.promptForSecrets()
-		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		rc := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, rc)
 		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
 		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
 		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[1].Password)
@@ -45,16 +46,16 @@ func TestPromptForSecrets(t *testing.T) {
 	t.Run("expect InvalidUserInput", func(t *testing.T) {
 		defer userInput(t, "userInput")()
 		f := getPromptForSecretsFlags()
-		resultCode := f.promptForSecrets()
-		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		rc := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, rc)
 		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
 		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].Password)
 		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
 	})
 	t.Run("expect InvalidUserInput", func(t *testing.T) {
 		f := getPromptForSecretsFlags()
-		resultCode := f.promptForSecrets()
-		assert.Equal(t, utils.InvalidUserInput, resultCode)
+		rc := f.promptForSecrets()
+		assert.Equal(t, utils.InvalidUserInput, rc)
 		assert.Equal(t, "", f.LocalConfig.WifiConfigs[0].PskPassphrase)
 		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].Password)
 		assert.Equal(t, "", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
@@ -138,7 +139,7 @@ func TestHandleAddWifiSettings(t *testing.T) {
 	cases := []struct {
 		description    string
 		cmdLine        string
-		expectedResult int
+		expectedResult utils.ReturnCode
 	}{
 		{description: "Missing Ieee8021xProfileName value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
@@ -255,7 +256,7 @@ var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
 	PrivateKey:             "",
 }
 
-func runVerifyWifiConfiguration(t *testing.T, expectedResult int, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
+func runVerifyWifiConfiguration(t *testing.T, expectedResult utils.ReturnCode, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
 	f := Flags{}
 	for _, cfg := range wifiCfgs {
 		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, cfg)
@@ -368,48 +369,48 @@ func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, config.Ieee8021xConfig{})
 	t.Run("expect MissingOrInvalidConfiguration with missing configuration", func(t *testing.T) {
 		f2 := Flags{}
-		resultCode := f2.verifyMatchingIeee8021xConfig("")
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f2.verifyMatchingIeee8021xConfig("")
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if no matching profile", func(t *testing.T) {
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if missing username", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].ProfileName = name
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if missing ClientCert", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].Username = "UserName"
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if missing CACert", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].ClientCert = "AABBCCDDEEFF"
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if missing PrivateKey", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].CACert = "AABBCCDDEEFF"
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration if missing PskPassphrase", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].PrivateKey = "AABBCCDDEEFF"
 		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2)
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 	t.Run("expect Success", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTLS)
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.Success, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.Success, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration for unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTTLS_MSCHAPv2)
-		resultCode := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+		rc := f.verifyMatchingIeee8021xConfig(name)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 }
 
@@ -432,8 +433,8 @@ func TestInvalidAuthenticationMethods(t *testing.T) {
 		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.method),
 			func(t *testing.T) {
 				f.LocalConfig.WifiConfigs[0].AuthenticationMethod = int(tc.method)
-				resultCode := f.verifyWifiConfigurations()
-				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+				rc := f.verifyWifiConfigurations()
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 			})
 	}
 }
@@ -454,8 +455,8 @@ func TestInvalidEncryptionMethods(t *testing.T) {
 		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.method),
 			func(t *testing.T) {
 				f.LocalConfig.WifiConfigs[0].EncryptionMethod = int(tc.method)
-				resultCode := f.verifyWifiConfigurations()
-				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+				rc := f.verifyWifiConfigurations()
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 			})
 	}
 }
@@ -481,8 +482,8 @@ func TestInvalidAuthenticationProtocols(t *testing.T) {
 		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.protocol),
 			func(t *testing.T) {
 				f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(tc.protocol)
-				resultCode := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
-				assert.Equal(t, utils.MissingOrInvalidConfiguration, resultCode)
+				rc := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 			})
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (service *ProvisioningService) DisplayVersion() int {
+func (service *ProvisioningService) DisplayVersion() utils.ReturnCode {
 	output := ""
 
 	if !service.flags.JsonOutput {

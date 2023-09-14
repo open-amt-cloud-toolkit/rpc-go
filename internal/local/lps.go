@@ -1,14 +1,15 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 )
 
 type ProvisioningService struct {
@@ -39,27 +40,27 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 	}
 }
 
-func ExecuteCommand(flags *flags.Flags) int {
-	resultCode := utils.Success
+func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
+	rc := utils.Success
 	service := NewProvisioningService(flags)
 	switch flags.Command {
 	case utils.CommandActivate:
-		resultCode = service.Activate()
+		rc = service.Activate()
 		break
 	case utils.CommandAMTInfo:
-		resultCode = service.DisplayAMTInfo()
+		rc = service.DisplayAMTInfo()
 		break
 	case utils.CommandDeactivate:
-		resultCode = service.Deactivate()
+		rc = service.Deactivate()
 		break
 	case utils.CommandConfigure:
-		resultCode = service.Configure()
+		rc = service.Configure()
 		break
 	case utils.CommandVersion:
-		resultCode = service.DisplayVersion()
+		rc = service.DisplayVersion()
 		break
 	}
-	return resultCode
+	return rc
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {

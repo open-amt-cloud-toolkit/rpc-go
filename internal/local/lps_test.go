@@ -3,10 +3,6 @@ package local
 import (
 	"encoding/xml"
 	"errors"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/general"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips/hostbasedsetup"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	amt2 "rpc/internal/amt"
@@ -14,6 +10,11 @@ import (
 	"rpc/pkg/utils"
 	"testing"
 	"time"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/general"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips/hostbasedsetup"
+	"github.com/stretchr/testify/assert"
 )
 
 // Mock the AMT Hardware
@@ -21,7 +22,7 @@ type MockAMT struct{}
 
 var mockStandardErr error = errors.New("yep, it failed")
 
-func (c MockAMT) Initialize() (int, error) {
+func (c MockAMT) Initialize() (utils.ReturnCode, error) {
 	return utils.Success, nil
 }
 
@@ -51,6 +52,27 @@ var mockOSDNSSuffixErr error = nil
 
 func (c MockAMT) GetOSDNSSuffix() (string, error) { return mockOSDNSSuffix, mockOSDNSSuffixErr }
 
+var mockCertHashesDefault = []amt2.CertHashEntry{
+	{
+		Hash:      "ABCDEFG",
+		Name:      "Cert 01 Big Important CA",
+		Algorithm: "SHA256",
+		IsDefault: true,
+	},
+	{
+		Hash:      "424242",
+		Name:      "Cert 02 Small Important CA",
+		Algorithm: "SHA256",
+		IsActive:  true,
+	},
+	{
+		Hash:      "wiggledywaggledy",
+		Name:      "Cert 03 NotAtAll Important CA",
+		Algorithm: "SHA256",
+		IsActive:  true,
+		IsDefault: true,
+	},
+}
 var mockCertHashes []amt2.CertHashEntry
 var mockCertHashesErr error = nil
 
@@ -106,8 +128,8 @@ func respondServerErrFunc() func(w http.ResponseWriter, r *http.Request) {
 
 func respondBadXmlFunc(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, resultCode := w.Write([]byte(`not really xml is it?`))
-		assert.Nil(t, resultCode)
+		_, rc := w.Write([]byte(`not really xml is it?`))
+		assert.Nil(t, rc)
 	}
 }
 
@@ -151,20 +173,20 @@ func TestExecute(t *testing.T) {
 
 	t.Run("execute CommandAMTInfo should succeed", func(t *testing.T) {
 		f.Command = utils.CommandAMTInfo
-		resultCode := ExecuteCommand(f)
-		assert.Equal(t, utils.Success, resultCode)
+		rc := ExecuteCommand(f)
+		assert.Equal(t, utils.Success, rc)
 	})
 
 	t.Run("execute CommandVersion should succeed", func(t *testing.T) {
 		f.Command = utils.CommandVersion
-		resultCode := ExecuteCommand(f)
-		assert.Equal(t, utils.Success, resultCode)
+		rc := ExecuteCommand(f)
+		assert.Equal(t, utils.Success, rc)
 	})
 
 	t.Run("execute CommandConfigure with no SubCommand fails", func(t *testing.T) {
 		f.Command = utils.CommandConfigure
-		resultCode := ExecuteCommand(f)
-		assert.Equal(t, utils.IncorrectCommandLineParameters, resultCode)
+		rc := ExecuteCommand(f)
+		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 	})
 }
 
