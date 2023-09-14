@@ -39,5 +39,6 @@ jobs:
                                       # for semantic-release.
           extra_plugins: |
               @semantic-release/exec@6.0.3
+              semantic-release-docker
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
