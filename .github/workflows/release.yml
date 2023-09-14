@@ -37,5 +37,7 @@ jobs:
         with:
           semantic_version: 19.0.5  # It is recommended to specify specifying version range
                                       # for semantic-release.
+          extra_plugins: |
+              @semantic-release/exec@6.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
