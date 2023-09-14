@@ -22,6 +22,28 @@ type PrivateKeyPairReference struct {
 func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 	dataStruct := make(map[string]interface{})
 	cmd := service.amtCommand
+
+	// UserCert precheck for provisioning mode and missing password
+	// password is required for the local wsman connection but if device
+	// has not been provisioned yet, then asking for the password is confusing
+	// do this check first so prompts and errors messages happen before
+	// any other displayed info
+	if service.flags.AmtInfo.UserCert && service.flags.Password == "" {
+		result, err := cmd.GetControlMode()
+		if err != nil {
+			log.Error(err)
+			service.flags.AmtInfo.UserCert = false
+		} else if result == 0 {
+			fmt.Println("Device is in pre-provisioning mode. User certificates are not available")
+			service.flags.AmtInfo.UserCert = false
+		} else {
+			if _, rc := service.flags.ReadPasswordFromUser(); rc != 0 {
+				fmt.Println("Invalid Entry")
+				return rc
+			}
+		}
+	}
+
 	if service.flags.AmtInfo.Ver {
 		result, err := cmd.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
 		if err != nil {
