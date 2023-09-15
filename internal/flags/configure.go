@@ -236,6 +236,7 @@ func (f *Flags) promptForSecrets() utils.ReturnCode {
 }
 
 func (f *Flags) verifyWifiConfigurations() utils.ReturnCode {
+	priorities := make(map[int]bool)
 	for _, cfg := range f.LocalConfig.WifiConfigs {
 		//Check profile name is not empty
 		if cfg.ProfileName == "" {
@@ -252,6 +253,12 @@ func (f *Flags) verifyWifiConfigurations() utils.ReturnCode {
 			log.Error("invalid priority for config: ", cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
 		}
+		//Check priority is unique
+		if priorities[cfg.Priority] {
+			log.Error("priority was specified previously: ", cfg.ProfileName)
+			return utils.MissingOrInvalidConfiguration
+		}
+		priorities[cfg.Priority] = true
 
 		authenticationMethod := models.AuthenticationMethod(cfg.AuthenticationMethod)
 		switch authenticationMethod {

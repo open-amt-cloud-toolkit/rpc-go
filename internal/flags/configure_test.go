@@ -221,7 +221,7 @@ var wifiCfgWPA2 = config.WifiConfig{
 var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
 	ProfileName:          "wifiWPA28021x",
 	SSID:                 "ssid",
-	Priority:             2,
+	Priority:             3,
 	AuthenticationMethod: int(models.AuthenticationMethod_WPA_IEEE8021x),
 	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
 	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
@@ -240,7 +240,7 @@ var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
 var wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2 = config.WifiConfig{
 	ProfileName:          "wifiWPA28021x",
 	SSID:                 "ssid",
-	Priority:             2,
+	Priority:             4,
 	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_IEEE8021x),
 	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
 	Ieee8021xProfileName: "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
@@ -296,6 +296,14 @@ func TestVerifyWifiConfiguration(t *testing.T) {
 		wifiCfgWPA.Priority = 0
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
 			config.WifiConfigs{wifiCfgWPA},
+			config.Ieee8021xConfigs{})
+		wifiCfgWPA.Priority = orig
+	})
+	t.Run("expect MissingOrInvalidConfiguration with duplicate Priority", func(t *testing.T) {
+		orig := wifiCfgWPA.Priority
+		wifiCfgWPA.Priority = wifiCfgWPA2.Priority
+		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
+			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2},
 			config.Ieee8021xConfigs{})
 		wifiCfgWPA.Priority = orig
 	})
