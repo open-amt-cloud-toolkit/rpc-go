@@ -1,3 +1,23 @@
+<a name="v2.15.1"></a>
+## [v2.15.1] - 2023-09-15
+### Build
+- **deps:** bump github/codeql-action from 2.21.6 to 2.21.7
+- **deps:** bump github/codeql-action from 2.21.5 to 2.21.6
+
+### Ci
+- add semantic-release-docker plugin
+- adds exec plugin for [@semantic](https://github.com/semantic)-release
+
+### Docs
+- config file names and comments
+
+### Fix
+- add prompt for password acm local deactivation
+- addwifisettings validate unique priorities
+
+### Refactor
+- config file names and comments
+
 <a name="v2.15.0"></a>
 ## [v2.15.0] - 2023-09-13
 ### Build
