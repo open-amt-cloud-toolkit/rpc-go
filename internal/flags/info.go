@@ -62,12 +62,8 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 		f.AmtInfo.UserCert = true
 	}
 
-	// user certs need the amt password for the local wsman connection
-	if f.AmtInfo.UserCert && f.Password == "" {
-		if _, errCode := f.ReadPasswordFromUser(); errCode != 0 {
-			return utils.MissingOrIncorrectPassword
-		}
-	}
+	// NOTE: UserCert and password check happen later
+	// when provisioning mode is available
 
 	return utils.Success
 }
