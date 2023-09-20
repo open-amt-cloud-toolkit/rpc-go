@@ -9,11 +9,8 @@
     "@semantic-release/github",
     "@semantic-release/exec",
     {
-      "prepareCmd": "docker build -t vprodemo.azurecr.io/rpc-go ."
-    },
-    "semantic-release-docker",
-    {
-      "name": "vprodemo.azurecr.io/rpc-go"
-    }
+      "prepareCmd": "docker build -t vprodemo.azurecr.io/rpc-go:v${nextRelease.version} .",
+      "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version}"
+    }    
   ]
 }
