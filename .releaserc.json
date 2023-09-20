@@ -7,10 +7,12 @@
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
     "@semantic-release/github",
-    "@semantic-release/exec",
-    {
-      "prepareCmd": "docker build -t vprodemo.azurecr.io/rpc-go:v${nextRelease.version} . && echo \"tagged docker image with v${nextRelease.version}\" ",
-      "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version} && echo \"pushed docker image with v${nextRelease.version}\" "
-    }    
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "docker build -t vprodemo.azurecr.io/rpc-go:v${nextRelease.version} . && echo \"tagged docker image with v${nextRelease.version}\" ",
+        "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version} && echo \"pushed docker image with v${nextRelease.version}\" "
+      }
+    ]
   ]
 }
