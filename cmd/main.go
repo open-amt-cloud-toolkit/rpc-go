@@ -8,9 +8,10 @@ import (
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
-	"rpc/internal/local"
-	"rpc/internal/rps"
+	// "rpc/internal/local"
+	// "rpc/internal/rps"
 	"rpc/pkg/utils"
+	"rpc/internal/commands"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -30,16 +31,17 @@ func checkAccess() (utils.ReturnCode, error) {
 }
 
 func runRPC(args []string) utils.ReturnCode {
-	flags, rc := parseCommandLine(args)
-	if rc != utils.Success {
-		return rc
-	}
-	if flags.Local {
-		rc = local.ExecuteCommand(flags)
-	} else {
-		rc = rps.ExecuteCommand(flags)
-	}
-	return rc
+	resultCode1 := commands.HandleCommands(args)
+	// flags, rc := parseCommandLine(args)
+	// if rc != utils.Success {
+	// 	return rc
+	// }
+	// if flags.Local {
+	// 	rc = local.ExecuteCommand(flags)
+	// } else {
+	// 	rc = rps.ExecuteCommand(flags)
+	// }
+	return resultCode1
 }
 
 func parseCommandLine(args []string) (*flags.Flags, utils.ReturnCode) {

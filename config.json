@@ -1,0 +1,7 @@
+{
+  "acmactivate": {
+    "amtPassword": "test",
+    "provisioningCert": "your provisioning certificate",
+    "provisioningCertPwd": "test"
+  }
+}
