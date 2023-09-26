@@ -152,6 +152,10 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	payload.IPConfiguration = flags.IpConfiguration
 	payload.HostnameInfo = flags.HostnameInfo
 
+	if flags.UUID != "" {
+		payload.UUID = flags.UUID
+	}
+
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
