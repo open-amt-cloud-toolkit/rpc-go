@@ -89,6 +89,42 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockLANInterfaceSettingsErr = nil
 		mockCertHashesErr = nil
 	})
+
+	t.Run("resets UserCert on GetControlMode failure", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo.UserCert = true
+		mockControlModeErr = mockStandardErr
+		rfa := ResponseFuncArray{}
+		lps := setupWsmanResponses(t, f, rfa)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+		assert.False(t, f.AmtInfo.UserCert)
+		mockControlModeErr = nil
+	})
+	t.Run("resets UserCert when control mode is preprovisioning", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo.UserCert = true
+		orig := mockControlMode
+		mockControlMode = 0
+		rfa := ResponseFuncArray{}
+		lps := setupWsmanResponses(t, f, rfa)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.Success, resultCode)
+		assert.False(t, f.AmtInfo.UserCert)
+		mockControlMode = orig
+	})
+	t.Run("returns MissingOrIncorrectPassword on no password input from user", func(t *testing.T) {
+		f := &flags.Flags{}
+		f.AmtInfo.UserCert = true
+		orig := mockControlMode
+		mockControlMode = 2
+		rfa := ResponseFuncArray{}
+		lps := setupWsmanResponses(t, f, rfa)
+		resultCode := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
+		assert.True(t, f.AmtInfo.UserCert)
+		mockControlMode = orig
+	})
 }
 
 func TestDecodeAMT(t *testing.T) {

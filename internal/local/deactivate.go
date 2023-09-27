@@ -25,6 +25,11 @@ func (service *ProvisioningService) Deactivate() utils.ReturnCode {
 }
 
 func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
+	if service.flags.Password == "" {
+		if _, rc := service.flags.ReadPasswordFromUser(); rc != utils.Success {
+			return rc
+		}
+	}
 	service.setupWsmanClient("admin", service.flags.Password)
 	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
 	response, err := service.client.Post(msg)

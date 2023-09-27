@@ -10,7 +10,7 @@ const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
 	// ProjectVersion is the full version of this executable
-	ProjectVersion  = "2.15.0"
+	ProjectVersion  = "2.15.1"
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable
 	ClientName = "RPC"
@@ -65,6 +65,7 @@ const (
 	FailedReadingConfiguration         ReturnCode = 34
 	MissingOrInvalidConfiguration      ReturnCode = 35
 	InvalidUserInput                   ReturnCode = 36
+	InvalidUUID                        ReturnCode = 37
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         ReturnCode = 70

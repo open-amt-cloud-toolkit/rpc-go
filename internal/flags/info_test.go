@@ -51,9 +51,9 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 				UserCert: true,
 			},
 		},
-		"expect MissingOrIncorrectPassword for userCert": {
+		"expect success for userCert with no password": {
 			cmdLine:    "./rpc amtinfo -userCert",
-			wantResult: utils.MissingOrIncorrectPassword,
+			wantResult: utils.Success,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},

@@ -211,6 +211,35 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
 }
 
+func TestCreateMessageRequestCustomUUID(t *testing.T) {
+	flags := flags.Flags{
+		UUID: "12345678-1234-1234-1234-123456789012",
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, flags.UUID, msgPayload.UUID)
+}
+
+func TestCreateMessageRequestNoUUID(t *testing.T) {
+	const expectedUUID = "123-456-789"
+	flags := flags.Flags{}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, expectedUUID, msgPayload.UUID)
+}
+
 func TestCreateMessageRequestHostnameInfo(t *testing.T) {
 	flags := flags.Flags{
 		HostnameInfo: flags.HostnameInfo{
