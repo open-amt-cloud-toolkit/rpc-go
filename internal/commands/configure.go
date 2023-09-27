@@ -10,48 +10,51 @@ import (
 	"github.com/spf13/viper"
 )
 
-
 func createConfigureCommand() *cobra.Command {
 	configureCmd := &cobra.Command{
 		Use:   "configure",
-		Short: "Configure settings",
+		Short: "Configure addwifisettings settings",
 	}
 
 	// Create the addwifisettings sub-command
 	addWifiSettingsCmd := &cobra.Command{
 		Use:   "addwifisettings",
-		Short: "Add or modify WiFi settings using password and config file/string or all settings as flags.",
+		Short: "Modify WiFi settings using an AMT password. AMT supports up to 8 profiles at a time. \n This command deletes existing profiles and adds the provided one. \n You can provide configuration as a file, JSON string, or YAML string, or use flags for a single profile.",
 		RunE:  runAddWifiSettings,
 	}
 
-	configureCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
-    configureCmd.Flags().StringP("log-level", "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
-    configureCmd.Flags().BoolP("json-output", "json", false, "JSON output")
-    configureCmd.Flags().StringP("amtpassword", "amtPassword", "", "AMT password")
-    configureCmd.Flags().StringP("config", "config", "", "specify a config file path")
-    configureCmd.Flags().StringP("config-json", "configJSON", "", "configuration as a JSON string")
-    configureCmd.Flags().StringP("config-yaml", "configYAML", "", "configuration as a YAML string")
-	// configureCmd.Flags().StringP(&secretsFilePath, "secrets", "", "specify a secrets file ")
+	// Add flags addwifisettings command
+	addWifiSettingsCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
+	addWifiSettingsCmd.Flags().StringP("log-level", "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	addWifiSettingsCmd.Flags().BoolP("jsonOutput", "", false, "JSON output")
+	addWifiSettingsCmd.Flags().StringP("amtpassword", "", "", "AMT password")
+	addWifiSettingsCmd.Flags().StringP("config", "", "", "Provide a configuration file path")
+	addWifiSettingsCmd.Flags().StringP("configJSON", "", "", "Configuration as a JSON string")
+	addWifiSettingsCmd.Flags().StringP("configYAML", "", "", "Configuration as a YAML string")
+	// addWifiSettingsCmd.Flags().StringP(&secretsFilePath, "secrets", "", "specify a secrets file ")
 
 	wifiCfg := config.WifiConfig{}
-    ieee8021xCfg := config.Ieee8021xConfig{}
+	ieee8021xCfg := config.Ieee8021xConfig{}
 
-    configureCmd.Flags().StringVarP(&wifiCfg.ProfileName, "profileName", "", "", "Specify WiFi profile name")
-    configureCmd.Flags().IntVarP(&wifiCfg.AuthenticationMethod, "authenticationMethod",  "", 0, "Specify authentication method 6 (WPA2 PSK) or 7 (WPA2 IEEE 802.1x)")
-    configureCmd.Flags().IntVarP(&wifiCfg.EncryptionMethod, "encryptionMethod", "", 0, "Specify encryption method  3 (TKIP) or 4 (CCMP)")
-    configureCmd.Flags().StringVarP(&wifiCfg.SSID, "ssid", "", "", "Identifies a wireless network")
-    configureCmd.Flags().StringVarP(&wifiCfg.PskPassphrase, "pskPassphrase", "", "", "Specify PSK passphrase with 8-63 characters. Required for authenticationMethod 6")
-    configureCmd.Flags().IntVarP(&wifiCfg.Priority, "priority", "", 0, "Indicates the priority of the profile among all WiFi profiles")
+	addWifiSettingsCmd.Flags().StringVarP(&wifiCfg.ProfileName, "profileName", "", "", "Name for WiFi profile")
+	addWifiSettingsCmd.Flags().IntVarP(&wifiCfg.AuthenticationMethod, "authenticationMethod", "", 0, "Accepts only 6 (WPA2 PSK) or 7 (WPA2 IEEE 802.1x)")
+	addWifiSettingsCmd.Flags().IntVarP(&wifiCfg.EncryptionMethod, "encryptionMethod", "", 0, "Accepts only 3 (TKIP) or 4 (CCMP)")
+	addWifiSettingsCmd.Flags().StringVarP(&wifiCfg.SSID, "ssid", "", "", "A name which identifies a wireless network")
+	addWifiSettingsCmd.Flags().StringVarP(&wifiCfg.PskPassphrase, "pskPassphrase", "", "", "Accepts 8-63 characters. Required for authenticationMethod 6")
+	addWifiSettingsCmd.Flags().IntVarP(&wifiCfg.Priority, "priority", "", 0, "Indicates the priority of the profile among all WiFi profiles")
 
-    configureCmd.Flags().StringVarP(&wifiCfg.Ieee8021xProfileName, "ieee8021xProfileName", "", "", "specify IEEE 802.1x profile name. Required for authenticationMethod 7")
-    configureCmd.Flags().StringVarP(&ieee8021xCfg.Username, "username", "", "", "specify username")
-    configureCmd.Flags().StringVarP(&ieee8021xCfg.Password, "ieee8021xPassword", "", "", "A password associated with the user. Required for authenticationProtocol 2")
-    configureCmd.Flags().IntVarP(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", "", 0, "specify authentication protocol 0 (EAP-TLS) or 2 (PEAPv0/EAP-MSCHAPv2)")
-    configureCmd.Flags().StringVarP(&ieee8021xCfg.ClientCert, "clientCert", "", "", "specify client certificate. Required for authentication protocol 0")
-    configureCmd.Flags().StringVarP(&ieee8021xCfg.CACert, "caCert", "", "", "specify CA certificate")
-    configureCmd.Flags().StringVarP(&ieee8021xCfg.PrivateKey, "privateKey", "", "", "specify private key. Required for authentication protocol 0")
+	addWifiSettingsCmd.Flags().StringVarP(&wifiCfg.Ieee8021xProfileName, "ieee8021xProfileName", "", "", "A name for IEEE 802.1x profile. Required for authenticationMethod 7")
+	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.Username, "username", "", "", "User requesting access to the network.Accepts max 128 characters")
+	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.Password, "ieee8021xPassword", "", "", "A password associated with the username. Accepts max 256 length. Required for PEAPv0/EAP-MSCHAPv2")
+	addWifiSettingsCmd.Flags().IntVarP(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", "", 0, "Accepts only 0 (EAP-TLS) or 2 (PEAPv0/EAP-MSCHAPv2)")
+	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.ClientCert, "clientCert", "", "", "Required for EAP-TLS")
+	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.CACert, "caCert", "", "", "Required for both EAP-TLS and PEAPv0/EAP-MSCHAPv2")
+	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.PrivateKey, "privateKey", "", "", "Required for EAP-TLS")
 
-    configureCmd.AddCommand(addWifiSettingsCmd)
+	// Mark flags as required for specific subcommands
+	configureCmd.MarkFlagRequired("amtpassword")
+
+	configureCmd.AddCommand(addWifiSettingsCmd)
 
 	return configureCmd
 }
@@ -107,25 +110,27 @@ func runAddWifiSettings(cmd *cobra.Command, args []string) error {
 		}
 
 		if authenticationMethod == 6 && pskPassphrase == "" {
-			return errors.New("pskPassphrase is mandatory for authentication method 6 (WPA2 PSK)")
+			return errors.New("pskPassphrase is required for authentication method 6 (WPA2 PSK)")
 		}
 
-		if authenticationMethod == 7 && (ieee8021xProfileName == "" || username == "" || authenticationProtocol == 0 || clientCert == "" || caCert == "" || privateKey == "") {
-			return errors.New("If authentication Method is WPA2 IEEE 802.1x (7), ieee8021xProfileName, username, authenticationProtocol, clientCert, caCert, and privateKey are required")
+		if authenticationMethod == 7 && (ieee8021xProfileName == "" || username == "" || authenticationProtocol < 0 || caCert == "") {
+			return errors.New("For WPA2 IEEE 802.1x (7) authentication, you need ieee8021xProfileName, username, authenticationProtocol, caCert, and either clientCert/privateKey for EAP-TLS or MSCHAPv2 password.")
 		}
 
-		if authenticationMethod == 7 && authenticationProtocol == 0 {
-			if username == "" || clientCert == "" || caCert == "" || privateKey == "" {
-				return errors.New("If AuthenticationProtocol is 0, UserName, ClientCert, CaCert, and PrivateKey are mandatory.")
+		if authenticationMethod == 7 {
+			switch {
+			case authenticationProtocol == 0:
+				if username == "" || clientCert == "" || caCert == "" || privateKey == "" {
+					return errors.New("If AuthenticationProtocol is 0, clientCert, and privateKey are required.")
+				}
+			case authenticationProtocol == 2:
+				if caCert == "" || password == "" {
+					return errors.New("If AuthenticationProtocol is 2, password are required.")
+				}
+			default:
+				return errors.New("AuthenticationProtocol accepts only 0 (EAP-TLS) or 2 (PEAPv0/EAP-MSCHAPv2)")
 			}
 		}
-
-		if authenticationMethod == 7 && authenticationProtocol == 2 {
-			if caCert == "" || password == "" {
-				return errors.New("If AuthenticationProtocol is 2, CaCert and Password are mandatory.")
-			}
-		}
-
 		// Create a new WifiSettings element
 		wifiCfg := struct {
 			ProfileName          string `mapstructure:"profileName"`
@@ -144,27 +149,27 @@ func runAddWifiSettings(cmd *cobra.Command, args []string) error {
 			PSKPassphrase:        pskPassphrase,
 			Ieee8021xProfileName: ieee8021xProfileName,
 		}
-		
+
 		// Append the new WifiConfigs element to the WifiConfigs slice
 		config.WifiConfigs = append(config.WifiConfigs, wifiCfg)
 
 		ieee8021xCfg := struct {
-			ProfileName           string `mapstructure:"profileName"`
-			Username              string `mapstructure:"username"`
+			ProfileName            string `mapstructure:"profileName"`
+			Username               string `mapstructure:"username"`
 			AuthenticationProtocol int    `mapstructure:"authenticationProtocol"`
-			ClientCert            string `mapstructure:"clientCert"`
-			CaCert                string `mapstructure:"caCert"`
-			PrivateKey            string `mapstructure:"privateKey"`
-			Password              string `mapstructure:"password"`
+			ClientCert             string `mapstructure:"clientCert"`
+			CaCert                 string `mapstructure:"caCert"`
+			PrivateKey             string `mapstructure:"privateKey"`
+			Password               string `mapstructure:"password"`
 		}{
-			ProfileName:           ieee8021xProfileName,
-			Username:              username,
+			ProfileName:            ieee8021xProfileName,
+			Username:               username,
 			AuthenticationProtocol: authenticationProtocol,
-			ClientCert:            clientCert,
-			CaCert:                caCert,
-			PrivateKey:            privateKey,
-			Password:              password,
-		} 
+			ClientCert:             clientCert,
+			CaCert:                 caCert,
+			PrivateKey:             privateKey,
+			Password:               password,
+		}
 		config.Ieee8021xConfigs = append(config.Ieee8021xConfigs, ieee8021xCfg)
 	}
 
