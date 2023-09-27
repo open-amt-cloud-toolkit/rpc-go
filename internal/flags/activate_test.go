@@ -94,6 +94,43 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	os.Clearenv()
 }
 
+func TestActivateOverrideUUID(t *testing.T) {
+	if err := os.Setenv("PROFILE", "envprofile"); err != nil {
+		t.Error(err)
+	}
+
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-uuid", "4c2e8db8-1c7a-00ea-279c-d17395b1f584"}
+	flags := NewFlags(args)
+	rc := flags.ParseFlags()
+	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, flags.UUID, "4c2e8db8-1c7a-00ea-279c-d17395b1f584")
+	os.Clearenv()
+}
+
+func TestActivateInvalidUUID(t *testing.T) {
+	if err := os.Setenv("PROFILE", "envprofile"); err != nil {
+		t.Error(err)
+	}
+
+	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-uuid", "12345"}
+	flags := NewFlags(args)
+	rc := flags.ParseFlags()
+	assert.Equal(t, utils.InvalidUUID, rc)
+	os.Clearenv()
+}
+
+func TestActivateIncorrectParameterCombinationLocalAndUUID(t *testing.T) {
+	if err := os.Setenv("AMT_PASSWORD", "envpassword"); err != nil {
+		t.Error(err)
+	}
+
+	args := []string{"./rpc", "activate", "-ccm", "-local", "-uuid", "12345678-1234-1234-1234-123456789012"}
+	flags := NewFlags(args)
+	rc := flags.ParseFlags()
+	assert.Equal(t, utils.InvalidParameterCombination, rc)
+	os.Clearenv()
+}
+
 func TestHandleActivateCommandIncorrectCommandLineParameters(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-x"}
 	flags := NewFlags(args)

@@ -65,6 +65,7 @@ const (
 	FailedReadingConfiguration         ReturnCode = 34
 	MissingOrInvalidConfiguration      ReturnCode = 35
 	InvalidUserInput                   ReturnCode = 36
+	InvalidUUID                        ReturnCode = 37
 
 	// (70-99) Connection Errors
 	RPSAuthenticationFailed         ReturnCode = 70

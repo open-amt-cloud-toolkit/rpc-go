@@ -16,6 +16,7 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 	f.amtActivateCommand.BoolVar(&f.Local, "local", false, "activate amt locally")
 	f.amtActivateCommand.BoolVar(&f.UseCCM, "ccm", false, "activate in client control mode (CCM)")
 	f.amtActivateCommand.BoolVar(&f.UseACM, "acm", false, "activate in admin control mode (ACM)")
+	f.amtActivateCommand.StringVar(&f.UUID, "uuid", "", "override AMT device uuid for use with non-CIRA workflow")
 	// use the Func call rather than StringVar to keep the default value out of the help/usage message
 	f.amtActivateCommand.Func("name", "friendly name to associate with this device", func(flagValue string) error {
 		f.FriendlyName = flagValue
@@ -64,6 +65,15 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 			f.amtActivateCommand.Usage()
 			return utils.MissingOrIncorrectProfile
 		}
+		if f.UUID != "" {
+			uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+			if matched := uuidPattern.MatchString(f.UUID); !matched {
+				fmt.Println("uuid provided does not follow proper uuid format")
+				f.amtActivateCommand.Usage()
+				return utils.InvalidUUID
+			}
+			fmt.Println("Warning: Overriding UUID prevents device from connecting to MPS")
+		}
 	} else {
 		if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
 			fmt.Println("must specify -ccm or -acm, but not both")
@@ -93,6 +103,12 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 			}
 		}
 		f.LocalConfig.Password = f.Password
+
+		if f.UUID != "" {
+			fmt.Println("-uuid cannot be use in local activation")
+			f.amtActivateCommand.Usage()
+			return utils.InvalidParameterCombination
+		}
 	}
 	return utils.Success
 }

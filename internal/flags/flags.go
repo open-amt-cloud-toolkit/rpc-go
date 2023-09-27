@@ -66,6 +66,7 @@ type Flags struct {
 	UseCCM                              bool
 	UseACM                              bool
 	configContent                       string
+	UUID                                string
 	LocalConfig                         config.Config
 	amtInfoCommand                      *flag.FlagSet
 	amtActivateCommand                  *flag.FlagSet
