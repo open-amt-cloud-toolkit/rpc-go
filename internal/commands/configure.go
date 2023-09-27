@@ -3,11 +3,13 @@ package commands
 import (
 	"errors"
 	"fmt"
+	"rpc/internal/config"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
 
 func createConfigureCommand() *cobra.Command {
 	configureCmd := &cobra.Command{
@@ -22,7 +24,34 @@ func createConfigureCommand() *cobra.Command {
 		RunE:  runAddWifiSettings,
 	}
 
-	configureCmd.AddCommand(addWifiSettingsCmd)
+	configureCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
+    configureCmd.Flags().StringP("log-level", "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+    configureCmd.Flags().BoolP("json-output", "json", false, "JSON output")
+    configureCmd.Flags().StringP("amtpassword", "amtPassword", "", "AMT password")
+    configureCmd.Flags().StringP("config", "config", "", "specify a config file path")
+    configureCmd.Flags().StringP("config-json", "configJSON", "", "configuration as a JSON string")
+    configureCmd.Flags().StringP("config-yaml", "configYAML", "", "configuration as a YAML string")
+	// configureCmd.Flags().StringP(&secretsFilePath, "secrets", "", "specify a secrets file ")
+
+	wifiCfg := config.WifiConfig{}
+    ieee8021xCfg := config.Ieee8021xConfig{}
+
+    configureCmd.Flags().StringVarP(&wifiCfg.ProfileName, "profileName", "", "", "Specify WiFi profile name")
+    configureCmd.Flags().IntVarP(&wifiCfg.AuthenticationMethod, "authenticationMethod",  "", 0, "Specify authentication method 6 (WPA2 PSK) or 7 (WPA2 IEEE 802.1x)")
+    configureCmd.Flags().IntVarP(&wifiCfg.EncryptionMethod, "encryptionMethod", "", 0, "Specify encryption method  3 (TKIP) or 4 (CCMP)")
+    configureCmd.Flags().StringVarP(&wifiCfg.SSID, "ssid", "", "", "Identifies a wireless network")
+    configureCmd.Flags().StringVarP(&wifiCfg.PskPassphrase, "pskPassphrase", "", "", "Specify PSK passphrase with 8-63 characters. Required for authenticationMethod 6")
+    configureCmd.Flags().IntVarP(&wifiCfg.Priority, "priority", "", 0, "Indicates the priority of the profile among all WiFi profiles")
+
+    configureCmd.Flags().StringVarP(&wifiCfg.Ieee8021xProfileName, "ieee8021xProfileName", "", "", "specify IEEE 802.1x profile name. Required for authenticationMethod 7")
+    configureCmd.Flags().StringVarP(&ieee8021xCfg.Username, "username", "", "", "specify username")
+    configureCmd.Flags().StringVarP(&ieee8021xCfg.Password, "ieee8021xPassword", "", "", "A password associated with the user. Required for authenticationProtocol 2")
+    configureCmd.Flags().IntVarP(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", "", 0, "specify authentication protocol 0 (EAP-TLS) or 2 (PEAPv0/EAP-MSCHAPv2)")
+    configureCmd.Flags().StringVarP(&ieee8021xCfg.ClientCert, "clientCert", "", "", "specify client certificate. Required for authentication protocol 0")
+    configureCmd.Flags().StringVarP(&ieee8021xCfg.CACert, "caCert", "", "", "specify CA certificate")
+    configureCmd.Flags().StringVarP(&ieee8021xCfg.PrivateKey, "privateKey", "", "", "specify private key. Required for authentication protocol 0")
+
+    configureCmd.AddCommand(addWifiSettingsCmd)
 
 	return configureCmd
 }
@@ -74,7 +103,7 @@ func runAddWifiSettings(cmd *cobra.Command, args []string) error {
 		privateKey, _ := cmd.Flags().GetString("privateKey")
 
 		if encryptionMethod != 3 && encryptionMethod != 4 {
-			return errors.New("For WPA2 PSK, EncryptionMethod must be 3 (TKIP) or 4 (CCMP).")
+			return errors.New("EncryptionMethod must be 3 (TKIP) or 4 (CCMP).")
 		}
 
 		if authenticationMethod == 6 && pskPassphrase == "" {

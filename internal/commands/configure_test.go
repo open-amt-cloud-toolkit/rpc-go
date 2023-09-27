@@ -1,7 +1,7 @@
 package commands
 
 import (
-	// "errors"
+	"errors"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -42,29 +42,29 @@ func TestRunAddWifiSettings(t *testing.T) {
 		flags         map[string]string
 		expectedError error
 	}{
-		// {
-		// 	name: "AMT password is not provided",
-		// 	flags: map[string]string{
-		// 		"config": "../../config.yaml",
-		// 	},
-		// 	expectedError: errors.New("amtPassword is required"),
-		// },
-		// {
-		// 	name: "Config file provided with valid values",
-		// 	flags: map[string]string{
-		// 		"amtPassword": "P@ssw0rd",
-		// 		"config":      "../../config.yaml",
-		// 	},
-		// 	expectedError: nil,
-		// },
-		// {
-		// 	name: "Json string provided with valid values",
-		// 	flags: map[string]string{
-		// 		"amtPassword": "P@ssw0rd",
-		// 		"configJSON":  `{"wifiConfigs":[{"profileName":"exampleWifiWPA2","ssid":"exampleSSID","priority":1,"authenticationMethod":6,"encryptionMethod":4,"pskPassphrase":"example123!@#","ieee8021xProfileName":""},{"profileName":"exampleWifiWPA","ssid":"exampleSSID","priority":2,"authenticationMethod":4,"encryptionMethod":4,"pskPassphrase":"","ieee8021xProfileName":""},{"profileName":"exampleWifi8021xTLS","ssid":"ssid","priority":2,"authenticationMethod":7,"encryptionMethod":4,"pskPassphrase":"","ieee8021xProfileName":"exampleIeee8021xEAP-TLS"}],"ieee8021xConfigs":[{"profileName":"exampleIeee8021xEAP-TLS","username":"exampleUserName","authenticationProtocol":0,"clientCert":"testClientCertString","caCert":"testCaCertString","privateKey":""},{"profileName":"exampleIeee8021xMSCHAPv2","username":"exampleUserName","password":"","authenticationProtocol":2,"caCert":"testCaCertString"}]}`,
-		// 	},
-		// 	expectedError: nil,
-		// },
+		{
+			name: "AMT password is not provided",
+			flags: map[string]string{
+				"config": "../../config.yaml",
+			},
+			expectedError: errors.New("amtPassword is required"),
+		},
+		{
+			name: "Config file provided with valid values",
+			flags: map[string]string{
+				"amtPassword": "P@ssw0rd",
+				"config":      "../../config.yaml",
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Json string provided with valid values",
+			flags: map[string]string{
+				"amtPassword": "P@ssw0rd",
+				"configJSON":  `{"wifiConfigs":[{"profileName":"exampleWifiWPA2","ssid":"exampleSSID","priority":1,"authenticationMethod":6,"encryptionMethod":4,"pskPassphrase":"example123!@#","ieee8021xProfileName":""},{"profileName":"exampleWifiWPA","ssid":"exampleSSID","priority":2,"authenticationMethod":4,"encryptionMethod":4,"pskPassphrase":"","ieee8021xProfileName":""},{"profileName":"exampleWifi8021xTLS","ssid":"ssid","priority":2,"authenticationMethod":7,"encryptionMethod":4,"pskPassphrase":"","ieee8021xProfileName":"exampleIeee8021xEAP-TLS"}],"ieee8021xConfigs":[{"profileName":"exampleIeee8021xEAP-TLS","username":"exampleUserName","authenticationProtocol":0,"clientCert":"testClientCertString","caCert":"testCaCertString","privateKey":""},{"profileName":"exampleIeee8021xMSCHAPv2","username":"exampleUserName","password":"","authenticationProtocol":2,"caCert":"testCaCertString"}]}`,
+			},
+			expectedError: nil,
+		},
 		// TODO{
 		// 	name: "yaml string provided with valid values",
 		// 	flags: map[string]string{
@@ -77,13 +77,13 @@ func TestRunAddWifiSettings(t *testing.T) {
 		{
 			name: "Valid values provided for authentication method 6",
 			flags: map[string]string{
-				"amtPassword":            "P@ssw0rd",
-				"profileName":            "exampleWifiWPA2",
-				"ssid":                   "exampleSSID",
-				"priority":               "1",
-				"authenticationMethod":   "6",
-				"encryptionMethod":       "3",
-				"pskPassphrase":          "example123!@#",
+				"amtPassword":          "P@ssw0rd",
+				"profileName":          "exampleWifiWPA2",
+				"ssid":                 "exampleSSID",
+				"priority":             "1",
+				"authenticationMethod": "6",
+				"encryptionMethod":     "3",
+				"pskPassphrase":        "example123!@#",
 			},
 			expectedError: nil,
 		},
@@ -98,13 +98,48 @@ func TestRunAddWifiSettings(t *testing.T) {
 				"encryptionMethod":       "4",
 				"ieee8021xProfileName":   "profileName",
 				"username":               "username",
-				"password":				  "password",
+				"password":               "password",
 				"authenticationProtocol": "2",
 				"clientCert":             "clientCert",
 				"caCert":                 "caCert",
 				"privateKey":             "privateKey",
 			},
 			expectedError: nil,
+		},
+		{
+			name: "No Configuration Provided and Missing Flags:",
+			flags: map[string]string{
+				"amtPassword": "P@ssw0rd",
+				"profileName": "exampleWifiWPA2",
+				"ssid":        "exampleSSID",
+			},
+			expectedError: errors.New("At least one source (config file, config JSON, config YAML, or command flags) is required. If not, all required fields (profile name, authentication method, etc.) must be provided."),
+		},
+		{
+			name: "Invalid encryptionMethod",
+			flags: map[string]string{
+				"amtPassword":          "P@ssw0rd",
+				"profileName":          "exampleWifiWPA2",
+				"ssid":                 "exampleSSID",
+				"priority":             "1",
+				"authenticationMethod": "6",
+				"encryptionMethod":     "5",
+				"pskPassphrase":        "example123!@#",
+			},
+			expectedError: errors.New("EncryptionMethod must be 3 (TKIP) or 4 (CCMP)."),
+		},
+		{
+			name: "Missing pskPassphrase for WPA2 PSK",
+			flags: map[string]string{
+				"amtPassword":          "P@ssw0rd",
+				"profileName":          "exampleWifiWPA2",
+				"ssid":                 "exampleSSID",
+				"priority":             "1",
+				"authenticationMethod": "6",
+				"encryptionMethod":     "3",
+				"ieee8021xProfileName": "example123!@#",
+			},
+			expectedError: errors.New("pskPassphrase is mandatory for authentication method 6 (WPA2 PSK)"),
 		},
 	}
 
