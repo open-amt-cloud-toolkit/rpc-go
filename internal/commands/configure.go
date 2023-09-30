@@ -27,7 +27,7 @@ func createConfigureCommand() *cobra.Command {
 	addWifiSettingsCmd.Flags().BoolP("verbose", "v", false, "Verbose output")
 	addWifiSettingsCmd.Flags().StringP("log-level", "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	addWifiSettingsCmd.Flags().BoolP("jsonOutput", "", false, "JSON output")
-	addWifiSettingsCmd.Flags().StringP("amtpassword", "", "", "AMT password")
+	addWifiSettingsCmd.Flags().StringP("amtPassword", "", "", "AMT password")
 	addWifiSettingsCmd.Flags().StringP("config", "", "", "Provide a configuration file path")
 	addWifiSettingsCmd.Flags().StringP("configJSON", "", "", "Configuration as a JSON string")
 	addWifiSettingsCmd.Flags().StringP("configYAML", "", "", "Configuration as a YAML string")
@@ -52,7 +52,7 @@ func createConfigureCommand() *cobra.Command {
 	addWifiSettingsCmd.Flags().StringVarP(&ieee8021xCfg.PrivateKey, "privateKey", "", "", "Required for EAP-TLS")
 
 	// Mark flags as required for specific subcommands
-	configureCmd.MarkFlagRequired("amtpassword")
+	configureCmd.MarkFlagRequired("amtPassword")
 
 	configureCmd.AddCommand(addWifiSettingsCmd)
 

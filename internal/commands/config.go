@@ -2,8 +2,8 @@ package commands
 
 type (
 	AppConfig struct {
-		Password         string       `yaml:"password"`
-		WifiConfigs      []WifiConfig `mapstructure:"wifiConfigs"`
+		Password         string            `yaml:"password"`
+		WifiConfigs      []WifiConfig      `mapstructure:"wifiConfigs"`
 		Ieee8021xConfigs []Ieee8021xConfig `mapstructure:"ieee8021xConfigs"`
 		ACMSettings      `mapstructure:"acmactivate"`
 	}
@@ -26,8 +26,8 @@ type (
 		PrivateKey    string `yaml:"privateKey"`
 		Password      string `yaml:"password"`
 	}
-	
-	Ieee8021xConfig  struct {
+
+	Ieee8021xConfig struct {
 		ProfileName            string `mapstructure:"profileName"`
 		Username               string `mapstructure:"username"`
 		AuthenticationProtocol int    `mapstructure:"authenticationProtocol"`

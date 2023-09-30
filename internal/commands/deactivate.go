@@ -22,9 +22,9 @@ func createDeactivateCommand() *cobra.Command {
 			if err != nil || url == "" {
 				return errors.New("url is required")
 			}
-			password, err := cmd.Flags().GetString("password")
-			if err != nil || password == "" {
-				return errors.New("password is required")
+			amtPassword, err := cmd.Flags().GetString("amtPassword")
+			if err != nil || amtPassword == "" {
+				return errors.New("AMT password is required")
 			}
 			return nil
 		},
@@ -33,18 +33,19 @@ func createDeactivateCommand() *cobra.Command {
 	// Add flags to cmdRemote
 	cmdRemote.Flags().StringP("url", "u", "", "Websocket address of server to activate against")
 	cmdRemote.Flags().BoolP("force", "f", false, "Force the operation")
-	cmdRemote.Flags().StringP("password", "p", "", "AMT Password")
+	cmdRemote.Flags().StringP("amtPassword", "p", "", "AMT Password")
 
 	// Activate -> Local sub-command
 	cmdLocal := &cobra.Command{
 		Use:   "local",
 		Short: "Deactivate via Remote Provisioning Client (RPC)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			password, _ := cmd.Flags().GetString("password")
+			amtPassword, _ := cmd.Flags().GetString("amtPassword")
+			// TO DO: Check if it is ACM or not. Not sure if this is right location to check that
 			// If password is missing, prompt the user to enter it
-			if password == "" {
+			if amtPassword == "" {
 				fmt.Print("Enter AMT Password: ")
-				_, err := fmt.Scan(&password)
+				_, err := fmt.Scan(&amtPassword)
 				if err != nil {
 					return err
 				}
@@ -52,7 +53,7 @@ func createDeactivateCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmdLocal.Flags().StringP("password", "p", "", "AMT Password")
+	cmdLocal.Flags().StringP("amtPassword", "p", "", "AMT Password")
 
 	// Add persistent flags to the root command
 	cmdDeactivate.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
