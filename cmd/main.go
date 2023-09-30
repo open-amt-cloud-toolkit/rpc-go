@@ -10,7 +10,7 @@ import (
 	"rpc/internal/flags"
 	// "rpc/internal/local"
 	// "rpc/internal/rps"
-	"rpc/internal/commands"
+	"rpc/commands"
 	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
