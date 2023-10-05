@@ -42,20 +42,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # the .nextVersion file will be created by semantic-release
       - name: Get Next Version
         id: version
         run: |
-          git fetch --tags
-          echo "next=$(git tag | sort -r --version-sort | head -n1)" >> "$GITHUB_OUTPUT"
+          if [ -f .nextVersion ]; then
+            echo "next=$(cat .nextVersion)" >> "$GITHUB_OUTPUT"
+          else
+            echo "next=none" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+        if: ${{ steps.version.outputs.next != 'none' }}
         with:
           repository: open-amt-cloud-toolkit/e2e-testing
           ref: docker-release
           clean: true
-          token: ${{ secrets.PROJECTS_PAT }}
+          token: ${{ secrets.DOCKER_RELEASE_PAT }}
 
       - name: Create docker-release @ ${{ steps.version.outputs.next }}
+        if: ${{ steps.version.outputs.next != 'none' }}
         env:
           RELEASE_YAML: release/rpc-go.yml
           NEXT_VERSION: ${{ steps.version.outputs.next }}
