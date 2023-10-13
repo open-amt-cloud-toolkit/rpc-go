@@ -11,6 +11,7 @@ import (
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
+	"rpc/internal/local"
 	"rpc/pkg/utils"
 	"time"
 
@@ -47,6 +48,7 @@ type MessagePayload struct {
 	Version           string                `json:"ver"`
 	Build             string                `json:"build"`
 	SKU               string                `json:"sku"`
+	Features          string                `json:"features"`
 	UUID              string                `json:"uuid"`
 	Username          string                `json:"username"`
 	Password          string                `json:"password"`
@@ -86,6 +88,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 	if err != nil {
 		return payload, err
 	}
+
+	payload.Features = local.DecodeAMT(payload.Version, payload.SKU)
+
 	payload.UUID, err = p.AMT.GetUUID()
 	if err != nil {
 		return payload, err
