@@ -77,7 +77,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.Ver && service.flags.AmtInfo.Sku {
-		result := decodeAMT(dataStruct["amt"].(string), dataStruct["sku"].(string))
+		result := DecodeAMT(dataStruct["amt"].(string), dataStruct["sku"].(string))
 		dataStruct["features"] = strings.TrimSpace(result)
 		if !service.flags.JsonOutput {
 			println("Features		: " + result)
@@ -259,7 +259,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 	return utils.Success
 }
 
-func decodeAMT(version, SKU string) string {
+func DecodeAMT(version, SKU string) string {
 	amtParts := strings.Split(version, ".")
 	if len(amtParts) <= 1 {
 		return "Invalid AMT version format"

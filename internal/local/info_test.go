@@ -157,9 +157,9 @@ func TestDecodeAMT(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := decodeAMT(tc.version, tc.SKU)
+		got := DecodeAMT(tc.version, tc.SKU)
 		if got != tc.want {
-			t.Errorf("decodeAMT(%q, %q) = %v; want %v", tc.version, tc.SKU, got, tc.want)
+			t.Errorf("DecodeAMT(%q, %q) = %v; want %v", tc.version, tc.SKU, got, tc.want)
 		}
 	}
 }
