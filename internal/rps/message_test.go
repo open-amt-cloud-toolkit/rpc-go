@@ -27,7 +27,7 @@ var controlMode int = 0
 var err error = nil
 var mode int = 0
 
-func (c MockAMT) Initialize() (int, error) {
+func (c MockAMT) Initialize() (utils.ReturnCode, error) {
 	return utils.Success, nil
 }
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
@@ -211,6 +211,35 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
 }
 
+func TestCreateMessageRequestCustomUUID(t *testing.T) {
+	flags := flags.Flags{
+		UUID: "12345678-1234-1234-1234-123456789012",
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, flags.UUID, msgPayload.UUID)
+}
+
+func TestCreateMessageRequestNoUUID(t *testing.T) {
+	const expectedUUID = "123-456-789"
+	flags := flags.Flags{}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, expectedUUID, msgPayload.UUID)
+}
+
 func TestCreateMessageRequestHostnameInfo(t *testing.T) {
 	flags := flags.Flags{
 		HostnameInfo: flags.HostnameInfo{
@@ -227,4 +256,33 @@ func TestCreateMessageRequestHostnameInfo(t *testing.T) {
 	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
 	assert.NoError(t, jsonErr)
 	assert.Equal(t, flags.HostnameInfo, msgPayload.HostnameInfo)
+}
+
+func TestCreateMessageRequestFriendlyName(t *testing.T) {
+	expectedName := "friendlyName01"
+	flags := flags.Flags{
+		FriendlyName: expectedName,
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	var m map[string]interface{}
+	unmarshalErr := json.Unmarshal(decodedBytes, &m)
+	assert.NoError(t, unmarshalErr)
+	assert.Equal(t, m["friendlyName"], expectedName)
+}
+func TestCreateMessageRequestWithoutFriendlyName(t *testing.T) {
+	flags := flags.Flags{}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	var m map[string]interface{}
+	unmarshalErr := json.Unmarshal(decodedBytes, &m)
+	assert.NoError(t, unmarshalErr)
+	_, isInMap := m["friendlyName"]
+	assert.False(t, isInMap)
 }

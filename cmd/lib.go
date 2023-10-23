@@ -10,37 +10,43 @@ package main
 import "C"
 
 import (
-	log "github.com/sirupsen/logrus"
+	"encoding/csv"
 	"rpc/pkg/utils"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //export rpcCheckAccess
 func rpcCheckAccess() int {
-	status, err := checkAccess()
+	rc, err := checkAccess()
 	if err != nil {
 		log.Error(err.Error())
 	}
-	return status
+	return int(rc)
 }
 
 //export rpcExec
 func rpcExec(Input *C.char, Output **C.char) int {
-	if accessStatus := rpcCheckAccess(); accessStatus != utils.Success {
+	if accessStatus := rpcCheckAccess(); accessStatus != int(utils.Success) {
 		*Output = C.CString(AccessErrMsg)
 		return accessStatus
 	}
 
 	//create argument array from input string
 	inputString := C.GoString(Input)
-	args := strings.Fields(inputString)
+	// Split string
+	r := csv.NewReader(strings.NewReader(inputString))
+	r.Comma = ' ' // space
+	args, err := r.Read()
+	if err != nil {
+		log.Error(err.Error())
+		return int(utils.InvalidParameterCombination)
+	}
 	args = append([]string{"rpc"}, args...)
-	runStatus, err := runRPC(args)
-	if runStatus != utils.Success {
-		if err != nil {
-			log.Error(err.Error())
-		}
+	rc := runRPC(args)
+	if rc != utils.Success {
 		*Output = C.CString("rpcExec failed: " + inputString)
 	}
-	return runStatus
+	return int(rc)
 }

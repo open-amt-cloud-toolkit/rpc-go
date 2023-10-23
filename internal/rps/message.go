@@ -11,6 +11,7 @@ import (
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
+	"rpc/internal/local"
 	"rpc/pkg/utils"
 	"time"
 
@@ -47,6 +48,7 @@ type MessagePayload struct {
 	Version           string                `json:"ver"`
 	Build             string                `json:"build"`
 	SKU               string                `json:"sku"`
+	Features          string                `json:"features"`
 	UUID              string                `json:"uuid"`
 	Username          string                `json:"username"`
 	Password          string                `json:"password"`
@@ -57,6 +59,7 @@ type MessagePayload struct {
 	CertificateHashes []string              `json:"certHashes"`
 	IPConfiguration   flags.IPConfiguration `json:"ipConfiguration"`
 	HostnameInfo      flags.HostnameInfo    `json:"hostnameInfo"`
+	FriendlyName      string                `json:"friendlyName,omitempty"`
 }
 
 func NewPayload() Payload {
@@ -85,6 +88,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 	if err != nil {
 		return payload, err
 	}
+
+	payload.Features = local.DecodeAMT(payload.Version, payload.SKU)
+
 	payload.UUID, err = p.AMT.GetUUID()
 	if err != nil {
 		return payload, err
@@ -150,6 +156,11 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	}
 	payload.IPConfiguration = flags.IpConfiguration
 	payload.HostnameInfo = flags.HostnameInfo
+
+	if flags.UUID != "" {
+		payload.UUID = flags.UUID
+	}
+
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
@@ -165,6 +176,7 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 		payload.Password = flags.Password
 	}
 
+	payload.FriendlyName = flags.FriendlyName
 	//convert struct to json
 	data, err := json.Marshal(payload)
 	if err != nil {

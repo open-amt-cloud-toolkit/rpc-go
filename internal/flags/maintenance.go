@@ -6,13 +6,10 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"rpc/internal/amt"
-	"rpc/internal/local"
 	"rpc/pkg/utils"
 
-	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,139 +27,74 @@ func (f *Flags) printMaintenanceUsage() string {
 	usage = usage + "  syncip         Sync the IP configuration of the host OS to AMT Network Settings. AMT password is required\n"
 	usage = usage + "                 Example: " + executable + " maintenance syncip -staticip 192.168.1.7 -netmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -secondarydns 4.4.4.4 -u wss://server/activate\n"
 	usage = usage + "                 If a static ip is not specified, the ip address and netmask of the host OS is used\n"
-	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage = usage + "                 Example: " + executable + " maintenance addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
 	usage = usage + "\nRun '" + executable + " maintenance COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
 }
 
-func (f *Flags) handleMaintenanceCommand() (bool, int) {
+func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
 	//validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
-		return false, utils.IncorrectCommandLineParameters
+		return utils.IncorrectCommandLineParameters
 	}
 
-	var errCode int
+	var rc = utils.Success
 
-	task := ""
-	switch f.commandLineArgs[2] {
-	case "addwifisettings":
-		shouldContinue, errCode := f.handleLocalCommand()
-		if errCode != utils.Success {
-			return shouldContinue, errCode
-		}
+	f.SubCommand = f.commandLineArgs[2]
+	switch f.SubCommand {
 	case "syncclock":
-		task = f.handleMaintenanceSyncClock()
+		rc = f.handleMaintenanceSyncClock()
+		break
 	case "synchostname":
-		task = f.handleMaintenanceSyncHostname()
+		rc = f.handleMaintenanceSyncHostname()
+		break
 	case "syncip":
-		task, errCode = f.handleMaintenanceSyncIP()
-		if errCode != utils.Success {
-			return false, errCode
-		}
+		rc = f.handleMaintenanceSyncIP()
+		break
 	case "changepassword":
-		task = f.handleMaintenanceSyncChangePassword()
+		rc = f.handleMaintenanceSyncChangePassword()
+		break
 	default:
 		f.printMaintenanceUsage()
+		rc = utils.IncorrectCommandLineParameters
+		break
 	}
-	if !f.UseLocal {
-		if task == "" {
-			return false, utils.IncorrectCommandLineParameters
-		}
+	if rc != utils.Success {
+		return rc
 	}
 
 	if f.Password == "" {
-		fmt.Println("Please enter the current AMT Password: ")
-		_, err := fmt.Scanln(&f.Password)
-		if f.Password == "" || err != nil {
-			fmt.Print("\ncurrent AMT password is required and cannot be empty\n\n")
-			f.amtMaintenanceCommand.Usage()
-			return false, utils.MissingOrIncorrectPassword
+		if _, rc := f.ReadPasswordFromUser(); rc != 0 {
+			return utils.MissingOrIncorrectPassword
 		}
 	}
+	f.LocalConfig.Password = f.Password
 
 	// if this is a local command, then we dont care about -u or what task/command since its not going to the cloud
-	if !f.UseLocal {
+	if !f.Local {
 		if f.URL == "" {
 			fmt.Print("\n-u flag is required and cannot be empty\n\n")
-			f.amtMaintenanceCommand.Usage()
-			return false, utils.MissingOrIncorrectURL
-		}
-
-		f.Command = fmt.Sprintf("maintenance --password %s %s", f.Password, task)
-		if f.Force {
-			f.Command = f.Command + " -f"
+			f.printMaintenanceUsage()
+			return utils.MissingOrIncorrectURL
 		}
 	}
 
-	return true, utils.Success
+	return utils.Success
 }
-func (f *Flags) handleLocalCommand() (bool, int) {
-	f.LocalConfig = &local.Config{}
 
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.configContent, "config", "", "specify a config file ")
-
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.Name, "name", "", "specify name")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.SSID, "ssid", "", "specify ssid")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.Username, "username", "", "specify username")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
-	f.amtMaintenanceAddWiFiSettingsCommand.IntVar(&f.LocalConfig.IEEE8021XSettings.Priority, "priority", 0, "specify priority")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.ClientCert, "clientCert", "", "specify client certificate")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.CACert, "caCert", "", "specify CA certificate")
-	f.amtMaintenanceAddWiFiSettingsCommand.StringVar(&f.LocalConfig.IEEE8021XSettings.PrivateKey, "privateKey", "", "specify private key")
-	f.UseLocal = true
-
-	if err := f.amtMaintenanceAddWiFiSettingsCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		return false, utils.IncorrectCommandLineParameters
-	}
-	if f.amtMaintenanceAddWiFiSettingsCommand.Parsed() {
-		if f.JsonOutput {
-			log.SetFormatter(&log.JSONFormatter{})
-		}
-		if f.configContent != "" {
-			err := cleanenv.ReadConfig(f.configContent, f.LocalConfig)
-			if err != nil {
-				log.Error("config error: ", err)
-				return false, utils.IncorrectCommandLineParameters
-			}
-		}
-		// Check if all fields are filled
-		v := reflect.ValueOf(f.LocalConfig.IEEE8021XSettings)
-		for i := 0; i < v.NumField(); i++ {
-			if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
-				log.Error("Missing value for field: ", v.Type().Field(i).Name)
-				return false, utils.IncorrectCommandLineParameters
-			}
-		}
-		if f.Password == "" {
-			fmt.Println("Please enter AMT Password: ")
-			var password string
-			// Taking input from user
-			_, err := fmt.Scanln(&password)
-			if password == "" || err != nil {
-				return false, utils.MissingOrIncorrectPassword
-			}
-			f.Password = password
-		}
-		f.LocalConfig.Password = f.Password
-	}
-	return true, utils.Success
-}
-func (f *Flags) handleMaintenanceSyncClock() string {
+func (f *Flags) handleMaintenanceSyncClock() utils.ReturnCode {
 	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		return ""
+		return utils.IncorrectCommandLineParameters
 	}
-	return "--synctime"
+	return utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncHostname() string {
+func (f *Flags) handleMaintenanceSyncHostname() utils.ReturnCode {
 	var err error
 	if err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		return ""
+		f.amtMaintenanceSyncHostnameCommand.Usage()
+		return utils.IncorrectCommandLineParameters
 	}
 	amtCommand := amt.NewAMTCommand()
 	if f.HostnameInfo.DnsSuffixOS, err = amtCommand.GetOSDNSSuffix(); err != nil {
@@ -171,12 +103,12 @@ func (f *Flags) handleMaintenanceSyncHostname() string {
 	f.HostnameInfo.Hostname, err = os.Hostname()
 	if err != nil {
 		log.Error(err)
-		return ""
+		return utils.OSNetworkInterfacesLookupFailed
 	} else if f.HostnameInfo.Hostname == "" {
 		log.Error("OS hostname is not available")
-		return ""
+		return utils.OSNetworkInterfacesLookupFailed
 	}
-	return "--synchostname"
+	return utils.Success
 }
 
 // wrap the flag.Func method signature with the assignment value
@@ -190,7 +122,7 @@ func validateIP(assignee *string) func(string) error {
 	}
 }
 
-func (f *Flags) handleMaintenanceSyncIP() (string, int) {
+func (f *Flags) handleMaintenanceSyncIP() utils.ReturnCode {
 	f.amtMaintenanceSyncIPCommand.Func(
 		"staticip",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
@@ -204,39 +136,40 @@ func (f *Flags) handleMaintenanceSyncIP() (string, int) {
 	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
 
 	if err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		f.amtMaintenanceSyncIPCommand.Usage()
 		// Parse the error message to find the problematic flag.
 		// The problematic flag is of the following format '-' followed by flag name and then a ':'
-		var errCode int
+		var rc utils.ReturnCode
 		re := regexp.MustCompile(`-.*:`)
 		switch re.FindString(err.Error()) {
 		case "-netmask:":
-			errCode = utils.MissingOrIncorrectNetworkMask
+			rc = utils.MissingOrIncorrectNetworkMask
 		case "-staticip:":
-			errCode = utils.MissingOrIncorrectStaticIP
+			rc = utils.MissingOrIncorrectStaticIP
 		case "-gateway:":
-			errCode = utils.MissingOrIncorrectGateway
+			rc = utils.MissingOrIncorrectGateway
 		case "-primarydns:":
-			errCode = utils.MissingOrIncorrectPrimaryDNS
+			rc = utils.MissingOrIncorrectPrimaryDNS
 		case "-secondarydns:":
-			errCode = utils.MissingOrIncorrectSecondaryDNS
+			rc = utils.MissingOrIncorrectSecondaryDNS
 		default:
-			errCode = utils.IncorrectCommandLineParameters
+			rc = utils.IncorrectCommandLineParameters
 		}
-		return "", errCode
+		return rc
 	} else if len(f.IpConfiguration.IpAddress) != 0 {
-		return "--syncip", utils.Success
+		return utils.Success
 	}
 
 	amtLanIfc, err := f.amtCommand.GetLANInterfaceSettings(false)
 	if err != nil {
 		log.Error(err)
-		return "", utils.AMTConnectionFailed
+		return utils.AMTConnectionFailed
 	}
 
 	ifaces, err := f.netEnumerator.Interfaces()
 	if err != nil {
 		log.Error(err)
-		return "", utils.OSNetworkInterfacesLookupFailed
+		return utils.OSNetworkInterfacesLookupFailed
 	}
 
 	for _, i := range ifaces {
@@ -262,19 +195,16 @@ func (f *Flags) handleMaintenanceSyncIP() (string, int) {
 
 	if len(f.IpConfiguration.IpAddress) == 0 {
 		log.Errorf("static ip address not found")
-		return "", utils.OSNetworkInterfacesLookupFailed
+		return utils.OSNetworkInterfacesLookupFailed
 	}
-	return "--syncip", utils.Success
+	return utils.Success
 }
 
-func (f *Flags) handleMaintenanceSyncChangePassword() string {
-	task := "--changepassword "
+func (f *Flags) handleMaintenanceSyncChangePassword() utils.ReturnCode {
 	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
 	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		return ""
+		f.amtMaintenanceChangePasswordCommand.Usage()
+		return utils.IncorrectCommandLineParameters
 	}
-	if f.StaticPassword != "" {
-		task += f.StaticPassword
-	}
-	return task
+	return utils.Success
 }

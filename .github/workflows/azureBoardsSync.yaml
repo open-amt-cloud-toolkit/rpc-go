@@ -9,7 +9,12 @@ jobs:
   alert:
     runs-on: ubuntu-latest
     steps:
-      - uses: danhellem/github-actions-issue-to-work-item@v2.1
+      - name: Harden Runner
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423 # v2.6.0
+        with:
+          egress-policy: audit
+
+      - uses: danhellem/github-actions-issue-to-work-item@3072da42abf94ebe4c7778c57fb4af06db341c72 # v2.2
         env:
           ado_token: "${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}"
           ado_organization: "rbheBoards"

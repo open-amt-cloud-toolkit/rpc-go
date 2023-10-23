@@ -7,13 +7,11 @@ package main
 import (
 	"os"
 	"rpc/internal/amt"
-	"rpc/internal/client"
 	"rpc/internal/flags"
 	"rpc/internal/local"
 	"rpc/internal/rps"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,50 +20,32 @@ const AccessErrMsg = "Failed to execute due to access issues. " +
 	"the MEI driver is installed, " +
 	"and the runtime has administrator or root privileges."
 
-func checkAccess() (int, error) {
+func checkAccess() (utils.ReturnCode, error) {
 	amtCommand := amt.NewAMTCommand()
-	result, err := amtCommand.Initialize()
-	if result != utils.Success || err != nil {
+	rc, err := amtCommand.Initialize()
+	if rc != utils.Success || err != nil {
 		return utils.AmtNotDetected, err
 	}
 	return utils.Success, nil
 }
 
-func runRPC(args []string) (int, error) {
-	// process cli flags/env vars
-	flags, keepgoing, status := handleFlags(args)
-	if !keepgoing {
-		return status, nil
+func runRPC(args []string) utils.ReturnCode {
+	flags, rc := parseCommandLine(args)
+	if rc != utils.Success {
+		return rc
 	}
-	if flags.UseLocal {
-		config := *flags.LocalConfig
-		client := wsman.NewClient("http://"+utils.LMSAddress+":"+utils.LMSPort+"/wsman", "admin", config.Password, true)
-		localConnection := local.NewLocalConfiguration(config, client)
-		localConnection.Configure8021xWiFi()
-
+	if flags.Local {
+		rc = local.ExecuteCommand(flags)
 	} else {
-		startMessage, err := rps.PrepareInitialMessage(flags)
-		if err != nil {
-			return utils.MissingOrIncorrectPassword, err
-		}
-
-		executor, err := client.NewExecutor(*flags)
-		if err != nil {
-			return utils.ServerCerificateVerificationFailed, err
-		}
-
-		executor.MakeItSo(startMessage)
+		rc = rps.ExecuteCommand(flags)
 	}
-	return utils.Success, nil
+	return rc
 }
 
-func handleFlags(args []string) (*flags.Flags, bool, int) {
+func parseCommandLine(args []string) (*flags.Flags, utils.ReturnCode) {
 	//process flags
 	flags := flags.NewFlags(args)
-	_, keepgoing, result := flags.ParseFlags()
-	if !keepgoing {
-		return nil, false, result
-	}
+	rc := flags.ParseFlags()
 
 	if flags.Verbose {
 		log.SetLevel(log.TraceLevel)
@@ -87,21 +67,21 @@ func handleFlags(args []string) (*flags.Flags, bool, int) {
 			FullTimestamp: true,
 		})
 	}
-	return flags, true, utils.Success
+	return flags, rc
 }
 
 func main() {
-	// status, err := checkAccess()
-	// if status != utils.Success {
-	// 	if err != nil {
-	// 		log.Error(err.Error())
-	// 	}
-	// 	log.Error(AccessErrMsg)
-	// 	os.Exit(status)
-	// }
-	_, _ = runRPC(os.Args)
-	// if err != nil {
-	// 	log.Error(err.Error())
-	// }
-	// os.Exit(status)
+	rc, err := checkAccess()
+	if rc != utils.Success {
+		if err != nil {
+			log.Error(err.Error())
+		}
+		log.Error(AccessErrMsg)
+		os.Exit(int(rc))
+	}
+	rc = runRPC(os.Args)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	os.Exit(int(rc))
 }

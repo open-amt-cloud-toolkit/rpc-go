@@ -1,5 +1,10 @@
 # Remote Provisioning Client (RPC)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go) [![Discord Shield](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=shield)](https://discord.gg/yrcMp2kDWh)
+
+![CodeQL](https://github.com/open-amt-cloud-toolkit/rpc-go/actions/workflows/codeql-analysis.yml/badge.svg?branch=main&event=push) 
+![codecov.io](https://codecov.io/github/open-amt-cloud-toolkit/rpc-go/coverage.svg?branch=main) 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go) 
+[![Discord Shield](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=shield)](https://discord.gg/yrcMp2kDWh)
+[![Docker Pulls](https://img.shields.io/docker/pulls/intel/oact-rpc-go)](https://hub.docker.com/r/intel/oact-rpc-go)
 
 > Disclaimer: Production viable releases are tagged and listed under 'Releases'. All other check-ins should be considered 'in-development' and should not be used in production
 

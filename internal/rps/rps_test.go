@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"rpc/internal/flags"
+	"rpc/pkg/utils"
 	"strings"
 	"sync"
 	"testing"
@@ -47,6 +48,87 @@ func init() {
 	testFlags = flags.NewFlags([]string{})
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 	testFlags.URL = testUrl
+}
+
+func TestExecuteCommand(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandActivate
+	f.Profile = "profile01"
+	rc := ExecuteCommand(f)
+	assert.NotEqual(t, utils.Success, rc)
+}
+
+func TestSetCommandMethodActivate(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandActivate
+	f.Profile = "profile01"
+	expected := utils.CommandActivate + " --profile profile01"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+}
+
+func TestSetCommandMethodDeactivate(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandDeactivate
+	f.Password = "password"
+	expected := utils.CommandDeactivate + " --password password"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+	f.Force = true
+	expected += " -f"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+}
+
+func TestSetCommandMethodMaintenanceSynctime(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandMaintenance
+	f.SubCommand = "syncclock"
+	f.Password = "password"
+	expected := utils.CommandMaintenance + " -password password --synctime"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+	f.Command = utils.CommandMaintenance
+	f.Force = true
+	expected += " -f"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+}
+
+func TestSetCommandMethodMaintenanceSyncHostname(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandMaintenance
+	f.SubCommand = "synchostname"
+	f.Password = "password"
+	expected := utils.CommandMaintenance + " -password password --synchostname"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+}
+
+func TestSetCommandMethodMaintenanceSyncIP(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandMaintenance
+	f.SubCommand = "syncip"
+	f.Password = "password"
+	expected := utils.CommandMaintenance + " -password password --syncip"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+}
+
+func TestSetCommandMethodMaintenanceChangePassword(t *testing.T) {
+	f := &flags.Flags{}
+	f.Command = utils.CommandMaintenance
+	f.Password = "password"
+	f.SubCommand = "changepassword"
+	expected := utils.CommandMaintenance + " -password password --changepassword"
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
+
+	f.Command = utils.CommandMaintenance
+	f.StaticPassword = "a_static_password"
+	expected += " " + f.StaticPassword
+	setCommandMethod(f)
+	assert.Equal(t, expected, f.Command)
 }
 
 func TestPrepareInitialMessage(t *testing.T) {

@@ -17,6 +17,9 @@ on:
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: read
+
 jobs:
   # This workflow contains a single job called "build"
   build:
@@ -28,7 +31,12 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423 # v2.6.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Format
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi        
@@ -45,7 +53,7 @@ jobs:
       - name: run the tests with coverage
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       
-      - uses: codecov/codecov-action@894ff025c7b54547a9a2a1e9f228beae737ad3c2 # v3.1.3
+      - uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         name: Upload Coverage Results
         
@@ -60,7 +68,7 @@ jobs:
         run: go build -o rpc ./cmd
 
       - name: GitHub Upload Release Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         with:
           name: rpc-go-unit

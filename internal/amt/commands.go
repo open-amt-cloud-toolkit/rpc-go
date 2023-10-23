@@ -69,7 +69,7 @@ type LocalSystemAccount struct {
 }
 
 type Interface interface {
-	Initialize() (int, error)
+	Initialize() (utils.ReturnCode, error)
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
@@ -102,7 +102,7 @@ func NewAMTCommand() AMTCommand {
 }
 
 // Initialize determines if rpc is able to initialize the heci driver
-func (amt AMTCommand) Initialize() (int, error) {
+func (amt AMTCommand) Initialize() (utils.ReturnCode, error) {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
 
