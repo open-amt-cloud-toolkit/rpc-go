@@ -75,6 +75,7 @@ type Flags struct {
 	amtMaintenanceSyncClockCommand      *flag.FlagSet
 	amtMaintenanceSyncHostnameCommand   *flag.FlagSet
 	amtMaintenanceChangePasswordCommand *flag.FlagSet
+	amtMaintenanceSyncDeviceInfoCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
 	flagSetAddWifiSettings              *flag.FlagSet
 	amtCommand                          amt.AMTCommand
@@ -99,6 +100,7 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
 	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
+	flags.amtMaintenanceSyncDeviceInfoCommand = flag.NewFlagSet("syncdeviceinfo", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
@@ -167,6 +169,7 @@ func (f *Flags) setupCommonFlags() {
 		f.amtActivateCommand,
 		f.amtDeactivateCommand,
 		f.amtMaintenanceChangePasswordCommand,
+		f.amtMaintenanceSyncDeviceInfoCommand,
 		f.amtMaintenanceSyncClockCommand,
 		f.amtMaintenanceSyncHostnameCommand,
 		f.amtMaintenanceSyncIPCommand} {

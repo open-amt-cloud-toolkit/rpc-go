@@ -32,6 +32,7 @@ const (
 
 	SubCommandAddWifiSettings = "addwifisettings"
 	SubCommandChangePassword  = "changepassword"
+	SubCommandSyncDeviceInfo  = "syncdeviceinfo"
 	SubCommandSyncClock       = "syncclock"
 	SubCommandSyncHostname    = "synchostname"
 	SubCommandSyncIP          = "syncip"
@@ -96,6 +97,7 @@ const (
 	SyncHostnameFailed   ReturnCode = 151
 	SyncIpFailed         ReturnCode = 152
 	ChangePasswordFailed ReturnCode = 153
+	SyncDeviceInfoFailed ReturnCode = 154
 
 	// (200-299) KPMU
 
