@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux && amt
+// +build linux,amt
 
 /*********************************************************************
  * Copyright (c) Intel Corporation 2021

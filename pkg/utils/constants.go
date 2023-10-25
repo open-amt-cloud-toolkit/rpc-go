@@ -25,6 +25,7 @@ const (
 
 	CommandActivate    = "activate"
 	CommandAMTInfo     = "amtinfo"
+	CommandAMTOpState  = "amtopstate"
 	CommandDeactivate  = "deactivate"
 	CommandMaintenance = "maintenance"
 	CommandVersion     = "version"

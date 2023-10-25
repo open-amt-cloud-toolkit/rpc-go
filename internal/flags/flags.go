@@ -84,6 +84,8 @@ type Flags struct {
 	AMTTimeoutDuration                  time.Duration
 	FriendlyName                        string
 	AmtInfo                             AmtInfoFlags
+	amtOpStateCommand                   *flag.FlagSet
+	OpStateFlags                        OpStateFlags
 }
 
 func NewFlags(args []string) *Flags {
@@ -91,6 +93,8 @@ func NewFlags(args []string) *Flags {
 	flags.commandLineArgs = args
 	flags.amtInfoCommand = flag.NewFlagSet(utils.CommandAMTInfo, flag.ContinueOnError)
 	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
+
+	flags.amtOpStateCommand = flag.NewFlagSet(utils.CommandAMTOpState, flag.ContinueOnError)
 
 	flags.amtActivateCommand = flag.NewFlagSet(utils.CommandActivate, flag.ContinueOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet(utils.CommandDeactivate, flag.ContinueOnError)
@@ -133,6 +137,8 @@ func (f *Flags) ParseFlags() utils.ReturnCode {
 		rc = f.handleVersionCommand()
 	case utils.CommandConfigure:
 		rc = f.handleConfigureCommand()
+	case utils.CommandAMTOpState:
+		rc = f.handleAmtOpStateCommand()
 	default:
 		rc = utils.IncorrectCommandLineParameters
 		f.printUsage()
@@ -149,6 +155,8 @@ func (f *Flags) printUsage() string {
 	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  amtopstate  Displays and / or changes the AMT operational state\n"
+	usage = usage + "              Example: " + executable + " amtopstate\n"
 	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"

@@ -59,6 +59,9 @@ func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
 	case utils.CommandVersion:
 		rc = service.DisplayVersion()
 		break
+	case utils.CommandAMTOpState:
+		rc = service.OpState()
+		break
 	}
 	return rc
 }

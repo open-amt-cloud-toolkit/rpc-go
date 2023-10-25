@@ -24,12 +24,19 @@ var controlModeErr error = nil
 
 type MockPTHICommands struct{}
 
+func (c MockPTHICommands) OpenWatchdog() error {
+	return nil
+}
 func (c MockPTHICommands) Open(bool) error {
 	return nil
 }
 func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
-	return uint8(0), nil
+	return uint8(0x41), nil
 }
+func (c MockPTHICommands) SetAmtOperationalState(state uint8) (pthi.Status, error) {
+	return 0, nil
+}
+
 func (c MockPTHICommands) Close() {}
 
 func (c MockPTHICommands) Call([]byte, uint32) (result []byte, err error) {
@@ -50,6 +57,10 @@ func (c MockPTHICommands) GetControlMode() (state int, err error) {
 
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) {
 	return "", nil
+}
+
+func (c MockPTHICommands) SetDNSSuffix(suffix string) (status pthi.Status, err error) {
+	return pthi.AMT_STATUS_SUCCESS, nil
 }
 
 func (c MockPTHICommands) GetCertificateHashes(pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
@@ -163,6 +174,8 @@ func TestPrintUsage(t *testing.T) {
 	usage = usage + "              Example: " + executable + " activate -u wss://server/activate --profile acmprofile\n"
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
+	usage = usage + "  amtopstate  Displays and / or changes the AMT operational state\n"
+	usage = usage + "              Example: " + executable + " amtopstate\n"
 	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"

@@ -17,13 +17,16 @@ type Command struct {
 
 type Interface interface {
 	Open(useLME bool) error
+	OpenWatchdog() error
 	Close()
 	Call(command []byte, commandSize uint32) (result []byte, err error)
 	GetCodeVersions() (GetCodeVersionsResponse, error)
 	GetUUID() (uuid string, err error)
 	GetControlMode() (state int, err error)
-	GetIsAMTEnabled() (state uint8, err error)
+	GetIsAMTEnabled() (uint8, error)
+	SetAmtOperationalState(state uint8) (Status, error)
 	GetDNSSuffix() (suffix string, err error)
+	SetDNSSuffix(suffix string) (status Status, err error)
 	GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryList []CertHashEntry, err error)
 	GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessConnectionStatusResponse, err error)
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
@@ -39,6 +42,14 @@ func NewCommand() Command {
 
 func (pthi Command) Open(useLME bool) error {
 	err := pthi.Heci.Init(useLME, false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pthi Command) OpenWatchdog() error {
+	err := pthi.Heci.Init(false, true)
 	if err != nil {
 		return err
 	}
@@ -165,7 +176,7 @@ func (pthi Command) GetControlMode() (state int, err error) {
 	return int(response.State), nil
 }
 
-func (pthi Command) GetIsAMTEnabled() (response uint8, err error) {
+func (pthi Command) GetIsAMTEnabled() (uint8, error) {
 	command := GetStateIndependenceIsChangeToAMTEnabledRequest{
 		Command:       0x5,
 		ByteCount:     0x2,
@@ -174,7 +185,7 @@ func (pthi Command) GetIsAMTEnabled() (response uint8, err error) {
 	}
 	var bin_buf bytes.Buffer
 	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), 32)
+	result, err := pthi.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
 
 	if err != nil {
 		return uint8(0), err
@@ -184,6 +195,34 @@ func (pthi Command) GetIsAMTEnabled() (response uint8, err error) {
 	binary.Read(buf2, binary.LittleEndian, &resBuffer)
 
 	return resBuffer, nil
+}
+
+func (pthi Command) SetAmtOperationalState(state uint8) (Status, error) {
+	command := SetAmtOperationalState{
+		Command:       0x5,
+		ByteCount:     0x3,
+		SubCommand:    0x53,
+		VersionNumber: 0x10,
+		Enabled:       state,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	//result, err := pthi.Call(bin_buf.Bytes(), 32)
+	result, err := pthi.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	if err != nil {
+		return Status(0), err
+	}
+	buf2 := bytes.NewBuffer(result)
+	var dontcare uint8
+	var status Status
+
+	binary.Read(buf2, binary.LittleEndian, &dontcare)
+	binary.Read(buf2, binary.LittleEndian, &dontcare)
+	binary.Read(buf2, binary.LittleEndian, &dontcare)
+	binary.Read(buf2, binary.LittleEndian, &dontcare)
+	binary.Read(buf2, binary.LittleEndian, &status)
+
+	return status, nil
 }
 
 func (pthi Command) Unprovision() (state int, err error) {
@@ -244,6 +283,25 @@ func (pthi Command) GetDNSSuffix() (suffix string, err error) {
 	return "", nil
 }
 
+func (pthi Command) SetDNSSuffix(suffix string) (status Status, err error) {
+	command := SetPKIFQDNSuffixRequest{
+		Header: CreateRequestHeader(SET_DNS_SUFFIX_REQUEST, uint32(len(suffix)+2)),
+		Suffix: AMTANSIString{
+			Length: uint16(len(suffix)),
+		},
+	}
+	copy(command.Suffix.Buffer[:], suffix)
+
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
+	if err != nil {
+		return AMT_STATUS_INTERNAL_ERROR, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response := readHeaderResponse(buf2)
+	return response.Status, nil
+}
 func (pthi Command) enumerateHashHandles() (AMTHashHandles, error) {
 	// Enumerate a list of hash handles to request from
 	enumerateCommand := GetRequest{

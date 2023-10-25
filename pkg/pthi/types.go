@@ -155,7 +155,7 @@ type MessageHeader struct {
 }
 type ResponseMessageHeader struct {
 	Header MessageHeader
-	Status uint32
+	Status Status
 }
 type GetCodeVersionsResponse struct {
 	Header      ResponseMessageHeader
@@ -166,6 +166,11 @@ type GetPKIFQDNSuffixResponse struct {
 	Header ResponseMessageHeader
 	Suffix AMTANSIString
 }
+type SetPKIFQDNSuffixRequest struct {
+	Header MessageHeader
+	Suffix AMTANSIString
+}
+
 type AMTANSIString struct {
 	Length uint16
 	Buffer [1000]uint8
@@ -262,16 +267,22 @@ type GetRemoteAccessConnectionStatusResponse struct {
 	MPSHostname   AMTANSIString
 }
 
-type StateIndependenceIsChangeEnabledResponse struct {
-	Enabled                 uint8
-	CurrentOperationalState uint8
-	Reserved                uint8
-	IsNewInterfaceVersion   uint8
-}
-
 type GetStateIndependenceIsChangeToAMTEnabledRequest struct {
 	Command       uint8
 	ByteCount     uint8
 	SubCommand    uint8
 	VersionNumber uint8
+}
+
+const (
+	AmtDisabled = uint8(0)
+	AmtEnabled  = uint8(1)
+)
+
+type SetAmtOperationalState struct {
+	Command       uint8
+	ByteCount     uint8
+	SubCommand    uint8
+	VersionNumber uint8
+	Enabled       uint8
 }

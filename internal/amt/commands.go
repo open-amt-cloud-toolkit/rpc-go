@@ -68,13 +68,29 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type ChangeEnabledResponse uint8
+
+func (r ChangeEnabledResponse) IsTransitionAllowed() bool {
+	return (r & 1) == 1
+}
+func (r ChangeEnabledResponse) IsAMTEnabled() bool {
+	return ((r >> 1) & 1) == 1
+}
+func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
+	return ((r >> 7) & 1) == 1
+}
+
 type Interface interface {
 	Initialize() (utils.ReturnCode, error)
+	GetIsAMTEnabled() (ChangeEnabledResponse, error)
+	EnableAMT() error
+	DisableAMT() error
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
 	GetOSDNSSuffix() (string, error)
 	GetDNSSuffix() (string, error)
+	SetDNSSuffix(suffix string) error
 	GetCertificateHashes() ([]CertHashEntry, error)
 	GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error)
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
@@ -155,22 +171,39 @@ func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration)
 	return "", errors.New(key + " Not Found")
 }
 
-func (amt AMTCommand) GetIsAMTEnabled() (bool, error) {
-	err := amt.PTHI.Open(false)
+func (amt AMTCommand) GetIsAMTEnabled() (ChangeEnabledResponse, error) {
+	err := amt.PTHI.OpenWatchdog()
 	if err != nil {
-		return false, err
+		return ChangeEnabledResponse(0), err
 	}
 	defer amt.PTHI.Close()
-	result, err := amt.PTHI.GetIsAMTEnabled()
+	rawVal, err := amt.PTHI.GetIsAMTEnabled()
+	return ChangeEnabledResponse(rawVal), nil
+}
+
+func (amt AMTCommand) DisableAMT() error {
+	return setAmtOperationalState(pthi.AmtDisabled, amt)
+}
+
+func (amt AMTCommand) EnableAMT() error {
+	return setAmtOperationalState(pthi.AmtEnabled, amt)
+}
+
+func setAmtOperationalState(state uint8, amt AMTCommand) error {
+	err := amt.PTHI.OpenWatchdog()
 	if err != nil {
-		return false, err
+		return err
 	}
-	response := pthi.StateIndependenceIsChangeEnabledResponse{}
-	response.Enabled = result & 1                        // can i change it?
-	response.CurrentOperationalState = (result >> 1) & 1 // is it currently enabled
-	response.Reserved = (result >> 2) & 0x1F
-	response.IsNewInterfaceVersion = (result >> 7) & 1
-	return response.CurrentOperationalState == uint8(1), nil
+	defer amt.PTHI.Close()
+	status, err := amt.PTHI.SetAmtOperationalState(state)
+	if err != nil {
+		return err
+	}
+	if status != pthi.AMT_STATUS_SUCCESS {
+		s := fmt.Sprintf("error setting DNS suffixt: %s", status)
+		return errors.New(s)
+	}
+	return nil
 }
 
 // GetUUID ...
@@ -244,6 +277,23 @@ func (amt AMTCommand) GetDNSSuffix() (string, error) {
 	return result, nil
 }
 
+func (amt AMTCommand) SetDNSSuffix(suffix string) error {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return err
+	}
+	defer amt.PTHI.Close()
+	status, err := amt.PTHI.SetDNSSuffix(suffix)
+	if err != nil {
+		return err
+	}
+	if status != pthi.AMT_STATUS_SUCCESS {
+		s := fmt.Sprintf("error setting DNS suffixt: %s", status)
+		return errors.New(s)
+	}
+	return nil
+}
+
 func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {
 	err := amt.PTHI.Open(false)
 	amtEntryList := []CertHashEntry{}
@@ -309,14 +359,6 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 		return emptySettings, err
 	}
 	defer amt.PTHI.Close()
-	var result2, err2 = amt.PTHI.GetIsAMTEnabled()
-	if err2 != nil {
-		return emptySettings, err
-	}
-	if result2 == 0 {
-		return emptySettings, err
-	}
-
 	result, err := amt.PTHI.GetLANInterfaceSettings(useWireless)
 	if err != nil {
 		return emptySettings, err

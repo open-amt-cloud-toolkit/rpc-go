@@ -15,13 +15,23 @@ import (
 
 type MockPTHICommands struct{}
 
+func (c MockPTHICommands) OpenWatchdog() error {
+	if flag == true {
+		return errors.New("the handle is invalid")
+	} else if flag1 == true {
+		return errors.New("")
+	} else {
+		return nil
+	}
+}
+
 var flag bool = false
 var flag1 bool = false
 var returnError bool = false
 
 func (c MockPTHICommands) Open(useLME bool) error {
 	if flag == true {
-		return errors.New("The handle is invalid.")
+		return errors.New("the handle is invalid")
 	} else if flag1 == true {
 		return errors.New("")
 	} else {
@@ -73,11 +83,19 @@ func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error
 func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 	return "\xd2?\x11\x1c%3\x94E\xa2rT\xb2\x03\x8b\xeb\a", nil
 }
+
 func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
-	return uint8(2), nil
+	return uint8(0x83), nil
 }
+func (c MockPTHICommands) SetAmtOperationalState(state uint8) (pthi.Status, error) {
+	return pthi.Status(0), nil
+}
+
 func (c MockPTHICommands) GetControlMode() (state int, err error)   { return 0, nil }
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) { return "Test", nil }
+func (c MockPTHICommands) SetDNSSuffix(suffix string) (status pthi.Status, err error) {
+	return pthi.AMT_STATUS_SUCCESS, nil
+}
 func (c MockPTHICommands) GetCertificateHashes(hashHandles pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
 	return []pthi.CertHashEntry{{
 		CertificateHash: [64]uint8{84, 101, 115, 116},
@@ -175,7 +193,7 @@ func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
 func TestGetIsAMTEnabled(t *testing.T) {
 	result, err := amt.GetIsAMTEnabled()
 	assert.NoError(t, err)
-	assert.True(t, result)
+	assert.True(t, result.IsAMTEnabled())
 }
 
 func TestGetGUID(t *testing.T) {
@@ -194,6 +212,11 @@ func TestGetDNSSuffix(t *testing.T) {
 	result, err := amt.GetDNSSuffix()
 	assert.NoError(t, err)
 	assert.Equal(t, "Test", result)
+}
+
+func TestSetDNSSuffix(t *testing.T) {
+	err := amt.SetDNSSuffix("test.org")
+	assert.NoError(t, err)
 }
 
 func TestGetCertificateHashes(t *testing.T) {
@@ -247,4 +270,27 @@ func TestUnprovision(t *testing.T) {
 	result, err := amt.Unprovision()
 	assert.NoError(t, err)
 	assert.Equal(t, 0, result)
+}
+
+func TestChangeEnabledResponse(t *testing.T) {
+	var cer ChangeEnabledResponse
+	cer = ChangeEnabledResponse(0x83)
+	assert.True(t, cer.IsTransitionAllowed())
+	assert.True(t, cer.IsAMTEnabled())
+	assert.True(t, cer.IsNewInterfaceVersion())
+
+	cer = ChangeEnabledResponse(0x82)
+	assert.False(t, cer.IsTransitionAllowed())
+	assert.True(t, cer.IsAMTEnabled())
+	assert.True(t, cer.IsNewInterfaceVersion())
+
+	cer = ChangeEnabledResponse(0x02)
+	assert.False(t, cer.IsTransitionAllowed())
+	assert.True(t, cer.IsAMTEnabled())
+	assert.False(t, cer.IsNewInterfaceVersion())
+
+	cer = ChangeEnabledResponse(0x00)
+	assert.False(t, cer.IsTransitionAllowed())
+	assert.False(t, cer.IsAMTEnabled())
+	assert.False(t, cer.IsNewInterfaceVersion())
 }
