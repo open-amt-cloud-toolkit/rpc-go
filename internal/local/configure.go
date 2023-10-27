@@ -18,11 +18,24 @@ import (
 
 func (service *ProvisioningService) Configure() utils.ReturnCode {
 	service.setupWsmanClient("admin", service.flags.Password)
-
-	if service.flags.SubCommand == utils.SubCommandAddWifiSettings {
+	switch service.flags.SubCommand {
+	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
+	case utils.SubCommandEnableWifiPort:
+		return service.EnableWifiPort()
+	default:
 	}
 	return utils.IncorrectCommandLineParameters
+}
+
+func (service *ProvisioningService) EnableWifiPort() utils.ReturnCode {
+	rc := service.EnableWifi()
+	if rc != utils.Success {
+		log.Error("Failed to enable wifi port and local profile synchronization.")
+	} else {
+		log.Info("Successfully enabled wifi port and local profile synchronization.")
+	}
+	return rc
 }
 
 func (service *ProvisioningService) AddWifiSettings() utils.ReturnCode {

@@ -31,6 +31,7 @@ const (
 	CommandConfigure   = "configure"
 
 	SubCommandAddWifiSettings = "addwifisettings"
+	SubCommandEnableWifiPort  = "enablewifiport"
 	SubCommandChangePassword  = "changepassword"
 	SubCommandSyncDeviceInfo  = "syncdeviceinfo"
 	SubCommandSyncClock       = "syncclock"

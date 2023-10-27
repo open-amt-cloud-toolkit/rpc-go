@@ -78,6 +78,7 @@ type Flags struct {
 	amtMaintenanceSyncDeviceInfoCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
 	flagSetAddWifiSettings              *flag.FlagSet
+	flagSetEnableWifiPort               *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -106,6 +107,7 @@ func NewFlags(args []string) *Flags {
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
 	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
+	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
