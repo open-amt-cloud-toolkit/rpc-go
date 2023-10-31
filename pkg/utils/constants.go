@@ -91,6 +91,7 @@ const (
 	DeleteWifiConfigFailed            ReturnCode = 114
 	MissingOrIncorrectWifiProfileName ReturnCode = 116
 	MissingIeee8021xConfiguration     ReturnCode = 117
+	EnableAMTFailed                   ReturnCode = 118
 
 	// (150-199) Maintenance Errors
 	SyncClockFailed      ReturnCode = 150

@@ -33,7 +33,8 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 		return utils.UnableToActivate
 	}
 
-	service.CheckAndEnableAMT()
+	dnsSuffixRequired := service.flags.UseACM
+	service.CheckAndEnableAMT(dnsSuffixRequired)
 
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()

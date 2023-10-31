@@ -10,34 +10,43 @@ import (
 func (service *ProvisioningService) OpState() utils.ReturnCode {
 
 	rc := utils.Success
-	rsp, err := service.amtCommand.GetIsAMTEnabled()
+	rsp, err := service.amtCommand.GetChangeEnabled()
 	if err != nil {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	if service.flags.OpStateFlags.Disable {
-		if rsp.IsAMTEnabled() {
-			rc = service.DisableAMT()
-			rsp, _ = service.amtCommand.GetIsAMTEnabled()
-		} else {
-			fmt.Println("AMT is alreay disabled")
+
+	// handle the optional commands for 'manual' enable/disable
+	if rsp.IsNewInterfaceVersion() {
+		if service.flags.OpStateFlags.Disable {
+			if !rsp.IsAMTEnabled() {
+				fmt.Println("AMT is alreay disabled")
+			} else {
+				rc = service.DisableAMT()
+				rsp, _ = service.amtCommand.GetChangeEnabled()
+			}
+		}
+
+		if service.flags.OpStateFlags.Enable {
+			if rsp.IsAMTEnabled() {
+				fmt.Println("AMT is alreay enabled")
+			} else {
+				rc = service.EnableAMT()
+				rsp, _ = service.amtCommand.GetChangeEnabled()
+			}
+		}
+	} else {
+		if service.flags.OpStateFlags.Enable || service.flags.OpStateFlags.Disable {
+			fmt.Println("This version of AMT does not support commands to enable/disable")
 		}
 	}
-	if service.flags.OpStateFlags.Enable {
-		if rsp.IsAMTEnabled() {
-			fmt.Println("AMT is alreay enabled")
-		} else {
-			rc = service.EnableAMT()
-			rsp, _ = service.amtCommand.GetIsAMTEnabled()
-		}
-	}
-	DispalyOpState(rsp)
+
+	PrintChangeEnabledResponse(rsp)
 
 	return rc
 }
 
-// TODO: is there some other place to check if AMT is enabled or not?
-func DispalyOpState(rsp amt.ChangeEnabledResponse) {
+func PrintChangeEnabledResponse(rsp amt.ChangeEnabledResponse) {
 	fmt.Println("AMT Operational State")
 	fmt.Printf("  IsAMTEnabled............%v\n", rsp.IsAMTEnabled())
 	fmt.Printf("  IsTransitionAllowed.....%v\n", rsp.IsTransitionAllowed())
@@ -64,36 +73,54 @@ func (service *ProvisioningService) EnableAMT() utils.ReturnCode {
 	return utils.Success
 }
 
-func (service *ProvisioningService) CheckAndEnableAMT() utils.ReturnCode {
-	rsp, err := service.amtCommand.GetIsAMTEnabled()
+func (service *ProvisioningService) CheckAndEnableAMT(dnsSuffixRequired bool) utils.ReturnCode {
+	rsp, err := service.amtCommand.GetChangeEnabled()
 	if err != nil {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	if !rsp.IsAMTEnabled() {
-		rc := service.EnableAMT()
-		if rc != utils.Success {
-			return rc
-		}
+	if !rsp.IsNewInterfaceVersion() {
+		log.Debug("skipping enabling AMT as this version does not support the calls")
+		return utils.Success
 	}
-	return service.CheckAndSetDNSSuffix()
+	if rsp.IsAMTEnabled() {
+		log.Info("AMT is alreay enabled")
+		return utils.Success
+	}
+	rc := service.EnableAMT()
+	if rc != utils.Success {
+		// error message is already logged
+		return rc
+	}
+	return service.RefreshIP(dnsSuffixRequired)
 }
 
-func (service *ProvisioningService) CheckAndSetDNSSuffix() utils.ReturnCode {
-	dnsSuffix, err := service.amtCommand.GetDNSSuffix()
-	if err != nil {
-		log.Error(err)
-		return utils.AMTConnectionFailed
-	}
-	if dnsSuffix == "" {
-		if service.flags.DNS == "" {
-			log.Error("No DNS suffix is present in AMT and none provided")
-			return utils.AmtNotReady
+func (service *ProvisioningService) RefreshIP(dnsSuffixRequired bool) utils.ReturnCode {
+	var err error
+	dnsSuffix := ""
+	tries := 0
+	for dnsSuffix == "" && tries < 3 {
+		tries++
+		rc := service.RenewDHCPLease()
+		if rc != utils.Success {
+			// error message is already logged
+			return rc
 		}
-		log.Info("Setting AMT DNS suffix: ", service.flags.DNS)
-		err = service.amtCommand.SetDNSSuffix(service.flags.DNS)
-	} else {
-		log.Info("AMT DNS suffix:", dnsSuffix)
+		if !dnsSuffixRequired {
+			return utils.Success
+		}
+
+		dnsSuffix, err = service.amtCommand.GetDNSSuffix()
+		if err != nil {
+			log.Error(err)
+			return utils.AMTConnectionFailed
+		}
 	}
+
+	if dnsSuffix == "" {
+		log.Error("Failed acquiring DNS suffix after renewing DHCP lease")
+		return utils.EnableAMTFailed
+	}
+	log.Debug("DNS suffix after renewing DHCP lease: ", dnsSuffix)
 	return utils.Success
 }

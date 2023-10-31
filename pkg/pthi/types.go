@@ -166,11 +166,6 @@ type GetPKIFQDNSuffixResponse struct {
 	Header ResponseMessageHeader
 	Suffix AMTANSIString
 }
-type SetPKIFQDNSuffixRequest struct {
-	Header MessageHeader
-	Suffix AMTANSIString
-}
-
 type AMTANSIString struct {
 	Length uint16
 	Buffer [1000]uint8
@@ -274,15 +269,27 @@ type GetStateIndependenceIsChangeToAMTEnabledRequest struct {
 	VersionNumber uint8
 }
 
+type AMTOprationalState uint8
+
 const (
-	AmtDisabled = uint8(0)
-	AmtEnabled  = uint8(1)
+	AmtDisabled = AMTOprationalState(0)
+	AmtEnabled  = AMTOprationalState(1)
 )
+
+func (opstate AMTOprationalState) String() string {
+	if opstate == 0 {
+		return "disabled"
+	}
+	if opstate == 1 {
+		return "enabled"
+	}
+	return ""
+}
 
 type SetAmtOperationalState struct {
 	Command       uint8
 	ByteCount     uint8
 	SubCommand    uint8
 	VersionNumber uint8
-	Enabled       uint8
+	Enabled       AMTOprationalState
 }

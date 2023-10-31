@@ -44,7 +44,7 @@ func init() {
 //		err := command.OpenWatchdog()
 //		assert.NoError(t, err)
 //		defer command.Close()
-//		response, err := command.GetIsAMTEnabled()
+//		response, err := command.GetChangeEnabled()
 //		assert.NoError(t, err)
 //		println(response)
 //	}

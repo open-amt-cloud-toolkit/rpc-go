@@ -33,7 +33,7 @@ func (c MockPTHICommands) Open(bool) error {
 func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
 	return uint8(0x41), nil
 }
-func (c MockPTHICommands) SetAmtOperationalState(state uint8) (pthi.Status, error) {
+func (c MockPTHICommands) SetAmtOperationalState(state pthi.AMTOprationalState) (pthi.Status, error) {
 	return 0, nil
 }
 

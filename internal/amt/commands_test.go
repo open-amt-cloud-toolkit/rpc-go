@@ -31,7 +31,7 @@ var returnError bool = false
 
 func (c MockPTHICommands) Open(useLME bool) error {
 	if flag == true {
-		return errors.New("the handle is invalid")
+		return errors.New("The handle is invalid.")
 	} else if flag1 == true {
 		return errors.New("")
 	} else {
@@ -87,15 +87,12 @@ func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
 	return uint8(0x83), nil
 }
-func (c MockPTHICommands) SetAmtOperationalState(state uint8) (pthi.Status, error) {
+func (c MockPTHICommands) SetAmtOperationalState(state pthi.AMTOprationalState) (pthi.Status, error) {
 	return pthi.Status(0), nil
 }
 
 func (c MockPTHICommands) GetControlMode() (state int, err error)   { return 0, nil }
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) { return "Test", nil }
-func (c MockPTHICommands) SetDNSSuffix(suffix string) (status pthi.Status, err error) {
-	return pthi.AMT_STATUS_SUCCESS, nil
-}
 func (c MockPTHICommands) GetCertificateHashes(hashHandles pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
 	return []pthi.CertHashEntry{{
 		CertificateHash: [64]uint8{84, 101, 115, 116},
@@ -191,7 +188,7 @@ func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 func TestGetIsAMTEnabled(t *testing.T) {
-	result, err := amt.GetIsAMTEnabled()
+	result, err := amt.GetChangeEnabled()
 	assert.NoError(t, err)
 	assert.True(t, result.IsAMTEnabled())
 }
@@ -212,11 +209,6 @@ func TestGetDNSSuffix(t *testing.T) {
 	result, err := amt.GetDNSSuffix()
 	assert.NoError(t, err)
 	assert.Equal(t, "Test", result)
-}
-
-func TestSetDNSSuffix(t *testing.T) {
-	err := amt.SetDNSSuffix("test.org")
-	assert.NoError(t, err)
 }
 
 func TestGetCertificateHashes(t *testing.T) {

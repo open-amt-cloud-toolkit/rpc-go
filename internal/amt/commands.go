@@ -82,7 +82,7 @@ func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
 
 type Interface interface {
 	Initialize() (utils.ReturnCode, error)
-	GetIsAMTEnabled() (ChangeEnabledResponse, error)
+	GetChangeEnabled() (ChangeEnabledResponse, error)
 	EnableAMT() error
 	DisableAMT() error
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
@@ -90,7 +90,6 @@ type Interface interface {
 	GetControlMode() (int, error)
 	GetOSDNSSuffix() (string, error)
 	GetDNSSuffix() (string, error)
-	SetDNSSuffix(suffix string) error
 	GetCertificateHashes() ([]CertHashEntry, error)
 	GetRemoteAccessConnectionStatus() (RemoteAccessStatus, error)
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
@@ -171,7 +170,7 @@ func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration)
 	return "", errors.New(key + " Not Found")
 }
 
-func (amt AMTCommand) GetIsAMTEnabled() (ChangeEnabledResponse, error) {
+func (amt AMTCommand) GetChangeEnabled() (ChangeEnabledResponse, error) {
 	err := amt.PTHI.OpenWatchdog()
 	if err != nil {
 		return ChangeEnabledResponse(0), err
@@ -189,7 +188,7 @@ func (amt AMTCommand) EnableAMT() error {
 	return setAmtOperationalState(pthi.AmtEnabled, amt)
 }
 
-func setAmtOperationalState(state uint8, amt AMTCommand) error {
+func setAmtOperationalState(state pthi.AMTOprationalState, amt AMTCommand) error {
 	err := amt.PTHI.OpenWatchdog()
 	if err != nil {
 		return err
@@ -200,7 +199,7 @@ func setAmtOperationalState(state uint8, amt AMTCommand) error {
 		return err
 	}
 	if status != pthi.AMT_STATUS_SUCCESS {
-		s := fmt.Sprintf("error setting DNS suffixt: %s", status)
+		s := fmt.Sprintf("error setting AMT operational state %s: %s", state, status)
 		return errors.New(s)
 	}
 	return nil
@@ -275,23 +274,6 @@ func (amt AMTCommand) GetDNSSuffix() (string, error) {
 	}
 
 	return result, nil
-}
-
-func (amt AMTCommand) SetDNSSuffix(suffix string) error {
-	err := amt.PTHI.Open(false)
-	if err != nil {
-		return err
-	}
-	defer amt.PTHI.Close()
-	status, err := amt.PTHI.SetDNSSuffix(suffix)
-	if err != nil {
-		return err
-	}
-	if status != pthi.AMT_STATUS_SUCCESS {
-		s := fmt.Sprintf("error setting DNS suffixt: %s", status)
-		return errors.New(s)
-	}
-	return nil
 }
 
 func (amt AMTCommand) GetCertificateHashes() ([]CertHashEntry, error) {

@@ -32,7 +32,7 @@ var mockVersionDataErr error = nil
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
 	return "Version", mockVersionDataErr
 }
-func (c MockAMT) GetIsAMTEnabled() (amt2.ChangeEnabledResponse, error) {
+func (c MockAMT) GetChangeEnabled() (amt2.ChangeEnabledResponse, error) {
 	return mockChangeEnabledResponse, nil
 }
 func (c MockAMT) EnableAMT() error  { return nil }
@@ -55,8 +55,6 @@ func (c MockAMT) GetDNSSuffix() (string, error) { return mockDNSSuffix, mockDNSS
 
 var mockOSDNSSuffix = "os.dns.org"
 var mockOSDNSSuffixErr error = nil
-
-func (c MockAMT) SetDNSSuffix(suffix string) error { return nil }
 
 func (c MockAMT) GetOSDNSSuffix() (string, error) { return mockOSDNSSuffix, mockOSDNSSuffixErr }
 

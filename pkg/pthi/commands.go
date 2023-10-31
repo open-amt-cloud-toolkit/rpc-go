@@ -24,9 +24,8 @@ type Interface interface {
 	GetUUID() (uuid string, err error)
 	GetControlMode() (state int, err error)
 	GetIsAMTEnabled() (uint8, error)
-	SetAmtOperationalState(state uint8) (Status, error)
+	SetAmtOperationalState(state AMTOprationalState) (Status, error)
 	GetDNSSuffix() (suffix string, err error)
-	SetDNSSuffix(suffix string) (status Status, err error)
 	GetCertificateHashes(hashHandles AMTHashHandles) (hashEntryList []CertHashEntry, err error)
 	GetRemoteAccessConnectionStatus() (RAStatus GetRemoteAccessConnectionStatusResponse, err error)
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
@@ -176,6 +175,7 @@ func (pthi Command) GetControlMode() (state int, err error) {
 	return int(response.State), nil
 }
 
+// TODO: this one probably needs a different name
 func (pthi Command) GetIsAMTEnabled() (uint8, error) {
 	command := GetStateIndependenceIsChangeToAMTEnabledRequest{
 		Command:       0x5,
@@ -197,7 +197,7 @@ func (pthi Command) GetIsAMTEnabled() (uint8, error) {
 	return resBuffer, nil
 }
 
-func (pthi Command) SetAmtOperationalState(state uint8) (Status, error) {
+func (pthi Command) SetAmtOperationalState(state AMTOprationalState) (Status, error) {
 	command := SetAmtOperationalState{
 		Command:       0x5,
 		ByteCount:     0x3,
@@ -283,25 +283,6 @@ func (pthi Command) GetDNSSuffix() (suffix string, err error) {
 	return "", nil
 }
 
-func (pthi Command) SetDNSSuffix(suffix string) (status Status, err error) {
-	command := SetPKIFQDNSuffixRequest{
-		Header: CreateRequestHeader(SET_DNS_SUFFIX_REQUEST, uint32(len(suffix)+2)),
-		Suffix: AMTANSIString{
-			Length: uint16(len(suffix)),
-		},
-	}
-	copy(command.Suffix.Buffer[:], suffix)
-
-	var bin_buf bytes.Buffer
-	binary.Write(&bin_buf, binary.LittleEndian, command)
-	result, err := pthi.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
-	if err != nil {
-		return AMT_STATUS_INTERNAL_ERROR, err
-	}
-	buf2 := bytes.NewBuffer(result)
-	response := readHeaderResponse(buf2)
-	return response.Status, nil
-}
 func (pthi Command) enumerateHashHandles() (AMTHashHandles, error) {
 	// Enumerate a list of hash handles to request from
 	enumerateCommand := GetRequest{
