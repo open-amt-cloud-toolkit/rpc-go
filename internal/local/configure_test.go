@@ -120,6 +120,13 @@ func TestConfigure(t *testing.T) {
 		rc := lps.Configure()
 		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
+	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandEnableWifiPort
+		rfa := ResponseFuncArray{respondServerErrFunc()}
+		lps := setupWsmanResponses(t, f, rfa)
+		rc := lps.Configure()
+		assert.Equal(t, utils.WSMANMessageError, rc)
+	})
 }
 
 func TestAddWifiSettings(t *testing.T) {
@@ -664,4 +671,27 @@ func TestCheckReturnValue(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+func TestEnableWifiPort(t *testing.T) {
+	f := &flags.Flags{}
+	pcsRsp := wifiportconfiguration.Response{}
+	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
+	pcsRsp.Body.WiFiPortConfigurationService.EnabledState = 1
+	t.Run("enablewifiport: expect Success on happy path", func(t *testing.T) {
+		rfa := ResponseFuncArray{
+			respondMsgFunc(t, common.EnumerationResponse{}),
+			respondMsgFunc(t, wifi.PullResponseEnvelope{}),
+			respondMsgFunc(t, pcsRsp),
+			respondMsgFunc(t, wifi.RequestStateChangeResponse{}),
+		}
+		lps := setupWsmanResponses(t, f, rfa)
+		rc := lps.EnableWifiPort()
+		assert.Equal(t, utils.Success, rc)
+	})
+	t.Run("enablewifiport: expect WSMANMessageError ", func(t *testing.T) {
+		rfa := ResponseFuncArray{respondServerErrFunc()}
+		lps := setupWsmanResponses(t, f, rfa)
+		rc := lps.EnableWifiPort()
+		assert.Equal(t, utils.WSMANMessageError, rc)
+	})
 }

@@ -21,6 +21,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage = usage + "Supported Configuration Commands:\n"
 	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage = usage + "                 Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
+	usage = usage + "  enablewifiport  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
+	usage = usage + "                 Example: " + executable + " configure enablewifiport -password YourAMTPassword\n"
 	usage = usage + "\nRun '" + executable + " configure COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -38,11 +40,11 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 	switch f.SubCommand {
 	case "addwifisettings":
 		rc = f.handleAddWifiSettings()
-		break
+	case "enablewifiport":
+		rc = f.handleEnableWifiPort()
 	default:
 		f.printConfigurationUsage()
 		rc = utils.IncorrectCommandLineParameters
-		break
 	}
 	if rc != utils.Success {
 		return rc
@@ -65,6 +67,25 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 			log.Error("password does not match config file password")
 			return utils.MissingOrIncorrectPassword
 		}
+	}
+	return utils.Success
+}
+
+func (f *Flags) handleEnableWifiPort() utils.ReturnCode {
+	var err error
+	// var rc utils.ReturnCode
+	if len(f.commandLineArgs) > 5 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	f.flagSetEnableWifiPort.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetEnableWifiPort.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetEnableWifiPort.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetEnableWifiPort.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+
+	if err = f.flagSetEnableWifiPort.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
 	}
 	return utils.Success
 }
