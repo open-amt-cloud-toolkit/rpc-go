@@ -11,7 +11,7 @@ require (
 	github.com/open-amt-cloud-toolkit/go-wsman-messages v1.8.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/sys v0.13.0
+	golang.org/x/sys v0.14.0
 )
 
 require (
