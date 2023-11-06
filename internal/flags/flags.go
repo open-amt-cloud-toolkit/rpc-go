@@ -5,6 +5,8 @@
 package flags
 
 import (
+	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"net"
@@ -12,8 +14,10 @@ import (
 	"path/filepath"
 	"rpc/internal/amt"
 	"rpc/internal/config"
+	"rpc/internal/smb"
 	"rpc/pkg/utils"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -233,7 +237,35 @@ func (f *Flags) ReadPasswordFromUser() (bool, utils.ReturnCode) {
 }
 
 func (f *Flags) handleLocalConfig() utils.ReturnCode {
-	if f.configContent != "" {
+	if f.configContent == "" {
+		return utils.Success
+	}
+	if strings.HasPrefix(f.configContent, "smb:") {
+		ext := filepath.Ext(strings.ToLower(f.configContent))
+		isYaml := ext == ".yaml" || ext == ".yml"
+		isPfx := ext == ".pfx"
+		if !isYaml && !isPfx {
+			log.Error("remote config unsupported smb file extension: ", ext)
+			return utils.FailedReadingConfiguration
+		}
+		smbService := smb.NewSambaService(f.configContent)
+		err := smbService.Fetch()
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.FailedReadingConfiguration
+		}
+		if isYaml {
+			err := cleanenv.ParseYAML(bytes.NewReader(smbService.FileContents), &f.LocalConfig)
+			if err != nil {
+				log.Error("config error: ", err)
+				return utils.FailedReadingConfiguration
+			}
+		}
+		if isPfx {
+			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(smbService.FileContents)
+		}
+
+	} else {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)
