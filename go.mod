@@ -6,6 +6,7 @@ go 1.20
 // replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../go-wsman-messages
 
 require (
+	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/open-amt-cloud-toolkit/go-wsman-messages v1.8.4
@@ -15,6 +16,7 @@ require (
 )
 
 require (
+	github.com/geoffgarside/ber v1.1.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 )
