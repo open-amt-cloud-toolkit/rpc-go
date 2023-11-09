@@ -124,6 +124,46 @@ func TestCmdLine(t *testing.T) {
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
 	})
+	t.Run("enablewifiport: expect Success", func(t *testing.T) {
+		cmdLine := []string{
+			`rpc`, `configure`, `enablewifiport`,
+			`-password`, `cliP@ss0rd!`,
+		}
+		f := NewFlags(cmdLine)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, true, f.Local)
+		assert.Equal(t, f.Password, f.LocalConfig.Password)
+	})
+	t.Run("enablewifiport: expect MissingOrIncorrectPassword", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `enablewifiport`, `-password`,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
+	t.Run("enablewifiport: expect Success on password prompt", func(t *testing.T) {
+		defer userInput(t, "userP@ssw0rd!")()
+		f := NewFlags([]string{
+			`rpc`, `configure`, `enablewifiport`,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+	})
+	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `enablewifiport`, `-password`, `testpw`, `toomany`,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
+	t.Run("enablewifiport: ssexpect IncorrectCommandLineParameters", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `enablewifiport`, `-bogus`, `testpw`,
+		})
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
 }
 
 func TestConfigJson(t *testing.T) {

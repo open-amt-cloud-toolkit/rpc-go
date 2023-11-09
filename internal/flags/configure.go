@@ -21,6 +21,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage = usage + "Supported Configuration Commands:\n"
 	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage = usage + "                 Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
+	usage = usage + "  enablewifiport  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
+	usage = usage + "                 Example: " + executable + " configure enablewifiport -password YourAMTPassword\n"
 	usage = usage + "\nRun '" + executable + " configure COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -38,11 +40,11 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 	switch f.SubCommand {
 	case "addwifisettings":
 		rc = f.handleAddWifiSettings()
-		break
+	case "enablewifiport":
+		rc = f.handleEnableWifiPort()
 	default:
 		f.printConfigurationUsage()
 		rc = utils.IncorrectCommandLineParameters
-		break
 	}
 	if rc != utils.Success {
 		return rc
@@ -69,6 +71,25 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 	return utils.Success
 }
 
+func (f *Flags) handleEnableWifiPort() utils.ReturnCode {
+	var err error
+	// var rc utils.ReturnCode
+	if len(f.commandLineArgs) > 5 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	f.flagSetEnableWifiPort.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetEnableWifiPort.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetEnableWifiPort.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetEnableWifiPort.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+
+	if err = f.flagSetEnableWifiPort.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	return utils.Success
+}
+
 func (f *Flags) handleAddWifiSettings() utils.ReturnCode {
 	var err error
 	var rc utils.ReturnCode
@@ -83,7 +104,7 @@ func (f *Flags) handleAddWifiSettings() utils.ReturnCode {
 	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file ")
+	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
 	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
 	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
 	// Params for entering a single wifi config from command line
@@ -93,14 +114,14 @@ func (f *Flags) handleAddWifiSettings() utils.ReturnCode {
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
-	f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", "", "specify psk passphrase")
+	f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", f.lookupEnvOrString("PSK_PASSPHRASE", ""), "specify psk passphrase")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", "", "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
 	f.flagSetAddWifiSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", "", "specify private key")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"

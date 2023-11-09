@@ -10,7 +10,7 @@ const (
 	// ProjectName is the name of the executable
 	ProjectName = "rpc"
 	// ProjectVersion is the full version of this executable
-	ProjectVersion  = "2.16.1"
+	ProjectVersion  = "2.21.0"
 	ProtocolVersion = "4.0.0"
 	// ClientName is the name of the exectable
 	ClientName = "RPC"
@@ -32,7 +32,9 @@ const (
 	CommandConfigure   = "configure"
 
 	SubCommandAddWifiSettings = "addwifisettings"
+	SubCommandEnableWifiPort  = "enablewifiport"
 	SubCommandChangePassword  = "changepassword"
+	SubCommandSyncDeviceInfo  = "syncdeviceinfo"
 	SubCommandSyncClock       = "syncclock"
 	SubCommandSyncHostname    = "synchostname"
 	SubCommandSyncIP          = "syncip"
@@ -98,6 +100,7 @@ const (
 	SyncHostnameFailed   ReturnCode = 151
 	SyncIpFailed         ReturnCode = 152
 	ChangePasswordFailed ReturnCode = 153
+	SyncDeviceInfoFailed ReturnCode = 154
 
 	// (200-299) KPMU
 

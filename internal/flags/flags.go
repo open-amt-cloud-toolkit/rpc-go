@@ -5,6 +5,8 @@
 package flags
 
 import (
+	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"net"
@@ -12,8 +14,10 @@ import (
 	"path/filepath"
 	"rpc/internal/amt"
 	"rpc/internal/config"
+	"rpc/internal/smb"
 	"rpc/pkg/utils"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -75,8 +79,10 @@ type Flags struct {
 	amtMaintenanceSyncClockCommand      *flag.FlagSet
 	amtMaintenanceSyncHostnameCommand   *flag.FlagSet
 	amtMaintenanceChangePasswordCommand *flag.FlagSet
+	amtMaintenanceSyncDeviceInfoCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
 	flagSetAddWifiSettings              *flag.FlagSet
+	flagSetEnableWifiPort               *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -103,11 +109,13 @@ func NewFlags(args []string) *Flags {
 	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
 	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
 	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
+	flags.amtMaintenanceSyncDeviceInfoCommand = flag.NewFlagSet("syncdeviceinfo", flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
 	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
+	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
@@ -175,6 +183,7 @@ func (f *Flags) setupCommonFlags() {
 		f.amtActivateCommand,
 		f.amtDeactivateCommand,
 		f.amtMaintenanceChangePasswordCommand,
+		f.amtMaintenanceSyncDeviceInfoCommand,
 		f.amtMaintenanceSyncClockCommand,
 		f.amtMaintenanceSyncHostnameCommand,
 		f.amtMaintenanceSyncIPCommand} {
@@ -236,7 +245,35 @@ func (f *Flags) ReadPasswordFromUser() (bool, utils.ReturnCode) {
 }
 
 func (f *Flags) handleLocalConfig() utils.ReturnCode {
-	if f.configContent != "" {
+	if f.configContent == "" {
+		return utils.Success
+	}
+	if strings.HasPrefix(f.configContent, "smb:") {
+		ext := filepath.Ext(strings.ToLower(f.configContent))
+		isYaml := ext == ".yaml" || ext == ".yml"
+		isPfx := ext == ".pfx"
+		if !isYaml && !isPfx {
+			log.Error("remote config unsupported smb file extension: ", ext)
+			return utils.FailedReadingConfiguration
+		}
+		smbService := smb.NewSambaService(f.configContent)
+		err := smbService.Fetch()
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.FailedReadingConfiguration
+		}
+		if isYaml {
+			err := cleanenv.ParseYAML(bytes.NewReader(smbService.FileContents), &f.LocalConfig)
+			if err != nil {
+				log.Error("config error: ", err)
+				return utils.FailedReadingConfiguration
+			}
+		}
+		if isPfx {
+			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(smbService.FileContents)
+		}
+
+	} else {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)

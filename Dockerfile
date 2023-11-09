@@ -3,7 +3,7 @@
 # * SPDX-License-Identifier: Apache-2.0
 # **********************************************************************
 
-FROM golang:1.21-alpine@sha256:926f7f7e1ab8509b4e91d5ec6d5916ebb45155b0c8920291ba9f361d65385806 as builder
+FROM golang:1.21-alpine@sha256:110b07af87238fbdc5f1df52b00927cf58ce3de358eeeb1854f10a8b5e5e1411 as builder
 RUN apk update
 RUN apk upgrade
 RUN apk add --no-cache git
