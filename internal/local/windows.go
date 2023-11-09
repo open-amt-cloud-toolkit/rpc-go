@@ -8,15 +8,16 @@
 package local
 
 import (
-	log "github.com/sirupsen/logrus"
 	"os/exec"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) RenewDHCPLease() utils.ReturnCode {
 	log.Debug("renewing DHCP lease")
-	cmd = exec.Command("ipconfig", "/renew")
-	err = cmd.Run()
+	cmd := exec.Command("ipconfig", "/renew")
+	err := cmd.Run()
 	if err != nil {
 		log.Error("Error renewing DHCP lease:", err)
 		return utils.NetworkConfigurationFailed
