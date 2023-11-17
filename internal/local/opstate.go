@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"rpc/internal/amt"
+	"rpc/internal/flags"
 	"rpc/pkg/utils"
 )
 
@@ -73,7 +74,7 @@ func (service *ProvisioningService) EnableAMT() utils.ReturnCode {
 	return utils.Success
 }
 
-func (service *ProvisioningService) CheckAndEnableAMT(dnsSuffixRequired bool) utils.ReturnCode {
+func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) utils.ReturnCode {
 	rsp, err := service.amtCommand.GetChangeEnabled()
 	if err != nil {
 		log.Error(err)
@@ -92,35 +93,26 @@ func (service *ProvisioningService) CheckAndEnableAMT(dnsSuffixRequired bool) ut
 		// error message is already logged
 		return rc
 	}
-	return service.RefreshIP(dnsSuffixRequired)
+	if !skipIPRenewal {
+		return service.RenewIP()
+	}
+	return rc
 }
 
-func (service *ProvisioningService) RefreshIP(dnsSuffixRequired bool) utils.ReturnCode {
-	var err error
-	dnsSuffix := ""
-	tries := 0
-	for dnsSuffix == "" && tries < 3 {
-		tries++
-		rc := service.RenewDHCPLease()
-		if rc != utils.Success {
-			// error message is already logged
-			return rc
-		}
-		if !dnsSuffixRequired {
-			return utils.Success
-		}
-
-		dnsSuffix, err = service.amtCommand.GetDNSSuffix()
-		if err != nil {
-			log.Error(err)
-			return utils.AMTConnectionFailed
-		}
+func (service *ProvisioningService) RenewIP() utils.ReturnCode {
+	rc := service.RenewDHCPLease()
+	if rc != utils.Success {
+		// error message is already logged
+		return rc
 	}
-
-	if dnsSuffix == "" {
-		log.Error("Failed acquiring DNS suffix after renewing DHCP lease")
-		return utils.EnableAMTFailed
+	if log.IsLevelEnabled(log.DebugLevel) {
+		amtInfoOrig := service.flags.AmtInfo
+		service.flags.AmtInfo = flags.AmtInfoFlags{
+			DNS: true,
+			Lan: true,
+		}
+		service.DisplayAMTInfo()
+		service.flags.AmtInfo = amtInfoOrig
 	}
-	log.Debug("DNS suffix after renewing DHCP lease: ", dnsSuffix)
 	return utils.Success
 }
