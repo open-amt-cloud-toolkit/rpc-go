@@ -89,10 +89,10 @@ type Flags struct {
 	HostnameInfo                        HostnameInfo
 	AMTTimeoutDuration                  time.Duration
 	FriendlyName                        string
-	SkipIPRenew                         bool
 	AmtInfo                             AmtInfoFlags
 	amtOpStateCommand                   *flag.FlagSet
 	OpStateFlags                        OpStateFlags
+	SkipIPRenew                         bool
 }
 
 func NewFlags(args []string) *Flags {

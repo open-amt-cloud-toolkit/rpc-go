@@ -100,11 +100,7 @@ func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) utils.
 }
 
 func (service *ProvisioningService) RenewIP() utils.ReturnCode {
-	rc := service.RenewDHCPLease()
-	if rc != utils.Success {
-		// error message is already logged
-		return rc
-	}
+	rc := service.networker.RenewDHCPLease()
 	if log.IsLevelEnabled(log.DebugLevel) {
 		amtInfoOrig := service.flags.AmtInfo
 		service.flags.AmtInfo = flags.AmtInfoFlags{
@@ -114,5 +110,5 @@ func (service *ProvisioningService) RenewIP() utils.ReturnCode {
 		service.DisplayAMTInfo()
 		service.flags.AmtInfo = amtInfoOrig
 	}
-	return utils.Success
+	return rc
 }

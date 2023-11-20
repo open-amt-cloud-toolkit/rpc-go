@@ -59,10 +59,6 @@ func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) {
 	return "", nil
 }
 
-func (c MockPTHICommands) SetDNSSuffix(suffix string) (status pthi.Status, err error) {
-	return pthi.AMT_STATUS_SUCCESS, nil
-}
-
 func (c MockPTHICommands) GetCertificateHashes(pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
 	return []pthi.CertHashEntry{}, nil
 }

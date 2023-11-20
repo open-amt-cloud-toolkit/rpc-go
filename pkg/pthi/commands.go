@@ -175,7 +175,6 @@ func (pthi Command) GetControlMode() (state int, err error) {
 	return int(response.State), nil
 }
 
-// TODO: this one probably needs a different name
 func (pthi Command) GetIsAMTEnabled() (uint8, error) {
 	command := GetStateIndependenceIsChangeToAMTEnabledRequest{
 		Command:       0x5,

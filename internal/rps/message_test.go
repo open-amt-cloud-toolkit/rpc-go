@@ -44,7 +44,6 @@ func (c MockAMT) GetControlMode() (int, error)    { return controlMode, nil }
 func (c MockAMT) GetControlModeV2() (int, error)  { return controlMode, nil }
 func (c MockAMT) GetOSDNSSuffix() (string, error) { return osDNSSuffix, nil }
 func (c MockAMT) GetDNSSuffix() (string, error)   { return mebxDNSSuffix, nil }
-
 func (c MockAMT) GetCertificateHashes() ([]amt.CertHashEntry, error) {
 	return []amt.CertHashEntry{}, nil
 }

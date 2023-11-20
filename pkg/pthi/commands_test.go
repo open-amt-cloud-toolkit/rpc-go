@@ -39,15 +39,6 @@ func init() {
 	pthi.Heci = &MockHECICommands{}
 }
 
-//	func TestIsAMTEnablingMechanismSupported(t *testing.T) {
-//		command := NewCommand()
-//		err := command.OpenWatchdog()
-//		assert.NoError(t, err)
-//		defer command.Close()
-//		response, err := command.GetChangeEnabled()
-//		assert.NoError(t, err)
-//		println(response)
-//	}
 func TestSend(t *testing.T) {
 	numBytes = 54
 	bin_buf := apf.ChannelOpen(1)

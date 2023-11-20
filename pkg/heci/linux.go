@@ -59,12 +59,10 @@ func (heci *Driver) Init(useLME bool, useWD bool) error {
 	data := CMEIConnectClientData{}
 	if useWD {
 		data.data = MEI_WDIF
+	} else if useLME {
+		data.data = MEI_LMEIF
 	} else {
-		if useLME {
-			data.data = MEI_LMEIF
-		} else {
-			data.data = MEI_IAMTHIF
-		}
+		data.data = MEI_IAMTHIF
 	}
 
 	// we try up to 3 times in case the resource/device is still busy from previous call.

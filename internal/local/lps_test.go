@@ -17,11 +17,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MockOSNetworker struct{}
+
+var mockRenewDHCPLeaseRC = utils.Success
+
+func (m MockOSNetworker) RenewDHCPLease() utils.ReturnCode {
+	return mockRenewDHCPLeaseRC
+}
+
 // Mock the AMT Hardware
 type MockAMT struct{}
 
-var mockChangeEnabledResponse amt2.ChangeEnabledResponse = amt2.ChangeEnabledResponse(0x82)
-var mockStandardErr error = errors.New("yep, it failed")
+const ChangeEnabledResponseNewEnabled = 0x82
+const ChangeEnabledResponseNewDisabled = 0x80
+const ChangeEnabledResponseNotNew = 0x00
+
+var mockChangeEnabledResponse = amt2.ChangeEnabledResponse(ChangeEnabledResponseNewEnabled)
+var mockChangeEnabledErr error = nil
+var mockStandardErr = errors.New("yep, it failed")
 
 func (c MockAMT) Initialize() (utils.ReturnCode, error) {
 	return utils.Success, nil
@@ -33,10 +46,16 @@ func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (str
 	return "Version", mockVersionDataErr
 }
 func (c MockAMT) GetChangeEnabled() (amt2.ChangeEnabledResponse, error) {
-	return mockChangeEnabledResponse, nil
+	return mockChangeEnabledResponse, mockChangeEnabledErr
 }
-func (c MockAMT) EnableAMT() error  { return nil }
-func (c MockAMT) DisableAMT() error { return nil }
+
+var mockEnableAMTErr error = nil
+
+func (c MockAMT) EnableAMT() error { return mockEnableAMTErr }
+
+var mockDisableAMTErr error = nil
+
+func (c MockAMT) DisableAMT() error { return mockDisableAMTErr }
 
 var mockUUID = "123-456-789"
 var mockUUIDErr error = nil
@@ -158,6 +177,7 @@ func respondStringFunc(t *testing.T, msg string) func(w http.ResponseWriter, r *
 func setupService(f *flags.Flags) ProvisioningService {
 	service := NewProvisioningService(f)
 	service.amtCommand = MockAMT{}
+	service.networker = &MockOSNetworker{}
 	return service
 }
 

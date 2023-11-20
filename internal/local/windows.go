@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) RenewDHCPLease() utils.ReturnCode {
+func (n *RealOSNetworker) RenewDHCPLease() utils.ReturnCode {
 	log.Debug("renewing DHCP lease")
 	cmd := exec.Command("ipconfig", "/renew")
 	err := cmd.Run()

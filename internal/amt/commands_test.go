@@ -276,6 +276,11 @@ func TestChangeEnabledResponse(t *testing.T) {
 	assert.True(t, cer.IsAMTEnabled())
 	assert.True(t, cer.IsNewInterfaceVersion())
 
+	cer = ChangeEnabledResponse(0x80)
+	assert.False(t, cer.IsTransitionAllowed())
+	assert.False(t, cer.IsAMTEnabled())
+	assert.True(t, cer.IsNewInterfaceVersion())
+
 	cer = ChangeEnabledResponse(0x02)
 	assert.False(t, cer.IsTransitionAllowed())
 	assert.True(t, cer.IsAMTEnabled())

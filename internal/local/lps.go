@@ -12,6 +12,12 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 )
 
+type OSNetworker interface {
+	RenewDHCPLease() utils.ReturnCode
+}
+
+type RealOSNetworker struct{}
+
 type ProvisioningService struct {
 	flags            *flags.Flags
 	serverURL        string
@@ -22,6 +28,7 @@ type ProvisioningService struct {
 	cimMessages      cim.Messages
 	ipsMessages      ips.Messages
 	handlesWithCerts map[string]string
+	networker        OSNetworker
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
@@ -37,6 +44,7 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 		cimMessages:      cim.NewMessages(),
 		ipsMessages:      ips.NewMessages(),
 		handlesWithCerts: make(map[string]string),
+		networker:        &RealOSNetworker{},
 	}
 }
 
