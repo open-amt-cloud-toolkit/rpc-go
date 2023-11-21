@@ -24,6 +24,7 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
+		log.Trace("GetControlMode")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
@@ -32,9 +33,12 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 		return utils.UnableToActivate
 	}
 
+	service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
+		log.Trace("GetLocalSystemAccount")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
@@ -372,6 +376,7 @@ func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []b
 			return utils.ActivationFailed, err
 		}
 		if hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
+			log.Error("hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue: ", hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue)
 			return utils.ActivationFailed, errors.New("unable to activate in ACM")
 		}
 	} else {
@@ -381,7 +386,7 @@ func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []b
 			return utils.AMTConnectionFailed, err
 		}
 		if controlMode != 2 {
-			log.Error("unable to activate in ACM")
+			log.Error("unable to activate in ACM. control mode: ", controlMode)
 			return utils.UnableToActivate, err
 		}
 	}
