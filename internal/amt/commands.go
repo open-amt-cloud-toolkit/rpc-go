@@ -68,8 +68,23 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type ChangeEnabledResponse uint8
+
+func (r ChangeEnabledResponse) IsTransitionAllowed() bool {
+	return (r & 1) == 1
+}
+func (r ChangeEnabledResponse) IsAMTEnabled() bool {
+	return ((r >> 1) & 1) == 1
+}
+func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
+	return ((r >> 7) & 1) == 1
+}
+
 type Interface interface {
 	Initialize() (utils.ReturnCode, error)
+	GetChangeEnabled() (ChangeEnabledResponse, error)
+	EnableAMT() error
+	DisableAMT() error
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
@@ -153,6 +168,41 @@ func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration)
 	}
 
 	return "", errors.New(key + " Not Found")
+}
+
+func (amt AMTCommand) GetChangeEnabled() (ChangeEnabledResponse, error) {
+	err := amt.PTHI.OpenWatchdog()
+	if err != nil {
+		return ChangeEnabledResponse(0), err
+	}
+	defer amt.PTHI.Close()
+	rawVal, err := amt.PTHI.GetIsAMTEnabled()
+	return ChangeEnabledResponse(rawVal), nil
+}
+
+func (amt AMTCommand) DisableAMT() error {
+	return setAmtOperationalState(pthi.AmtDisabled, amt)
+}
+
+func (amt AMTCommand) EnableAMT() error {
+	return setAmtOperationalState(pthi.AmtEnabled, amt)
+}
+
+func setAmtOperationalState(state pthi.AMTOperationalState, amt AMTCommand) error {
+	err := amt.PTHI.OpenWatchdog()
+	if err != nil {
+		return err
+	}
+	defer amt.PTHI.Close()
+	status, err := amt.PTHI.SetAmtOperationalState(state)
+	if err != nil {
+		return err
+	}
+	if status != pthi.AMT_STATUS_SUCCESS {
+		s := fmt.Sprintf("error setting AMT operational state %s: %s", state, status)
+		return errors.New(s)
+	}
+	return nil
 }
 
 // GetUUID ...

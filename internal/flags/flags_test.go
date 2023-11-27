@@ -24,8 +24,17 @@ var controlModeErr error = nil
 
 type MockPTHICommands struct{}
 
+func (c MockPTHICommands) OpenWatchdog() error {
+	return nil
+}
 func (c MockPTHICommands) Open(bool) error {
 	return nil
+}
+func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
+	return uint8(0x41), nil
+}
+func (c MockPTHICommands) SetAmtOperationalState(state pthi.AMTOperationalState) (pthi.Status, error) {
+	return 0, nil
 }
 
 func (c MockPTHICommands) Close() {}

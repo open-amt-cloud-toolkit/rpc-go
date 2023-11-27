@@ -21,6 +21,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		Ras:      true,
 		Lan:      true,
 		Hostname: true,
+		OpState:  true,
 	}
 
 	t.Run("returns Success on happy path", func(t *testing.T) {

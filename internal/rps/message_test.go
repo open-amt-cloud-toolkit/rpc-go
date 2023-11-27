@@ -33,6 +33,11 @@ func (c MockAMT) Initialize() (utils.ReturnCode, error) {
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
 	return "Version", nil
 }
+func (c MockAMT) GetChangeEnabled() (amt.ChangeEnabledResponse, error) {
+	return amt.ChangeEnabledResponse(0x01), nil
+}
+func (c MockAMT) EnableAMT() error                { return nil }
+func (c MockAMT) DisableAMT() error               { return nil }
 func (c MockAMT) GetUUID() (string, error)        { return "123-456-789", nil }
 func (c MockAMT) GetUUIDV2() (string, error)      { return "", nil }
 func (c MockAMT) GetControlMode() (int, error)    { return controlMode, nil }

@@ -18,6 +18,7 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		Ras:      true,
 		Lan:      true,
 		Hostname: true,
+		OpState:  true,
 	}
 
 	tests := map[string]struct {

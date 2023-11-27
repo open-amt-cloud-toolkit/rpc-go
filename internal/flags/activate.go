@@ -22,6 +22,7 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 		f.FriendlyName = flagValue
 		return nil
 	})
+	f.amtActivateCommand.BoolVar(&f.SkipIPRenew, "skipIPRenew", false, "skip DHCP renewal of the IP address if AMT becomes enabled")
 	// for local activation in ACM mode need a few more items
 	f.amtActivateCommand.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.AMTPassword, "amtPassword", f.lookupEnvOrString("AMT_PASSWORD", ""), "amt password")

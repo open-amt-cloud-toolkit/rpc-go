@@ -90,6 +90,7 @@ type Flags struct {
 	AMTTimeoutDuration                  time.Duration
 	FriendlyName                        string
 	AmtInfo                             AmtInfoFlags
+	SkipIPRenew                         bool
 }
 
 func NewFlags(args []string) *Flags {

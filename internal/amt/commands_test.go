@@ -6,6 +6,7 @@ package amt
 
 import (
 	"errors"
+	"fmt"
 	"rpc/pkg/pthi"
 	"testing"
 	"time"
@@ -14,6 +15,16 @@ import (
 )
 
 type MockPTHICommands struct{}
+
+func (c MockPTHICommands) OpenWatchdog() error {
+	if flag == true {
+		return errors.New("the handle is invalid")
+	} else if flag1 == true {
+		return errors.New("")
+	} else {
+		return nil
+	}
+}
 
 var flag bool = false
 var flag1 bool = false
@@ -73,6 +84,18 @@ func (c MockPTHICommands) GetCodeVersions() (pthi.GetCodeVersionsResponse, error
 func (c MockPTHICommands) GetUUID() (uuid string, err error) {
 	return "\xd2?\x11\x1c%3\x94E\xa2rT\xb2\x03\x8b\xeb\a", nil
 }
+
+func (c MockPTHICommands) GetIsAMTEnabled() (state uint8, err error) {
+	return uint8(0x83), nil
+}
+
+var SetOperationsStateStatus = pthi.Status(0)
+var SetOperationsStateError error = nil
+
+func (c MockPTHICommands) SetAmtOperationalState(state pthi.AMTOperationalState) (pthi.Status, error) {
+	return SetOperationsStateStatus, SetOperationsStateError
+}
+
 func (c MockPTHICommands) GetControlMode() (state int, err error)   { return 0, nil }
 func (c MockPTHICommands) GetDNSSuffix() (suffix string, err error) { return "Test", nil }
 func (c MockPTHICommands) GetCertificateHashes(hashHandles pthi.AMTHashHandles) (hashEntryList []pthi.CertHashEntry, err error) {
@@ -169,6 +192,51 @@ func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
 	assert.Equal(t, "amt internal error", err.Error())
 	assert.Equal(t, "", result)
 }
+func TestGetIsAMTEnabled(t *testing.T) {
+	result, err := amt.GetChangeEnabled()
+	assert.NoError(t, err)
+	assert.True(t, result.IsAMTEnabled())
+}
+func TestGetIsAMTEnabledError(t *testing.T) {
+	flag1 = true
+	result, err := amt.GetChangeEnabled()
+	assert.Error(t, err)
+	assert.False(t, result.IsAMTEnabled())
+	flag1 = false
+}
+
+func TestAmtOperationalState(t *testing.T) {
+	t.Run("DisableAMT happy path", func(t *testing.T) {
+		err := amt.DisableAMT()
+		assert.NoError(t, err)
+	})
+	t.Run("EnableAMT happy path", func(t *testing.T) {
+		err := amt.EnableAMT()
+		assert.NoError(t, err)
+	})
+	t.Run("setAmtOperationalState expect error on open", func(t *testing.T) {
+		flag1 = true
+		err := amt.EnableAMT()
+		assert.Error(t, err)
+		flag1 = false
+	})
+	t.Run("setAmtOperationalState expect error setting op state", func(t *testing.T) {
+		SetOperationsStateError = errors.New("test error")
+		err := amt.EnableAMT()
+		assert.Error(t, err)
+		SetOperationsStateError = nil
+	})
+	t.Run("setAmtOperationalState expect error on bad return status", func(t *testing.T) {
+		SetOperationsStateStatus = pthi.Status(5)
+		err := amt.EnableAMT()
+		assert.Error(t, err)
+		SetOperationsStateStatus = pthi.Status(0)
+	})
+}
+func TestEnableAMT(t *testing.T) {
+	err := amt.EnableAMT()
+	assert.NoError(t, err)
+}
 
 func TestGetGUID(t *testing.T) {
 	result, err := amt.GetUUID()
@@ -239,4 +307,52 @@ func TestUnprovision(t *testing.T) {
 	result, err := amt.Unprovision()
 	assert.NoError(t, err)
 	assert.Equal(t, 0, result)
+}
+
+func TestChangeEnabledResponse(t *testing.T) {
+	tests := []struct {
+		value              uint8
+		expectNewInterface bool
+		expectEnabled      bool
+		expectTransition   bool
+	}{
+		{
+			value:              0x83,
+			expectNewInterface: true,
+			expectEnabled:      true,
+			expectTransition:   true,
+		},
+		{
+			value:              0x82,
+			expectNewInterface: true,
+			expectEnabled:      true,
+			expectTransition:   false,
+		},
+		{
+			value:              0x80,
+			expectNewInterface: true,
+			expectEnabled:      false,
+			expectTransition:   false,
+		},
+		{
+			value:              0x02,
+			expectNewInterface: false,
+			expectEnabled:      true,
+			expectTransition:   false,
+		},
+		{
+			value:              0x00,
+			expectNewInterface: false,
+			expectEnabled:      false,
+			expectTransition:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("response value: %#x", tt.value), func(t *testing.T) {
+			cer := ChangeEnabledResponse(tt.value)
+			assert.Equal(t, tt.expectNewInterface, cer.IsNewInterfaceVersion())
+			assert.Equal(t, tt.expectEnabled, cer.IsAMTEnabled())
+			assert.Equal(t, tt.expectTransition, cer.IsTransitionAllowed())
+		})
+	}
 }

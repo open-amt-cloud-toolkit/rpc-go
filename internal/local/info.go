@@ -105,6 +105,22 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 			println("Control Mode		: " + string(utils.InterpretControlMode(result)))
 		}
 	}
+	if service.flags.AmtInfo.OpState {
+		result, err := cmd.GetChangeEnabled()
+		if err != nil {
+			log.Error(err)
+		}
+		if result.IsNewInterfaceVersion() {
+			opStateValue := "disabled"
+			if result.IsAMTEnabled() {
+				opStateValue = "enabled"
+			}
+			dataStruct["operationalState"] = opStateValue
+			if !service.flags.JsonOutput {
+				println("Operational State	: " + opStateValue)
+			}
+		}
+	}
 	if service.flags.AmtInfo.DNS {
 		result, err := cmd.GetDNSSuffix()
 		if err != nil {
