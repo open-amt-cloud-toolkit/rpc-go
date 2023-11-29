@@ -1,3 +1,131 @@
+<a name="v2.24.1"></a>
+## [v2.24.1] - 2023-11-29
+### Fix
+- project version is updated
+
+<a name="v2.24.0"></a>
+## [v2.24.0] - 2023-11-29
+### Build
+- **deps:** bump golang.org/x/sys from 0.14.0 to 0.15.0
+
+### Feat
+- add UUID Override flag to maintenance commands
+
+<a name="v2.23.0"></a>
+## [v2.23.0] - 2023-11-27
+### Build
+- **deps:** bump github/codeql-action from 2.22.7 to 2.22.8
+- **deps:** bump github/codeql-action from 2.22.6 to 2.22.7
+- **deps:** bump step-security/harden-runner from 2.6.0 to 2.6.1
+- **deps:** bump github/codeql-action from 2.22.5 to 2.22.6
+- **deps:** bump golang from `96a8a70` to `110b07a`
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+
+### Feat
+- support AMTEnabled flag
+
+<a name="v2.22.0"></a>
+## [v2.22.0] - 2023-11-07
+### Build
+- **deps:** bump aquasecurity/trivy-action from 0.13.1 to 0.14.0
+
+### Feat
+- adds report out to code analysis action
+
+<a name="v2.21.0"></a>
+## [v2.21.0] - 2023-11-06
+### Build
+- **deps:** bump golang.org/x/sys from 0.13.0 to 0.14.0
+- **deps:** bump github.com/gorilla/websocket from 1.5.0 to 1.5.1
+- **deps:** bump software.sslmate.com/src/go-pkcs12 from 0.3.0 to 0.4.0
+- **deps:** bump aquasecurity/trivy-action from 0.13.0 to 0.13.1
+- **deps:** bump wagoid/commitlint-github-action from 5.4.3 to 5.4.4
+- **deps:** bump golang from `926f7f7` to `96a8a70`
+
+### Feat
+- support smb: urls for remote .yaml or .pfx config files
+
+<a name="v2.20.0"></a>
+## [v2.20.0] - 2023-11-01
+### Feat
+- add local wifi enable and profile sync
+
+<a name="v2.19.0"></a>
+## [v2.19.0] - 2023-10-30
+### Build
+- **deps:** bump github/codeql-action from 2.22.4 to 2.22.5
+- **deps:** bump software.sslmate.com/src/go-pkcs12 from 0.2.1 to 0.3.0
+
+### Feat
+- local operations read secrets from environment
+
+<a name="v2.18.0"></a>
+## [v2.18.0] - 2023-10-26
+### Build
+- **deps:** bump aquasecurity/trivy-action from 0.12.0 to 0.13.0
+- **deps:** bump ossf/scorecard-action from 2.3.0 to 2.3.1
+- **deps:** bump github/codeql-action from 2.22.3 to 2.22.4
+- **deps:** bump actions/checkout from 4.1.0 to 4.1.1
+- **deps:** bump github/codeql-action from 2.22.2 to 2.22.3
+
+### Feat
+- add device info maintenance
+
+<a name="v2.17.0"></a>
+## [v2.17.0] - 2023-10-13
+### Build
+- **deps:** bump github/codeql-action from 2.22.1 to 2.22.2
+
+### Feat
+- add features field to message payload
+
+<a name="v2.16.1"></a>
+## [v2.16.1] - 2023-10-12
+### Build
+- removes jenkinsfile
+- **deps:** bump golang from `a76f153` to `926f7f7`
+- **deps:** bump ossf/scorecard-action from 2.2.0 to 2.3.0
+- **deps:** bump github/codeql-action from 2.21.9 to 2.22.0
+- **deps:** bump golang from `1c9cc94` to `a76f153`
+- **deps:** bump golang.org/x/sys from 0.12.0 to 0.13.0
+- **deps:** bump golang from `4bc6541` to `1c9cc94`
+- **deps:** bump step-security/harden-runner from 2.5.1 to 2.6.0
+- **deps:** bump github/codeql-action from 2.22.0 to 2.22.1
+- **deps:** bump golang from `ec31b7f` to `4bc6541`
+- **deps:** bump github/codeql-action from 2.21.8 to 2.21.9
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages ([#240](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/240))
+- **deps:** bump golang from `96634e5` to `ec31b7f`
+
+### Ci
+- only release when semantic-release generates a new version
+- automate publishing of docker images to dockerhub
+
+### Fix
+- update ProjectVersion to v2.16.1
+
+<a name="v2.16.0"></a>
+## [v2.16.0] - 2023-09-26
+### Build
+- **deps:** bump actions/checkout from 4.0.0 to 4.1.0
+
+### Feat
+- adds uuid flag to activate command
+
+<a name="v2.15.2"></a>
+## [v2.15.2] - 2023-09-20
+### Build
+- **deps:** bump github/codeql-action from 2.21.7 to 2.21.8
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+
+### Ci
+- update docker release
+
+### Fix
+- trigger ci build for release with docker
+
+### Refactor
+- amtinfo userCert password prompt ([#228](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/228))
+
 <a name="v2.15.1"></a>
 ## [v2.15.1] - 2023-09-15
 ### Build
