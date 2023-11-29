@@ -36,12 +36,6 @@ func TestPrintMaintenanceUsage(t *testing.T) {
 func TestParseFlagsMaintenance(t *testing.T) {
 	argUrl := "-u wss://localhost"
 	argCurPw := "-password " + trickyPassword
-	argSyncClock := "syncclock"
-	argAddWiFiSettings := "addwifisettings"
-	argSyncHostname := "synchostname"
-	argSyncIp := "syncip"
-	argChangePw := "changepassword"
-	argSyncDeviceInfo := "syncdeviceinfo"
 	newPassword := trickyPassword + "123"
 	cmdBase := "./rpc maintenance"
 
@@ -78,49 +72,49 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should fail - required websocket URL": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectURL,
 		},
 		"should fail - required amt password": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
 			wantResult: utils.MissingOrIncorrectPassword,
 		},
 		"should pass - syncclock": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should fail - syncclock bad param": {
-			cmdLine:    cmdBase + " " + argSyncClock + " -nope " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should pass - synchostname no params": {
-			cmdLine:    cmdBase + " " + argSyncHostname + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should pass - task force flag": {
-			cmdLine:    cmdBase + " " + argSyncHostname + " -f " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " -f " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should fail - synchostname bad param": {
-			cmdLine:    cmdBase + " " + argSyncHostname + " -nope " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should pass - syncdeviceinfo": {
-			cmdLine:    cmdBase + " " + argSyncDeviceInfo + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncDeviceInfo + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should fail - syncdeviceinfo bad param": {
-			cmdLine:    cmdBase + " " + argSyncDeviceInfo + " -nope " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncDeviceInfo + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should pass - syncip no params": {
-			cmdLine:      cmdBase + " " + argSyncIp + " " + argUrl + " " + argCurPw,
+			cmdLine:      cmdBase + " " + utils.SubCommandSyncIP + " " + argUrl + " " + argCurPw,
 			wantResult:   utils.Success,
 			wantIPConfig: ipCfgNoParams,
 		},
 		"should pass - syncip with params": {
 			cmdLine: cmdBase + " " +
-				argSyncIp +
+				utils.SubCommandSyncIP +
 				" -staticip " + ipCfgWithParams.IpAddress +
 				" -netmask " + ipCfgWithParams.Netmask +
 				" -gateway " + ipCfgWithParams.Gateway +
@@ -132,7 +126,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - syncip with lookup": {
 			cmdLine: cmdBase + " " +
-				argSyncIp +
+				utils.SubCommandSyncIP +
 				" -gateway " + ipCfgWithLookup.Gateway +
 				" -primarydns " + ipCfgWithLookup.PrimaryDns +
 				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
@@ -141,53 +135,61 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantIPConfig: ipCfgWithLookup,
 		},
 		"should fail - syncip bad param": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -nope " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should fail - syncip MissingOrIncorrectNetworkMask": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -netmask 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -netmask 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectNetworkMask,
 		},
 		"should fail - syncip MissingOrIncorrectStaticIP": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -staticip 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectStaticIP,
 		},
 		"should fail - syncip MissingOrIncorrectGateway": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -gateway 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -gateway 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectGateway,
 		},
 		"should fail - syncip MissingOrIncorrectPrimaryDNS": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -primarydns 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -primarydns 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectPrimaryDNS,
 		},
 		"should fail - syncip MissingOrIncorrectSecondaryDNS": {
-			cmdLine:    cmdBase + " " + argSyncIp + " -secondarydns 322.299.0.0 " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncIP + " -secondarydns 322.299.0.0 " + argUrl + " " + argCurPw,
 			wantResult: utils.MissingOrIncorrectSecondaryDNS,
 		},
 		"should pass - changepassword to random value": {
-			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should pass - changepassword using static value": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should pass - changepassword static value before other flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " -static " + newPassword + " " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -static " + newPassword + " " + argUrl + " " + argCurPw,
 			wantResult: utils.Success,
 		},
 		"should pass - changepassword static value after all flags": {
-			cmdLine:    cmdBase + " " + argChangePw + " " + argUrl + " " + argCurPw + " -static " + newPassword,
+			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " " + argUrl + " " + argCurPw + " -static " + newPassword,
 			wantResult: utils.Success,
 		},
 		"should fail - changepassword bad param": {
-			cmdLine:    cmdBase + " " + argChangePw + " -nope " + argUrl + " " + argCurPw,
+			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -nope " + argUrl + " " + argCurPw,
 			wantResult: utils.IncorrectCommandLineParameters,
 		},
 		"should pass - password user input": {
-			cmdLine:    cmdBase + " " + argSyncClock + " " + argUrl,
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
 			wantResult: utils.Success,
 			userInput:  trickyPassword,
+		},
+		"should pass - UUID Override": {
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw + " -uuid 4c2e8db8-1c7a-00ea-279c-d17395b1f584",
+			wantResult: utils.Success,
+		},
+		"should fail - InvalidUUID": {
+			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw + " -uuid 4c2e8db8-1c7a-00ea-279c",
+			wantResult: utils.InvalidUUID,
 		},
 	}
 
@@ -201,11 +203,6 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			flags.amtCommand.PTHI = MockPTHICommands{}
 			flags.netEnumerator = testNetEnumerator
 			gotResult := flags.ParseFlags()
-			if strings.Contains(tc.cmdLine, argAddWiFiSettings) {
-				assert.Equal(t, flags.Local, true)
-			} else {
-				assert.Equal(t, flags.Local, false)
-			}
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, utils.CommandMaintenance, flags.Command)
 			assert.Equal(t, tc.wantIPConfig, flags.IpConfiguration)

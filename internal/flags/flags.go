@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/smb"
@@ -102,11 +103,11 @@ func NewFlags(args []string) *Flags {
 	flags.amtActivateCommand = flag.NewFlagSet(utils.CommandActivate, flag.ContinueOnError)
 	flags.amtDeactivateCommand = flag.NewFlagSet(utils.CommandDeactivate, flag.ContinueOnError)
 
-	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet("syncip", flag.ContinueOnError)
-	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet("syncclock", flag.ContinueOnError)
-	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet("synchostname", flag.ContinueOnError)
-	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet("changepassword", flag.ContinueOnError)
-	flags.amtMaintenanceSyncDeviceInfoCommand = flag.NewFlagSet("syncdeviceinfo", flag.ContinueOnError)
+	flags.amtMaintenanceSyncIPCommand = flag.NewFlagSet(utils.SubCommandSyncIP, flag.ContinueOnError)
+	flags.amtMaintenanceSyncClockCommand = flag.NewFlagSet(utils.SubCommandSyncClock, flag.ContinueOnError)
+	flags.amtMaintenanceSyncHostnameCommand = flag.NewFlagSet(utils.SubCommandSyncHostname, flag.ContinueOnError)
+	flags.amtMaintenanceChangePasswordCommand = flag.NewFlagSet(utils.SubCommandChangePassword, flag.ContinueOnError)
+	flags.amtMaintenanceSyncDeviceInfoCommand = flag.NewFlagSet(utils.SubCommandSyncDeviceInfo, flag.ContinueOnError)
 
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
@@ -192,10 +193,24 @@ func (f *Flags) setupCommonFlags() {
 		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
-		if fs.Name() != "activate" { // activate does not use the -f flag
+		if fs.Name() != utils.CommandActivate { // activate does not use the -f flag
 			fs.BoolVar(&f.Force, "f", false, "Force even if device is not registered with a server")
 		}
+		if fs.Name() != utils.CommandDeactivate { // activate does not use the -f flag
+			fs.StringVar(&f.UUID, "uuid", "", "override AMT device uuid for use with non-CIRA workflow")
+		}
 	}
+}
+
+func (f *Flags) validateUUIDOverride() utils.ReturnCode {
+	if f.UUID != "" {
+		uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+		if matched := uuidPattern.MatchString(f.UUID); !matched {
+			fmt.Println("uuid provided does not follow proper uuid format")
+			return utils.InvalidUUID
+		}
+	}
+	return utils.Success
 }
 
 func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {
