@@ -74,15 +74,16 @@ func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
-	f.LocalConfig.Password = f.Password
 
-	// if this is a local command, then we dont care about -u or what task/command since its not going to the cloud
-	if !f.Local {
-		if f.URL == "" {
-			fmt.Print("\n-u flag is required and cannot be empty\n\n")
-			f.printMaintenanceUsage()
-			return utils.MissingOrIncorrectURL
-		}
+	if f.URL == "" {
+		fmt.Print("\n-u flag is required and cannot be empty\n\n")
+		f.printMaintenanceUsage()
+		return utils.MissingOrIncorrectURL
+	}
+	rc = f.validateUUIDOverride()
+	if rc != utils.Success {
+		f.printMaintenanceUsage()
+		return rc
 	}
 
 	return utils.Success
