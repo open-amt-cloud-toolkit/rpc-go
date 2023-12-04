@@ -147,5 +147,23 @@ func ParseUrl(url string) (Properties, error) {
 		}
 	}
 
+	// check environment variables
+	if p.Domain == "" {
+		p.Domain = lookupEnvOrString("SMB_DOMAIN", "")
+	}
+	if p.User == "" {
+		p.User = lookupEnvOrString("SMB_USER", "")
+	}
+	if p.Password == "" {
+		p.Password = lookupEnvOrString("SMB_PASSWORD", "")
+	}
+
 	return p, nil
+}
+
+func lookupEnvOrString(key string, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
 }
