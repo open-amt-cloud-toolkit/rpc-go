@@ -125,6 +125,14 @@ func ParseUrl(url string) (Properties, error) {
 		p.User = splits[1]
 	}
 
+	if p.Domain == "" {
+		p.Domain = lookupEnvOrString("SMB_DOMAIN", "")
+	}
+	// check for setting from environment
+	if p.User == "" {
+		p.User = lookupEnvOrString("SMB_USER", "")
+	}
+	// pull user id from current user if still empty
 	if p.User == "" {
 		curUser, err := user.Current()
 		if err != nil {
@@ -147,13 +155,6 @@ func ParseUrl(url string) (Properties, error) {
 		}
 	}
 
-	// check environment variables
-	if p.Domain == "" {
-		p.Domain = lookupEnvOrString("SMB_DOMAIN", "")
-	}
-	if p.User == "" {
-		p.User = lookupEnvOrString("SMB_USER", "")
-	}
 	if p.Password == "" {
 		p.Password = lookupEnvOrString("SMB_PASSWORD", "")
 	}
