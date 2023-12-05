@@ -92,6 +92,7 @@ type Flags struct {
 	FriendlyName                        string
 	AmtInfo                             AmtInfoFlags
 	SkipIPRenew                         bool
+	SambaService                        smb.ServiceInterface
 }
 
 func NewFlags(args []string) *Flags {
@@ -120,6 +121,8 @@ func NewFlags(args []string) *Flags {
 	flags.netEnumerator.Interfaces = net.Interfaces
 	flags.netEnumerator.InterfaceAddrs = (*net.Interface).Addrs
 	flags.setupCommonFlags()
+
+	flags.SambaService = smb.NewSambaService()
 
 	return flags
 }
@@ -256,31 +259,40 @@ func (f *Flags) handleLocalConfig() utils.ReturnCode {
 	if f.configContent == "" {
 		return utils.Success
 	}
+	ext := filepath.Ext(strings.ToLower(f.configContent))
+	isPFX := ext == ".pfx"
 	if strings.HasPrefix(f.configContent, "smb:") {
-		ext := filepath.Ext(strings.ToLower(f.configContent))
-		isYaml := ext == ".yaml" || ext == ".yml"
-		isPfx := ext == ".pfx"
-		if !isYaml && !isPfx {
+		isJSON := ext == ".json"
+		isYAML := ext == ".yaml" || ext == ".yml"
+		if !isPFX && !isJSON && !isYAML {
 			log.Error("remote config unsupported smb file extension: ", ext)
 			return utils.FailedReadingConfiguration
 		}
-		smbService := smb.NewSambaService(f.configContent)
-		err := smbService.Fetch()
+		configBytes, err := f.SambaService.FetchFileContents(f.configContent)
 		if err != nil {
 			log.Error("config error: ", err)
 			return utils.FailedReadingConfiguration
 		}
-		if isYaml {
-			err := cleanenv.ParseYAML(bytes.NewReader(smbService.FileContents), &f.LocalConfig)
-			if err != nil {
-				log.Error("config error: ", err)
-				return utils.FailedReadingConfiguration
-			}
+		if isPFX {
+			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(configBytes)
 		}
-		if isPfx {
-			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(smbService.FileContents)
+		if isJSON {
+			err = cleanenv.ParseJSON(bytes.NewReader(configBytes), &f.LocalConfig)
 		}
-
+		if isYAML {
+			err = cleanenv.ParseYAML(bytes.NewReader(configBytes), &f.LocalConfig)
+		}
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.FailedReadingConfiguration
+		}
+	} else if isPFX {
+		pfxBytes, err := os.ReadFile(f.configContent)
+		if err != nil {
+			log.Error("config error: ", err)
+			return utils.FailedReadingConfiguration
+		}
+		f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(pfxBytes)
 	} else {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {

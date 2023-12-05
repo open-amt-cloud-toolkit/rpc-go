@@ -6,51 +6,52 @@ import (
 	"github.com/hirochachacha/go-smb2"
 	log "github.com/sirupsen/logrus"
 	"net"
-	"net/url"
+	netURL "net/url"
 	"os"
 	"os/user"
 	"strings"
 )
 
-type Service struct {
-	Url          string
-	Host         string
-	Port         string
-	User         string
-	Password     string
-	Domain       string
-	ShareName    string
-	FilePath     string
-	FileContents []byte
+type ServiceInterface interface {
+	FetchFileContents(url string) ([]byte, error)
 }
 
-func NewSambaService(url string) Service {
-	return Service{
-		Url: url,
+type Properties struct {
+	Url       string
+	Host      string
+	Port      string
+	User      string
+	Password  string
+	Domain    string
+	ShareName string
+	FilePath  string
+}
+
+type Service struct{}
+
+func NewSambaService() ServiceInterface {
+	return &Service{}
+}
+
+func (s *Service) FetchFileContents(url string) ([]byte, error) {
+	var contents []byte
+	p, err := ParseUrl(url)
+	if err != nil {
+		return contents, err
 	}
-}
-
-func (s *Service) Fetch() error {
-	if err := s.ParseUrl(); err != nil {
-		return err
-	}
-	return s.FetchFile()
-}
-
-func (s *Service) FetchFile() error {
 
 	pwdOutput := "***"
-	if s.Password == "" {
+	if p.Password == "" {
 		pwdOutput = "none"
 	}
-	// by usage, this method is called before log leve is set
+	// by usage, this method is called before log level is set
 	// so Debugf statement here is not effective
 	log.Infof("fetching remote file server: %s:%s, user: %s, pwd: %s, domain: %s, share: %s, path: %s",
-		s.Host, s.Port, s.User, pwdOutput, s.Domain, s.ShareName, s.FilePath)
+		p.Host, p.Port, p.User, pwdOutput, p.Domain, p.ShareName, p.FilePath)
 
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", p.Host, p.Port))
 	if err != nil {
-		return err
+		return contents, err
 	}
 	defer func(conn net.Conn) {
 		err = conn.Close()
@@ -58,91 +59,112 @@ func (s *Service) FetchFile() error {
 
 	dialer := &smb2.Dialer{
 		Initiator: &smb2.NTLMInitiator{
-			User:     s.User,
-			Password: s.Password,
-			Domain:   s.Domain,
+			User:     p.User,
+			Password: p.Password,
+			Domain:   p.Domain,
 		},
 	}
 
 	session, err := dialer.Dial(conn)
 	if err != nil {
-		return err
+		return contents, err
 	}
 	defer func(session *smb2.Session) {
 		err = session.Logoff()
 	}(session)
 
-	fs, err := session.Mount(s.ShareName)
+	fs, err := session.Mount(p.ShareName)
 	if err != nil {
-		return err
+		return contents, err
 	}
 	defer func(fs *smb2.Share) {
 		err = fs.Umount()
 	}(fs)
 
-	s.FileContents, err = fs.ReadFile(s.FilePath)
-	return err
+	contents, err = fs.ReadFile(p.FilePath)
+	return contents, err
 }
 
 // ParseUrl - parses according to https://www.iana.org/assignments/uri-schemes/prov/smb
 // except for the query string
 // smb://[[<domain>;]<username>[:<password>]@]<server>[:<port>][/[<share>[/[<path>]]][?[<param>=<value>[;<param2>=<value2>[...]]]]]
-func (s *Service) ParseUrl() error {
-	u, err := url.Parse(s.Url)
+func ParseUrl(url string) (Properties, error) {
+	p := Properties{}
+	p.Url = url
+	u, err := netURL.Parse(url)
 	if err != nil {
-		return err
+		return p, err
 	}
 
 	if u.Scheme != "smb" {
-		return errors.New("invalid scheme")
+		return p, errors.New("invalid scheme")
 	}
-	s.Host = u.Hostname()
-	if s.Host == "" {
-		return errors.New("missing hostname")
+	p.Host = u.Hostname()
+	if p.Host == "" {
+		return p, errors.New("missing hostname")
 	}
-	s.Port = u.Port()
-	if s.Port == "" {
-		s.Port = "445"
+	p.Port = u.Port()
+	if p.Port == "" {
+		p.Port = "445"
 	}
 
 	splits := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(splits) < 2 {
-		return errors.New("invalid path spec, expecting shareName and filePath to be included: " + u.Path)
+		return p, errors.New("invalid path spec, expecting shareName and filePath to be included: " + u.Path)
 	}
 
-	s.ShareName = splits[0]
-	s.FilePath = strings.Join(splits[1:], "/")
+	p.ShareName = splits[0]
+	p.FilePath = strings.Join(splits[1:], "/")
 
 	// smb url spec allows for domain in front of user with a semicolon
 	splits = strings.Split(u.User.Username(), ";")
 	if len(splits) == 1 {
-		s.User = splits[0]
+		p.User = splits[0]
 	} else if len(splits) == 2 {
-		s.Domain = splits[0]
-		s.User = splits[1]
+		p.Domain = splits[0]
+		p.User = splits[1]
 	}
 
-	if s.User == "" {
+	if p.Domain == "" {
+		p.Domain = lookupEnvOrString("SMB_DOMAIN", "")
+	}
+	// check for setting from environment
+	if p.User == "" {
+		p.User = lookupEnvOrString("SMB_USER", "")
+	}
+	// pull user id from current user if still empty
+	if p.User == "" {
 		curUser, err := user.Current()
 		if err != nil {
-			return err
+			return p, err
 		}
-		s.User = curUser.Username
+		p.User = curUser.Username
 	}
-	if s.User == "root" {
+	if p.User == "root" {
 		if sudoUser := os.Getenv("SUDO_USER"); sudoUser != "" {
-			s.User = sudoUser
+			p.User = sudoUser
 		}
 	}
 
-	s.Password, _ = u.User.Password()
-	if s.Password == "*" {
+	p.Password, _ = u.User.Password()
+	if p.Password == "*" {
 		fmt.Println("Please enter smb password: ")
-		_, err := fmt.Scanln(&s.Password)
+		_, err := fmt.Scanln(&p.Password)
 		if err != nil {
-			return err
+			return p, err
 		}
 	}
 
-	return nil
+	if p.Password == "" {
+		p.Password = lookupEnvOrString("SMB_PASSWORD", "")
+	}
+
+	return p, nil
+}
+
+func lookupEnvOrString(key string, defaultVal string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return defaultVal
 }
