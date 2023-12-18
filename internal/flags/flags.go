@@ -206,12 +206,10 @@ func (f *Flags) setupCommonFlags() {
 }
 
 func (f *Flags) validateUUIDOverride() utils.ReturnCode {
-	if f.UUID != "" {
-		uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-		if matched := uuidPattern.MatchString(f.UUID); !matched {
-			fmt.Println("uuid provided does not follow proper uuid format")
-			return utils.InvalidUUID
-		}
+	uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+	if matched := uuidPattern.MatchString(f.UUID); !matched {
+		fmt.Println("uuid provided does not follow proper uuid format")
+		return utils.InvalidUUID
 	}
 	return utils.Success
 }

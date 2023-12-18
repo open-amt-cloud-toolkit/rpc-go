@@ -65,12 +65,14 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 			f.amtActivateCommand.Usage()
 			return utils.MissingOrIncorrectProfile
 		}
-		rc := f.validateUUIDOverride()
-		if rc != utils.Success {
-			f.amtActivateCommand.Usage()
-			return rc
+		if f.UUID != "" {
+			rc := f.validateUUIDOverride()
+			if rc != utils.Success {
+				f.amtActivateCommand.Usage()
+				return rc
+			}
+			fmt.Println("Warning: Overriding UUID prevents device from connecting to MPS")
 		}
-		fmt.Println("Warning: Overriding UUID prevents device from connecting to MPS")
 	} else {
 		if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
 			fmt.Println("must specify -ccm or -acm, but not both")
