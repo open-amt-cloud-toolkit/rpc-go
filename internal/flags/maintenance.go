@@ -80,10 +80,13 @@ func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
 		f.printMaintenanceUsage()
 		return utils.MissingOrIncorrectURL
 	}
-	rc = f.validateUUIDOverride()
-	if rc != utils.Success {
-		f.printMaintenanceUsage()
-		return rc
+
+	if f.UUID != "" {
+		rc = f.validateUUIDOverride()
+		if rc != utils.Success {
+			f.printMaintenanceUsage()
+			return rc
+		}
 	}
 
 	return utils.Success
