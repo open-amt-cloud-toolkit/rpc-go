@@ -1,3 +1,49 @@
+<a name="v2.24.4"></a>
+## [v2.24.4] - 2024-01-09
+### Build
+- **deps:** bump wagoid/commitlint-github-action from 5.4.4 to 5.4.5
+- **deps:** bump github/codeql-action from 3.22.12 to 3.23.0
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump golang.org/x/sys from 0.15.0 to 0.16.0
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump aquasecurity/trivy-action from 0.16.0 to 0.16.1
+
+### Fix
+- update project version
+
+<a name="v2.24.3"></a>
+## [v2.24.3] - 2023-12-28
+### Build
+- **deps:** bump github/codeql-action from 3.22.11 to 3.22.12
+- **deps:** bump golang from `feceecc` to `4db4aac`
+- **deps:** bump golang.org/x/crypto from 0.14.0 to 0.17.0
+- **deps:** bump actions/upload-artifact from 3.1.3 to 4.0.0
+- **deps:** bump github/codeql-action from 2.22.10 to 3.22.11
+- **deps:** bump github/codeql-action from 2.22.9 to 2.22.10
+- **deps:** bump golang from `5c1cabd` to `feceecc`
+- **deps:** bump aquasecurity/trivy-action from 0.15.0 to 0.16.0
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages
+- **deps:** bump github/codeql-action from 2.22.8 to 2.22.9
+- **deps:** bump golang from `70afe55` to `5c1cabd`
+
+### Ci
+- add trivy results to github security tab
+
+### Fix
+- makes sure uuid flag warning is only shown when the flag is used
+
+<a name="v2.24.2"></a>
+## [v2.24.2] - 2023-12-05
+### Build
+- **deps:** bump golang from `30a46e7` to `70afe55`
+- **deps:** bump actions/setup-dotnet from 3.2.0 to 4.0.0
+- **deps:** bump aquasecurity/trivy-action from 0.14.0 to 0.15.0
+- **deps:** bump golang from `110b07a` to `30a46e7`
+
+### Fix
+- local activation supports .pfx
+
 <a name="v2.24.1"></a>
 ## [v2.24.1] - 2023-11-29
 ### Fix
