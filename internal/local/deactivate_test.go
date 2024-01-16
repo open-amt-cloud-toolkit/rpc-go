@@ -75,6 +75,7 @@ func TestDeactivateACM(t *testing.T) {
 
 	t.Run("returns Success for happy path", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
+		f.Verbose = true
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondUnprovision(t, w)
 		})
