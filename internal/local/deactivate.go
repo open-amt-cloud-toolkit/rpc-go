@@ -48,10 +48,8 @@ func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
 		return utils.DeactivationFailed
 	}
-	if service.flags.Verbose {
-		log.Trace(msg)
-		log.Trace(string(response))
-	}
+	log.Trace(msg)
+	log.Trace(string(response))
 	log.Info("Status: Device deactivated in ACM.")
 	return utils.Success
 }
