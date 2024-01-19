@@ -345,7 +345,6 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.privateKeyHandle != "" {
 		log.Infof("rolling back private key %s", handles.privateKeyHandle)
 		xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(handles.privateKeyHandle)
-		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
@@ -356,7 +355,6 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.clientCertHandle != "" {
 		log.Infof("rolling back client cert %s", handles.clientCertHandle)
 		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.clientCertHandle)
-		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting client cert: %s", handles.clientCertHandle)
@@ -367,7 +365,6 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.rootCertHandle != "" {
 		log.Infof("rolling back root cert %s", handles.rootCertHandle)
 		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.rootCertHandle)
-		log.Trace(xmlMsg)
 		_, err := service.client.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting root cert: %s", handles.rootCertHandle)
