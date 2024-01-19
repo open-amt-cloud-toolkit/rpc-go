@@ -1,6 +1,7 @@
 package local
 
 import (
+	"fmt"
 	"regexp"
 	"rpc/internal/config"
 	"rpc/internal/flags"
@@ -113,20 +114,20 @@ func TestConfigure(t *testing.T) {
 		rc := lps.Configure()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 	})
-	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
-		f.SubCommand = utils.SubCommandAddWifiSettings
-		rfa := ResponseFuncArray{respondServerErrFunc()}
-		lps := setupWsmanResponses(t, f, rfa)
-		rc := lps.Configure()
-		assert.Equal(t, utils.WSMANMessageError, rc)
-	})
-	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
-		f.SubCommand = utils.SubCommandEnableWifiPort
-		rfa := ResponseFuncArray{respondServerErrFunc()}
-		lps := setupWsmanResponses(t, f, rfa)
-		rc := lps.Configure()
-		assert.Equal(t, utils.WSMANMessageError, rc)
-	})
+	subCommands := []string{
+		utils.SubCommandAddWifiSettings,
+		utils.SubCommandEnableWifiPort,
+		utils.SubCommandConfigureTLS,
+	}
+	for _, sc := range subCommands {
+		t.Run(fmt.Sprintf("expect error for %s", sc), func(t *testing.T) {
+			f.SubCommand = sc
+			rfa := ResponseFuncArray{}
+			lps := setupWsmanResponses(t, f, rfa)
+			rc := lps.Configure()
+			assert.Equal(t, utils.WSMANMessageError, rc)
+		})
+	}
 }
 
 func TestAddWifiSettings(t *testing.T) {

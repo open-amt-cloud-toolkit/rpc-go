@@ -151,6 +151,14 @@ func respondServerErrFunc() func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func respondErrFunc(t *testing.T, errNum int, msg string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(errNum)
+		_, rc := w.Write([]byte(msg))
+		assert.Nil(t, rc)
+	}
+}
+
 func respondBadXmlFunc(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, rc := w.Write([]byte(`not really xml is it?`))

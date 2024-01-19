@@ -2,6 +2,8 @@ package flags
 
 import (
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,16 +16,70 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type TLSMode int
+
+const (
+	TLSModeServer TLSMode = iota
+	TLSModeServerAndNonTLS
+	TLSModeMutual
+	TLSModeMutualAndNonTLS
+)
+
+func (m TLSMode) String() string {
+	switch m {
+	case TLSModeServer:
+		return "Server"
+	case TLSModeServerAndNonTLS:
+		return "ServerAndNonTLS"
+	case TLSModeMutual:
+		return "Mutual"
+	case TLSModeMutualAndNonTLS:
+		return "MutualAndNonTLS"
+	default:
+		return "Unknown"
+	}
+}
+
+func TLSModesToString() string {
+	return fmt.Sprintf("%s, %s, %s, %s", TLSModeServer, TLSModeServerAndNonTLS, TLSModeMutual, TLSModeMutualAndNonTLS)
+}
+
+func ParseTLSMode(s string) (TLSMode, error) {
+	var m TLSMode
+	var err error
+	switch s {
+	case "Server":
+		m = TLSModeServer
+	case "ServerAndNonTLS":
+		m = TLSModeServerAndNonTLS
+	case "Mutual":
+		m = TLSModeMutual
+	case "MutualAndNonTLS":
+		m = TLSModeMutualAndNonTLS
+	default:
+		// flags error handling already shows appropriate message
+		err = errors.New("")
+	}
+	return m, err
+}
+
+type ConfigTLSInfo struct {
+	TLSMode        TLSMode
+	DelayInSeconds int
+}
+
 func (f *Flags) printConfigurationUsage() string {
-	executable := filepath.Base(os.Args[0])
+	baseCommand := fmt.Sprintf("%s %s", filepath.Base(os.Args[0]), utils.CommandConfigure)
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
-	usage = usage + "Usage: " + executable + " configure COMMAND [OPTIONS]\n\n"
-	usage = usage + "Supported Configuration Commands:\n"
-	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage = usage + "                 Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
-	usage = usage + "  enablewifiport  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
-	usage = usage + "                 Example: " + executable + " configure enablewifiport -password YourAMTPassword\n"
-	usage = usage + "\nRun '" + executable + " configure COMMAND -h' for more information on a command.\n"
+	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
+	usage += "Supported Configuration Commands:\n"
+	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
+	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandEnableWifiPort + " -password YourAMTPassword\n"
+	usage += "  " + utils.SubCommandConfigureTLS + "             Configures TLS in AMT. AMT password is required.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -tlsMode Server -password YourAMTPassword\n"
+	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
 }
@@ -38,10 +94,12 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
-	case "addwifisettings":
+	case utils.SubCommandAddWifiSettings:
 		rc = f.handleAddWifiSettings()
-	case "enablewifiport":
+	case utils.SubCommandEnableWifiPort:
 		rc = f.handleEnableWifiPort()
+	case utils.SubCommandConfigureTLS:
+		rc = f.handleConfigureTLS()
 	default:
 		f.printConfigurationUsage()
 		rc = utils.IncorrectCommandLineParameters
@@ -71,63 +129,64 @@ func (f *Flags) handleConfigureCommand() utils.ReturnCode {
 	return utils.Success
 }
 
-func (f *Flags) handleEnableWifiPort() utils.ReturnCode {
-	var err error
-	// var rc utils.ReturnCode
-	if len(f.commandLineArgs) > 5 {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
-	}
-	f.flagSetEnableWifiPort.BoolVar(&f.Verbose, "v", false, "Verbose output")
-	f.flagSetEnableWifiPort.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
-	f.flagSetEnableWifiPort.BoolVar(&f.JsonOutput, "json", false, "JSON output")
-	f.flagSetEnableWifiPort.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+func (f *Flags) NewConfigureFlagSet(subCommand string) *flag.FlagSet {
+	fs := flag.NewFlagSet(subCommand, flag.ContinueOnError)
+	// these flags are common to all configuration commands
+	fs.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+	return fs
+}
 
-	if err = f.flagSetEnableWifiPort.Parse(f.commandLineArgs[3:]); err != nil {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
-	}
-	return utils.Success
+func (f *Flags) handleConfigureTLS() utils.ReturnCode {
+	fs := f.NewConfigureFlagSet(utils.SubCommandConfigureTLS)
+	tlsModeUsage := fmt.Sprintf("TLS authentication usage model (%s) (default %s)", TLSModesToString(), f.ConfigTLSInfo.TLSMode)
+	fs.Func("mode", tlsModeUsage, func(flagValue string) error {
+		var e error
+		f.ConfigTLSInfo.TLSMode, e = ParseTLSMode(flagValue)
+		return e
+	})
+	fs.IntVar(&f.ConfigTLSInfo.DelayInSeconds, "delay", 3, "Delay time in seconds after putting remote TLS settings")
+	return f.parseAndCheckArgCount(fs, 3, 0)
+}
+
+func (f *Flags) handleEnableWifiPort() utils.ReturnCode {
+	fs := f.NewConfigureFlagSet(utils.SubCommandEnableWifiPort)
+	return f.parseAndCheckArgCount(fs, 3, 0)
 }
 
 func (f *Flags) handleAddWifiSettings() utils.ReturnCode {
 	var err error
 	var rc utils.ReturnCode
 	var secretsFilePath string
-	if len(f.commandLineArgs) == 3 {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
-	}
 	var wifiSecretConfig config.SecretConfig
 	var configJson string
-	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
-	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
-	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
-	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
-	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
-	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
+	fs := f.NewConfigureFlagSet(utils.SubCommandAddWifiSettings)
+	fs.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
+	fs.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
+	fs.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
 	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
-	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
-	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
-	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
-	f.flagSetAddWifiSettings.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
-	f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", f.lookupEnvOrString("PSK_PASSPHRASE", ""), "specify psk passphrase")
-	f.flagSetAddWifiSettings.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
-	f.flagSetAddWifiSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
-	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
+	fs.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
+	fs.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
+	fs.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
+	fs.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
+	fs.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", f.lookupEnvOrString("PSK_PASSPHRASE", ""), "specify psk passphrase")
+	fs.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
+	fs.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
+	fs.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
+	fs.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
+	fs.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
+	fs.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
+	fs.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
-	if err = f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
+	rc = f.parseAndCheckArgCount(fs, 3, 2)
+	if rc != utils.Success {
+		return rc
 	}
 
 	if wifiCfg.ProfileName != "" {

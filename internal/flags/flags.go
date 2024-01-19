@@ -82,8 +82,6 @@ type Flags struct {
 	amtMaintenanceChangePasswordCommand *flag.FlagSet
 	amtMaintenanceSyncDeviceInfoCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
-	flagSetAddWifiSettings              *flag.FlagSet
-	flagSetEnableWifiPort               *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -93,6 +91,7 @@ type Flags struct {
 	AmtInfo                             AmtInfoFlags
 	SkipIPRenew                         bool
 	SambaService                        smb.ServiceInterface
+	ConfigTLSInfo                       ConfigTLSInfo
 }
 
 func NewFlags(args []string) *Flags {
@@ -112,9 +111,6 @@ func NewFlags(args []string) *Flags {
 
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
-
-	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
-	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
@@ -203,6 +199,22 @@ func (f *Flags) setupCommonFlags() {
 			fs.StringVar(&f.UUID, "uuid", "", "override AMT device uuid for use with non-CIRA workflow")
 		}
 	}
+}
+
+func (f *Flags) parseAndCheckArgCount(fs *flag.FlagSet, parseIndex int, minNumReq int) utils.ReturnCode {
+	if len(f.commandLineArgs) < (parseIndex + minNumReq) {
+		fs.Usage()
+		return utils.IncorrectCommandLineParameters
+	}
+	if err := fs.Parse(f.commandLineArgs[parseIndex:]); err != nil {
+		return utils.IncorrectCommandLineParameters
+	}
+	if len(fs.Args()) > 0 {
+		fmt.Printf("unhandled additional args: %v\n", fs.Args())
+		fs.Usage()
+		return utils.IncorrectCommandLineParameters
+	}
+	return utils.Success
 }
 
 func (f *Flags) validateUUIDOverride() utils.ReturnCode {
