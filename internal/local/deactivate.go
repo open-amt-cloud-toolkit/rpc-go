@@ -33,6 +33,7 @@ func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 	service.setupWsmanClient("admin", service.flags.Password)
 	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
 	response, err := service.client.Post(msg)
+
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate
@@ -47,6 +48,8 @@ func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
 		return utils.DeactivationFailed
 	}
+	log.Trace(msg)
+	log.Trace(string(response))
 	log.Info("Status: Device deactivated in ACM.")
 	return utils.Success
 }
