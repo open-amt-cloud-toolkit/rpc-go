@@ -24,7 +24,6 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Trace("GetControlMode")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
@@ -38,7 +37,6 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
-		log.Trace("GetLocalSystemAccount")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
@@ -136,9 +134,6 @@ func (service *ProvisioningService) GetGeneralSettings() (general.Response, erro
 	if err != nil {
 		return general.Response{}, err
 	}
-
-	log.Trace(message)
-	log.Trace(string(response))
 	return generalSettings, nil
 }
 
@@ -156,9 +151,6 @@ func (service *ProvisioningService) HostBasedSetup(digestRealm string, password 
 	if hostBasedSetupResponse.Body.Setup_OUTPUT.ReturnValue != 0 {
 		return utils.ActivationFailed, errors.New("unable to activate CCM, check to make sure the device is not alreacy activated")
 	}
-
-	log.Trace(message)
-	log.Trace(string(response))
 	return utils.Success, nil
 }
 
@@ -173,9 +165,6 @@ func (service *ProvisioningService) GetHostBasedSetupService() (hostbasedsetup.R
 	if err != nil {
 		return hostbasedsetup.Response{}, err
 	}
-
-	log.Trace(message)
-	log.Trace(string(response))
 	return getHostBasedSetupResponse, nil
 }
 
@@ -399,8 +388,6 @@ func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []b
 			return utils.UnableToActivate, err
 		}
 	}
-	log.Trace(message)
-	log.Trace(string(response))
 	log.Info("Status: Device activated in Admin Control Mode")
 	return utils.Success, nil
 }

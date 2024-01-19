@@ -72,5 +72,5 @@ func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {
-	service.client = wsman.NewClient(service.serverURL, username, password, true)
+	service.client = wsman.NewClient(service.serverURL, username, password, true, service.flags.Verbose)
 }
