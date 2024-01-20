@@ -69,7 +69,6 @@ func TestActivation(t *testing.T) {
 
 func TestActivateCCM(t *testing.T) {
 	f := &flags.Flags{}
-
 	t.Run("returns ActivationFailed on GeneralSettings.Get() server error", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondServerError(w)
@@ -153,7 +152,6 @@ func TestActivateCCM(t *testing.T) {
 
 func TestGetHostBasedSetupService(t *testing.T) {
 	f := &flags.Flags{}
-
 	t.Run("returns error on server error response", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondServerError(w)
@@ -188,7 +186,6 @@ func TestGetHostBasedSetupService(t *testing.T) {
 
 func TestGetGeneralSettings(t *testing.T) {
 	f := &flags.Flags{}
-
 	t.Run("returns error on server error response", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondServerError(w)

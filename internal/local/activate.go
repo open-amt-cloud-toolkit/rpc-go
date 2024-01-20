@@ -24,7 +24,6 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Trace("GetControlMode")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
@@ -38,7 +37,6 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
-		log.Trace("GetLocalSystemAccount")
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}

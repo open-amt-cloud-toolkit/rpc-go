@@ -38,9 +38,7 @@ type PullMessageFunc func(string) string
 
 func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pullFn PullMessageFunc, outObj any) utils.ReturnCode {
 	xmlMsg := enumFn()
-	log.Trace(xmlMsg)
 	xmlRsp, err := service.client.Post(xmlMsg)
-	log.Trace(string(xmlRsp))
 	if err != nil {
 		log.Errorf("enumerate post call for %s: %s", reflectObjectName(outObj), err)
 		return utils.WSMANMessageError
@@ -55,9 +53,7 @@ func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pu
 }
 
 func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) utils.ReturnCode {
-	log.Trace(xmlMsg)
 	xmlRsp, err := service.client.Post(xmlMsg)
-	log.Trace(string(xmlRsp))
 	if err != nil {
 		log.Errorf("post call for %s: %s", reflectObjectName(outObj), err)
 		return utils.WSMANMessageError
