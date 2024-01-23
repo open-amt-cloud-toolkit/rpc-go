@@ -6,14 +6,12 @@ import (
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
+	log "github.com/sirupsen/logrus"
 )
 
 type OSNetworker interface {
-	RenewDHCPLease() utils.ReturnCode
+	RenewDHCPLease() (utils.ReturnCode, error)
 }
 
 type RealOSNetworker struct{}
@@ -21,12 +19,9 @@ type RealOSNetworker struct{}
 type ProvisioningService struct {
 	flags            *flags.Flags
 	serverURL        string
-	client           *wsman.Client
+	wsmanMessages    wsman.Messages
 	config           *config.Config
 	amtCommand       internalAMT.Interface
-	amtMessages      amt.Messages
-	cimMessages      cim.Messages
-	ipsMessages      ips.Messages
 	handlesWithCerts map[string]string
 	networker        OSNetworker
 }
@@ -36,24 +31,25 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
 	return ProvisioningService{
 		flags:            flags,
-		client:           nil,
 		serverURL:        serverURL,
 		config:           &flags.LocalConfig,
 		amtCommand:       internalAMT.NewAMTCommand(),
-		amtMessages:      amt.NewMessages(),
-		cimMessages:      cim.NewMessages(),
-		ipsMessages:      ips.NewMessages(),
 		handlesWithCerts: make(map[string]string),
 		networker:        &RealOSNetworker{},
 	}
 }
 
-func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
+func ExecuteCommand(flags *flags.Flags) (utils.ReturnCode, error) {
 	rc := utils.Success
+	err := nil
 	service := NewProvisioningService(flags)
 	switch flags.Command {
 	case utils.CommandActivate:
-		rc = service.Activate()
+		rc, err := service.Activate()
+		if err != nil {
+			log.Error(err)
+			return rc, err
+		}
 		break
 	case utils.CommandAMTInfo:
 		rc = service.DisplayAMTInfo()
@@ -72,5 +68,13 @@ func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {
-	service.client = wsman.NewClient(service.serverURL, username, password, true, service.flags.Verbose)
+	clientParams := wsman.ClientParameters{
+		Target:    service.flags.LMSAddress,
+		Username:  username,
+		Password:  password,
+		UseDigest: true,
+		UseTLS:    false,
+	}
+	service.wsmanMessages = wsman.NewMessages(clientParams)
+	// service.client = wsman.NewClient(service.serverURL, username, password, true, service.flags.Verbose)
 }

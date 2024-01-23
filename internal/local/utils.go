@@ -3,15 +3,16 @@ package local
 import (
 	"encoding/xml"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/concrete"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/credential"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	log "github.com/sirupsen/logrus"
 	"reflect"
 	"rpc/pkg/utils"
 	"strings"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/concrete"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/credential"
+	log "github.com/sirupsen/logrus"
 )
 
 func reflectObjectName(v any) string {
@@ -29,7 +30,7 @@ type PullMessageFunc func(string) string
 
 func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pullFn PullMessageFunc, outObj any) utils.ReturnCode {
 	xmlMsg := enumFn()
-	xmlRsp, err := service.client.Post(xmlMsg)
+	xmlRsp, err := service.wsmanMessages.Post(xmlMsg)
 	if err != nil {
 		log.Errorf("enumerate post call for %s: %s", reflectObjectName(outObj), err)
 		return utils.WSMANMessageError
@@ -44,7 +45,7 @@ func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pu
 }
 
 func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) utils.ReturnCode {
-	xmlRsp, err := service.client.Post(xmlMsg)
+	xmlRsp, err := service.wsmanMessages.Post(xmlMsg)
 	if err != nil {
 		log.Errorf("post call for %s: %s", reflectObjectName(outObj), err)
 		return utils.WSMANMessageError
@@ -109,7 +110,7 @@ func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string
 	xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(instanceId)
 	// the response has no addiitonal information
 	// if post is successful, then deletion is successful
-	_, err := service.client.Post(xmlMsg)
+	_, err := service.wsmanMessages.Post(xmlMsg)
 	if err != nil {
 		log.Errorf("unable to delete: %s", instanceId)
 		return utils.DeleteWifiConfigFailed
@@ -122,7 +123,7 @@ func (service *ProvisioningService) DeletePublicCert(instanceId string) utils.Re
 	xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(instanceId)
 	// the response has no addiitonal information
 	// if post is successful, then deletion is successful
-	_, err := service.client.Post(xmlMsg)
+	_, err := service.wsmanMessages.Post(xmlMsg)
 	if err != nil {
 		log.Errorf("unable to delete: %s", instanceId)
 		return utils.DeleteWifiConfigFailed

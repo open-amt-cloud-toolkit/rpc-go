@@ -9,27 +9,25 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
-	"encoding/xml"
 	"errors"
 	"rpc/pkg/utils"
 	"strings"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/general"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/general"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/ips/hostbasedsetup"
 	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-func (service *ProvisioningService) Activate() utils.ReturnCode {
+func (service *ProvisioningService) Activate() (utils.ReturnCode, error) {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Error(err)
-		return utils.AMTConnectionFailed
+		return utils.AMTConnectionFailed, err
 	}
 	if controlMode != 0 {
 		log.Error("Device is already activated")
-		return utils.UnableToActivate
+		return utils.UnableToActivate, err
 	}
 
 	service.CheckAndEnableAMT(service.flags.SkipIPRenew)
@@ -38,134 +36,109 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
 		log.Error(err)
-		return utils.AMTConnectionFailed
+		return utils.AMTConnectionFailed, err
 	}
 	service.setupWsmanClient(lsa.Username, lsa.Password)
 
 	rc := utils.Success
 
 	if service.flags.UseACM {
-		rc = service.ActivateACM()
+		rc, err = service.ActivateACM()
 	} else if service.flags.UseCCM {
-		rc = service.ActivateCCM()
+		rc, err = service.ActivateCCM()
 	}
 
-	return rc
+	return rc, err
 }
 
-func (service *ProvisioningService) ActivateACM() utils.ReturnCode {
-	checkErrorAndLog := func(err error) bool {
-		if err != nil {
-			log.Error(err)
-			return true
-		}
-		return false
-	}
+func (service *ProvisioningService) ActivateACM() (utils.ReturnCode, error) {
+
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-	// Check provisioning certificate is accepted by AMT
-	if checkErrorAndLog(service.CompareCertHashes(fingerPrint)) {
-		return utils.ActivationFailed
-	}
-
-	generalSettings, err := service.GetGeneralSettings()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-
-	getHostBasedSetupResponse, err := service.GetHostBasedSetupService()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-	decodedNonce := getHostBasedSetupResponse.Body.IPS_HostBasedSetupService.ConfigurationNonce
-	fwNonce, err := base64.StdEncoding.DecodeString(decodedNonce)
-	if checkErrorAndLog(err) {
-		log.Error("Error decoding fwNonce:", err)
-		return utils.ActivationFailed
-	}
-
-	if checkErrorAndLog(service.injectCertificate(certObject.certChain)) {
-		return utils.ActivationFailed
-	}
-
-	nonce, err := service.generateNonce()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-
-	signedSignature, err := service.createSignedString(nonce, fwNonce, certObject.privateKey)
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-
-	_, err = service.sendAdminSetup(generalSettings.Body.AMTGeneralSettings.DigestRealm, nonce, signedSignature)
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
-	}
-	return utils.Success
-}
-
-func (service *ProvisioningService) ActivateCCM() utils.ReturnCode {
-	generalSettings, err := service.GetGeneralSettings()
-	if err != nil {
-		log.Error(err)
-		return utils.ActivationFailed
-	}
-	_, err = service.HostBasedSetup(generalSettings.Body.AMTGeneralSettings.DigestRealm, service.config.Password)
-	if err != nil {
-		log.Error(err)
-		return utils.ActivationFailed
-	}
-	log.Info("Status: Device activated in Client Control Mode")
-	return utils.Success
-}
-
-func (service *ProvisioningService) GetGeneralSettings() (general.Response, error) {
-	message := service.amtMessages.GeneralSettings.Get()
-	response, err := service.client.Post(message)
-	if err != nil {
-		return general.Response{}, err
-	}
-	var generalSettings general.Response
-	err = xml.Unmarshal([]byte(response), &generalSettings)
-	if err != nil {
-		return general.Response{}, err
-	}
-	return generalSettings, nil
-}
-
-func (service *ProvisioningService) HostBasedSetup(digestRealm string, password string) (utils.ReturnCode, error) {
-	message := service.ipsMessages.HostBasedSetupService.Setup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password)
-	response, err := service.client.Post(message)
-	if err != nil {
-		return utils.AMTConnectionFailed, err
-	}
-	var hostBasedSetupResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &hostBasedSetupResponse)
 	if err != nil {
 		return utils.ActivationFailed, err
 	}
-	if hostBasedSetupResponse.Body.Setup_OUTPUT.ReturnValue != 0 {
+	// Check provisioning certificate is accepted by AMT
+	err = service.CompareCertHashes(fingerPrint)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	generalSettings, err := service.GetGeneralSettings()
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	getHostBasedSetupResponse, err := service.GetHostBasedSetupService()
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+	decodedNonce := getHostBasedSetupResponse.Body.GetResponse.ConfigurationNonce
+	fwNonce, err := base64.StdEncoding.DecodeString(decodedNonce)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	err = service.injectCertificate(certObject.certChain)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	nonce, err := service.generateNonce()
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	signedSignature, err := service.createSignedString(nonce, fwNonce, certObject.privateKey)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+
+	_, err = service.sendAdminSetup(generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+	return utils.Success, nil
+}
+
+func (service *ProvisioningService) ActivateCCM() (utils.ReturnCode, error) {
+	generalSettings, err := service.GetGeneralSettings()
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+	_, err = service.HostBasedSetup(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
+	if err != nil {
+		return utils.ActivationFailed, err
+	}
+	log.Info("Status: Device activated in Client Control Mode")
+	return utils.Success, nil
+}
+
+func (service *ProvisioningService) GetGeneralSettings() (general.Response, error) {
+	response, err := service.wsmanMessages.AMT.GeneralSettings.Get()
+	if err != nil {
+		return general.Response{}, err
+	}
+	return response, nil
+}
+
+func (service *ProvisioningService) HostBasedSetup(digestRealm string, password string) (utils.ReturnCode, error) {
+	response, err := service.wsmanMessages.IPS.HostBasedSetupService.Setup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password)
+
+	if err != nil {
+		return utils.ActivationFailed, err
+	} else if response.Body.Setup_OUTPUT.ReturnValue != 0 {
 		return utils.ActivationFailed, errors.New("unable to activate CCM, check to make sure the device is not alreacy activated")
 	}
 	return utils.Success, nil
 }
 
 func (service *ProvisioningService) GetHostBasedSetupService() (hostbasedsetup.Response, error) {
-	message := service.ipsMessages.HostBasedSetupService.Get()
-	response, err := service.client.Post(message)
+	response, err := service.wsmanMessages.IPS.HostBasedSetupService.Get()
 	if err != nil {
 		return hostbasedsetup.Response{}, err
 	}
-	var getHostBasedSetupResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &getHostBasedSetupResponse)
-	if err != nil {
-		return hostbasedsetup.Response{}, err
-	}
-	return getHostBasedSetupResponse, nil
+	return response, nil
 }
 
 type CertsAndKeys struct {
@@ -290,17 +263,11 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 }
 
 func (service *ProvisioningService) AddNextCertInChain(cert string, isLeaf bool, isRoot bool) error {
-	message := service.ipsMessages.HostBasedSetupService.AddNextCertInChain(cert, isLeaf, isRoot)
-	response, err := service.client.Post(message)
+	response, err := service.wsmanMessages.IPS.HostBasedSetupService.AddNextCertInChain(cert, isLeaf, isRoot)
 	if err != nil {
 		return err
 	}
-	var addCertResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &addCertResponse)
-	if err != nil {
-		return err
-	}
-	if addCertResponse.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
+	if response.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
 		return errors.New("unable to activate ACM")
 	}
 	return nil
@@ -360,34 +327,16 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 
 func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []byte, signature string) (utils.ReturnCode, error) {
 	password := service.config.ACMSettings.AMTPassword
-	message := service.ipsMessages.HostBasedSetupService.AdminSetup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password, base64.StdEncoding.EncodeToString(nonce), hostbasedsetup.SigningAlgorithmRSASHA2256, signature)
-	response, err := service.client.Post(message)
-	if err != nil && err.Error() != "Post \"http://localhost:16992/wsman\": EOF" {
-		log.Error(err)
+	response, err := service.wsmanMessages.IPS.HostBasedSetupService.AdminSetup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password, base64.StdEncoding.EncodeToString(nonce), hostbasedsetup.SigningAlgorithmRSASHA2256, signature)
+	if err != nil {
 		return utils.ActivationFailed, err
 	}
-	if response != nil {
-		var hostBasedSetupResponse hostbasedsetup.Response
-		err = xml.Unmarshal([]byte(response), &hostBasedSetupResponse)
-		if err != nil {
-			log.Error(err)
-			return utils.ActivationFailed, err
-		}
-		if hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
-			log.Error("hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue: ", hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue)
-			return utils.ActivationFailed, errors.New("unable to activate in ACM")
-		}
-	} else {
-		controlMode, err := service.amtCommand.GetControlMode()
-		if err != nil {
-			log.Error(err)
-			return utils.AMTConnectionFailed, err
-		}
-		if controlMode != 2 {
-			log.Error("unable to activate in ACM. control mode: ", controlMode)
-			return utils.UnableToActivate, err
-		}
+
+	if response.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
+		log.Error("hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue: ", response.Body.AdminSetup_OUTPUT.ReturnValue)
+		return utils.ActivationFailed, errors.New("unable to activate in ACM")
 	}
+
 	log.Info("Status: Device activated in Admin Control Mode")
 	return utils.Success, nil
 }

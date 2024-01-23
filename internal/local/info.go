@@ -3,13 +3,14 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 	"os"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
 
 	log "github.com/sirupsen/logrus"
 )

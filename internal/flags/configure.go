@@ -8,7 +8,7 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/models"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"

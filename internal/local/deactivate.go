@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/setupandconfiguration"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +32,7 @@ func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
 	}
 	service.setupWsmanClient("admin", service.flags.Password)
 	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
-	response, err := service.client.Post(msg)
+	response, err := service.wsmanMessages.Post(msg)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate

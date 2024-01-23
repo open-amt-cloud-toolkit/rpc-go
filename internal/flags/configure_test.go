@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/models"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -1,12 +1,13 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	"github.com/stretchr/testify/assert"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDisplayAMTInfo(t *testing.T) {

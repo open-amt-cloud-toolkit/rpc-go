@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/general"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/general"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/ips/hostbasedsetup"
 	"github.com/stretchr/testify/assert"
 )
 

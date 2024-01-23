@@ -6,13 +6,13 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/wifi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -75,7 +75,7 @@ func (service *ProvisioningService) PruneWifiConfigs() utils.ReturnCode {
 		log.Infof("deleting wifiSetting: %s", wifiSetting.InstanceID)
 		xmlMsg := service.cimMessages.WiFiEndpointSettings.Delete(wifiSetting.InstanceID)
 		// the response does not return any additional useful information
-		_, err := service.client.Post(xmlMsg)
+		_, err := service.wsmanMessages.Post(xmlMsg)
 		if err != nil {
 			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
 			failures = append(failures, wifiSetting.InstanceID)
@@ -345,7 +345,7 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.privateKeyHandle != "" {
 		log.Infof("rolling back private key %s", handles.privateKeyHandle)
 		xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(handles.privateKeyHandle)
-		_, err := service.client.Post(xmlMsg)
+		_, err := service.wsmanMessages.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
 		} else {
@@ -355,7 +355,7 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.clientCertHandle != "" {
 		log.Infof("rolling back client cert %s", handles.clientCertHandle)
 		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.clientCertHandle)
-		_, err := service.client.Post(xmlMsg)
+		_, err := service.wsmanMessages.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting client cert: %s", handles.clientCertHandle)
 		} else {
@@ -365,7 +365,7 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.rootCertHandle != "" {
 		log.Infof("rolling back root cert %s", handles.rootCertHandle)
 		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.rootCertHandle)
-		_, err := service.client.Post(xmlMsg)
+		_, err := service.wsmanMessages.Post(xmlMsg)
 		if err != nil {
 			log.Errorf("failed deleting root cert: %s", handles.rootCertHandle)
 		} else {
