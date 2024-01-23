@@ -19,10 +19,10 @@ import (
 
 type MockOSNetworker struct{}
 
-var mockRenewDHCPLeaseRC = utils.Success
+var mockRenewDHCPLeaseerr error = nil
 
-func (m MockOSNetworker) RenewDHCPLease() utils.ReturnCode {
-	return mockRenewDHCPLeaseRC
+func (m MockOSNetworker) RenewDHCPLease() error {
+	return mockRenewDHCPLeaseerr
 }
 
 // Mock the AMT Hardware
@@ -36,8 +36,8 @@ var mockChangeEnabledResponse = amt2.ChangeEnabledResponse(ChangeEnabledResponse
 var mockChangeEnabledErr error = nil
 var mockStandardErr = errors.New("yep, it failed")
 
-func (c MockAMT) Initialize() (utils.ReturnCode, error) {
-	return utils.Success, nil
+func (c MockAMT) Initialize() error {
+	return nil
 }
 
 var mockVersionDataErr error = nil
@@ -200,13 +200,13 @@ func TestExecute(t *testing.T) {
 	t.Run("execute CommandAMTInfo should succeed", func(t *testing.T) {
 		f.Command = utils.CommandAMTInfo
 		rc := ExecuteCommand(f)
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 	})
 
 	t.Run("execute CommandVersion should succeed", func(t *testing.T) {
 		f.Command = utils.CommandVersion
 		rc := ExecuteCommand(f)
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 	})
 
 	t.Run("execute CommandConfigure with no SubCommand fails", func(t *testing.T) {
@@ -243,7 +243,7 @@ func respondHostBasedSetup(t *testing.T, w http.ResponseWriter) {
 	assert.Nil(t, err)
 }
 
-var mockUnprovisionResponse = setupandconfiguration.UnprovisionResponse{}
+var mockUnprovisionResponse = setupandconfiguration.Unprovision_OUTPUT{}
 
 func respondUnprovision(t *testing.T, w http.ResponseWriter) {
 	xmlString, err := xml.Marshal(mockUnprovisionResponse)

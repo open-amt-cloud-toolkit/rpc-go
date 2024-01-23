@@ -11,7 +11,7 @@ import (
 )
 
 type OSNetworker interface {
-	RenewDHCPLease() (utils.ReturnCode, error)
+	RenewDHCPLease() error
 }
 
 type RealOSNetworker struct{}
@@ -39,32 +39,30 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 	}
 }
 
-func ExecuteCommand(flags *flags.Flags) (utils.ReturnCode, error) {
-	rc := utils.Success
-	err := nil
+func ExecuteCommand(flags *flags.Flags) error {
+	var err error
 	service := NewProvisioningService(flags)
 	switch flags.Command {
 	case utils.CommandActivate:
-		rc, err := service.Activate()
-		if err != nil {
-			log.Error(err)
-			return rc, err
-		}
+		err = service.Activate()
 		break
 	case utils.CommandAMTInfo:
-		rc = service.DisplayAMTInfo()
+		err = service.DisplayAMTInfo()
 		break
 	case utils.CommandDeactivate:
-		rc = service.Deactivate()
+		err = service.Deactivate()
 		break
 	case utils.CommandConfigure:
-		rc = service.Configure()
+		err = service.Configure()
 		break
 	case utils.CommandVersion:
-		rc = service.DisplayVersion()
+		err = service.DisplayVersion()
 		break
 	}
-	return rc
+	if err != nil{
+		log.Error(err)
+	}
+	return err
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {

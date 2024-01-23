@@ -7,12 +7,12 @@ package flags
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/smb"
@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
 
 	log "github.com/sirupsen/logrus"
@@ -128,29 +129,29 @@ func NewFlags(args []string) *Flags {
 }
 
 // ParseFlags is used for understanding the command line flags
-func (f *Flags) ParseFlags() utils.ReturnCode {
-	var rc utils.ReturnCode
+func (f *Flags) ParseFlags() error {
+	var err error
 	if len(f.commandLineArgs) > 1 {
 		f.Command = f.commandLineArgs[1]
 	}
 	switch f.Command {
 	case utils.CommandAMTInfo:
-		rc = f.handleAMTInfo(f.amtInfoCommand)
+		err = f.handleAMTInfo(f.amtInfoCommand)
 	case utils.CommandActivate:
-		rc = f.handleActivateCommand()
+		err = f.handleActivateCommand()
 	case utils.CommandDeactivate:
-		rc = f.handleDeactivateCommand()
+		err = f.handleDeactivateCommand()
 	case utils.CommandMaintenance:
-		rc = f.handleMaintenanceCommand()
+		err = f.handleMaintenanceCommand()
 	case utils.CommandVersion:
-		rc = f.handleVersionCommand()
+		err = f.handleVersionCommand()
 	case utils.CommandConfigure:
-		rc = f.handleConfigureCommand()
+		err = f.handleConfigureCommand()
 	default:
-		rc = utils.IncorrectCommandLineParameters
+		err = utils.IncorrectCommandLineParameters
 		f.printUsage()
 	}
-	return rc
+	return err
 }
 
 func (f *Flags) printUsage() string {
@@ -205,13 +206,13 @@ func (f *Flags) setupCommonFlags() {
 	}
 }
 
-func (f *Flags) validateUUIDOverride() utils.ReturnCode {
-	uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-	if matched := uuidPattern.MatchString(f.UUID); !matched {
-		fmt.Println("uuid provided does not follow proper uuid format")
-		return utils.InvalidUUID
+func (f *Flags) validateUUIDOverride() error {
+	_, err := uuid.Parse(f.UUID)
+	if err != nil {
+		fmt.Println("uuid provided does not follow proper uuid format:", err)
+		return err
 	}
-	return utils.Success
+	return nil
 }
 
 func (f *Flags) lookupEnvOrString(key string, defaultVal string) string {
@@ -232,17 +233,18 @@ func (f *Flags) lookupEnvOrBool(key string, defaultVal bool) bool {
 	return defaultVal
 }
 
-func (f *Flags) PromptUserInput(prompt string, value *string) utils.ReturnCode {
+func (f *Flags) PromptUserInput(prompt string, value *string) error {
 	fmt.Println(prompt)
 	_, err := fmt.Scanln(value)
 	if err != nil {
 		log.Error(err)
 		return utils.InvalidUserInput
 	}
-	return utils.Success
+	return nil
 }
 
-func (f *Flags) ReadPasswordFromUser() (bool, utils.ReturnCode) {
+// TODO: rework this so we can never return false
+func (f *Flags) ReadPasswordFromUser() (bool, error) {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
 	_, err := fmt.Scanln(&password)
@@ -250,13 +252,14 @@ func (f *Flags) ReadPasswordFromUser() (bool, utils.ReturnCode) {
 		return false, utils.MissingOrIncorrectPassword
 	}
 	f.Password = password
-	return true, utils.Success
+	return true, nil
 }
 
-func (f *Flags) handleLocalConfig() utils.ReturnCode {
+func (f *Flags) handleLocalConfig() error {
 	if f.configContent == "" {
-		return utils.Success
+		return nil
 	}
+	err := errors.New("failed to read configuration")
 	ext := filepath.Ext(strings.ToLower(f.configContent))
 	isPFX := ext == ".pfx"
 	if strings.HasPrefix(f.configContent, "smb:") {
@@ -264,12 +267,12 @@ func (f *Flags) handleLocalConfig() utils.ReturnCode {
 		isYAML := ext == ".yaml" || ext == ".yml"
 		if !isPFX && !isJSON && !isYAML {
 			log.Error("remote config unsupported smb file extension: ", ext)
-			return utils.FailedReadingConfiguration
+			return err
 		}
 		configBytes, err := f.SambaService.FetchFileContents(f.configContent)
 		if err != nil {
 			log.Error("config error: ", err)
-			return utils.FailedReadingConfiguration
+			return err
 		}
 		if isPFX {
 			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(configBytes)
@@ -282,21 +285,21 @@ func (f *Flags) handleLocalConfig() utils.ReturnCode {
 		}
 		if err != nil {
 			log.Error("config error: ", err)
-			return utils.FailedReadingConfiguration
+			return err
 		}
 	} else if isPFX {
 		pfxBytes, err := os.ReadFile(f.configContent)
 		if err != nil {
 			log.Error("config error: ", err)
-			return utils.FailedReadingConfiguration
+			return err
 		}
 		f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(pfxBytes)
 	} else {
 		err := cleanenv.ReadConfig(f.configContent, &f.LocalConfig)
 		if err != nil {
 			log.Error("config error: ", err)
-			return utils.FailedReadingConfiguration
+			return err
 		}
 	}
-	return utils.Success
+	return nil
 }

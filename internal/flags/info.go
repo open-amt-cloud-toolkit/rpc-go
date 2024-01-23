@@ -20,7 +20,7 @@ type AmtInfoFlags struct {
 	OpState  bool
 }
 
-func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
+func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) error {
 	// runs locally
 	f.Local = true
 
@@ -68,5 +68,5 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 	// NOTE: UserCert and password check happen later
 	// when provisioning mode is available
 
-	return utils.Success
+	return nil
 }

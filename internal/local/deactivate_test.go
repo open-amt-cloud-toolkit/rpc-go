@@ -19,8 +19,8 @@ func TestDeactivation(t *testing.T) {
 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
 		lps := setupService(f)
 		mockControlModeErr = stdErr
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.AMTConnectionFailed, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.AMTConnectionFailed, err)
 		mockControlModeErr = nil
 	})
 
@@ -28,8 +28,8 @@ func TestDeactivation(t *testing.T) {
 		lps := setupService(f)
 		// this is default mode for the mock already
 		// mockControlMode = 0
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.UnableToDeactivate, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.UnableToDeactivate, err)
 	})
 }
 
@@ -42,27 +42,27 @@ func TestDeactivateCCM(t *testing.T) {
 	t.Run("returns Success without password", func(t *testing.T) {
 		f.Password = ""
 		lps := setupService(f)
-		resultCode := lps.Deactivate()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.Deactivate()
+		assert.Equal(t, nil, err)
 	})
 	t.Run("returns Success with warning, given the password", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
 		lps := setupService(f)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, nil, err)
 	})
 	t.Run("returns DeactivationFailed when unprovision fails", func(t *testing.T) {
 		mockUnprovisionErr = errors.New("test error")
 		lps := setupService(f)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.DeactivationFailed, err)
 		mockUnprovisionErr = nil
 	})
 	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
 		mockUnprovisionCode = 1
 		lps := setupService(f)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.DeactivationFailed, err)
 		mockUnprovisionCode = 0
 	})
 }
@@ -79,8 +79,8 @@ func TestDeactivateACM(t *testing.T) {
 			respondUnprovision(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, nil, err)
 	})
 	t.Run("returns UnableToDeactivate with no password", func(t *testing.T) {
 		f.Password = ""
@@ -88,8 +88,8 @@ func TestDeactivateACM(t *testing.T) {
 			respondServerError(w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		resultCode := lps.Deactivate()
-		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
 	})
 
 	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision server error", func(t *testing.T) {
@@ -98,8 +98,8 @@ func TestDeactivateACM(t *testing.T) {
 			respondServerError(w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.UnableToDeactivate, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.UnableToDeactivate, err)
 	})
 	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision xml error", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
@@ -107,18 +107,18 @@ func TestDeactivateACM(t *testing.T) {
 			respondBadXML(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.DeactivationFailed, err)
 	})
 	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mockUnprovisionResponse.Body.Unprovision_OUTPUT.ReturnValue = 1
+			mockUnprovisionResponse.ReturnValue = 1
 			respondUnprovision(t, w)
-			mockUnprovisionResponse.Body.Unprovision_OUTPUT.ReturnValue = 0
+			mockUnprovisionResponse.ReturnValue = 0
 		})
 		lps := setupWithWsmanClient(f, handler)
-		rc := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, rc)
+		err := lps.Deactivate()
+		assert.Equal(t, utils.DeactivationFailed, err)
 	})
 }

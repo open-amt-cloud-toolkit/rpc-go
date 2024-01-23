@@ -28,7 +28,7 @@ func rpcCheckAccess() int {
 
 //export rpcExec
 func rpcExec(Input *C.char, Output **C.char) int {
-	if accessStatus := rpcCheckAccess(); accessStatus != int(utils.Success) {
+	if accessStatus := rpcCheckAccess(); accessStatus != int(nil) {
 		*Output = C.CString(AccessErrMsg)
 		return accessStatus
 	}
@@ -45,7 +45,7 @@ func rpcExec(Input *C.char, Output **C.char) int {
 	}
 	args = append([]string{"rpc"}, args...)
 	rc := runRPC(args)
-	if rc != utils.Success {
+	if err != nil {
 		*Output = C.CString("rpcExec failed: " + inputString)
 	}
 	return int(rc)

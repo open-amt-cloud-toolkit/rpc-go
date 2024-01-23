@@ -145,7 +145,7 @@ func TestActivateCCM(t *testing.T) {
 		})
 		lps := setupWithWsmanClient(f, handler)
 		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 	})
 }
 
@@ -171,15 +171,15 @@ func TestGetHostBasedSetupService(t *testing.T) {
 
 	t.Run("returns valid response on happy path", func(t *testing.T) {
 		expected := "test_name"
-		mockHostBasedSetupResponse.Body.IPS_HostBasedSetupService.SystemName = expected
+		mockHostBasedSetupResponse.Body.GetResponse.SystemName = expected
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondHostBasedSetup(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
 		rsp, err := lps.GetHostBasedSetupService()
 		assert.Nil(t, err)
-		assert.Equal(t, expected, rsp.Body.IPS_HostBasedSetupService.SystemName)
-		mockHostBasedSetupResponse.Body.IPS_HostBasedSetupService.SystemName = ""
+		assert.Equal(t, expected, rsp.Body.GetResponse.SystemName)
+		mockHostBasedSetupResponse.Body.GetResponse.SystemName = ""
 	})
 }
 
@@ -205,15 +205,15 @@ func TestGetGeneralSettings(t *testing.T) {
 
 	t.Run("returns valid response on happy path", func(t *testing.T) {
 		expected := "test_name"
-		mockGenerlSettingsResponse.Body.AMTGeneralSettings.HostName = expected
+		mockGenerlSettingsResponse.Body.GetResponse.HostName = expected
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			respondGeneralSettings(t, w)
 		})
 		lps := setupWithWsmanClient(f, handler)
 		rsp, err := lps.GetGeneralSettings()
 		assert.Nil(t, err)
-		assert.Equal(t, expected, rsp.Body.AMTGeneralSettings.HostName)
-		mockGenerlSettingsResponse.Body.AMTGeneralSettings.HostName = ""
+		assert.Equal(t, expected, rsp.Body.GetResponse.HostName)
+		mockGenerlSettingsResponse.Body.GetResponse.HostName = ""
 	})
 }
 
@@ -247,7 +247,7 @@ func TestActivateACM(t *testing.T) {
 	})
 	lps := setupWithWsmanClient(f, handler)
 	rc := lps.ActivateACM()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 }
 
 func TestInjectCertsErrors(t *testing.T) {

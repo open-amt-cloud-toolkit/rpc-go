@@ -1,15 +1,13 @@
 package local
 
 import (
-	"encoding/xml"
+	"errors"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/setupandconfiguration"
 	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) Deactivate() utils.ReturnCode {
-
+func (service *ProvisioningService) Deactivate() (err error) {
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
 		log.Error(err)
@@ -24,34 +22,29 @@ func (service *ProvisioningService) Deactivate() utils.ReturnCode {
 	return utils.UnableToDeactivate
 }
 
-func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
+func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.Password == "" {
-		if _, rc := service.flags.ReadPasswordFromUser(); rc != utils.Success {
-			return rc
+		result, rc := service.flags.ReadPasswordFromUser()
+		if !result || rc != nil {
+			err = errors.New("Missing or Incorrect Password")
+			return err
 		}
 	}
 	service.setupWsmanClient("admin", service.flags.Password)
-	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
-	response, err := service.wsmanMessages.Post(msg)
+	response, err := service.wsmanMessages.AMT.SetupAndConfigurationService.Unprovision(1)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate
 	}
-	var setupResponse setupandconfiguration.UnprovisionResponse
-	err = xml.Unmarshal([]byte(response), &setupResponse)
-	if err != nil {
-		log.Error("Status: Failed to deactivate ", err)
-		return utils.DeactivationFailed
-	}
-	if setupResponse.Body.Unprovision_OUTPUT.ReturnValue != 0 {
-		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
+	if response.Body.Unprovision_OUTPUT.ReturnValue != 0 {
+		log.Error("Status: Failed to deactivate. ReturnValue: ", response.Body.Unprovision_OUTPUT.ReturnValue)
 		return utils.DeactivationFailed
 	}
 	log.Info("Status: Device deactivated in ACM.")
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
+func (service *ProvisioningService) DeactivateCCM() (err error) {
 	if service.flags.Password != "" {
 		log.Warn("Password not required for CCM deactivation")
 	}
@@ -61,5 +54,5 @@ func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
 		return utils.DeactivationFailed
 	}
 	log.Info("Status: Device deactivated.")
-	return utils.Success
+	return nil
 }

@@ -1,13 +1,10 @@
 package local
 
 import (
-	"encoding/xml"
-
 	"reflect"
 	"rpc/pkg/utils"
 	"strings"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/concrete"
@@ -25,38 +22,6 @@ func reflectObjectName(v any) string {
 	return vName
 }
 
-type EnumMessageFunc func() string
-type PullMessageFunc func(string) string
-
-func (service *ProvisioningService) EnumPullUnmarshal(enumFn EnumMessageFunc, pullFn PullMessageFunc, outObj any) utils.ReturnCode {
-	xmlMsg := enumFn()
-	xmlRsp, err := service.wsmanMessages.Post(xmlMsg)
-	if err != nil {
-		log.Errorf("enumerate post call for %s: %s", reflectObjectName(outObj), err)
-		return utils.WSMANMessageError
-	}
-	var enumRsp common.EnumerationResponse
-	if err := xml.Unmarshal(xmlRsp, &enumRsp); err != nil {
-		log.Errorf("enumerate unmarshal call for %s: %s", reflectObjectName(outObj), err)
-		return utils.UnmarshalMessageFailed
-	}
-	xmlMsg = pullFn(enumRsp.Body.EnumerateResponse.EnumerationContext)
-	return service.PostAndUnmarshal(xmlMsg, outObj)
-}
-
-func (service *ProvisioningService) PostAndUnmarshal(xmlMsg string, outObj any) utils.ReturnCode {
-	xmlRsp, err := service.wsmanMessages.Post(xmlMsg)
-	if err != nil {
-		log.Errorf("post call for %s: %s", reflectObjectName(outObj), err)
-		return utils.WSMANMessageError
-	}
-	if err := xml.Unmarshal(xmlRsp, outObj); err != nil {
-		log.Errorf("unmarshal call for %s: %s", reflectObjectName(outObj), err)
-		return utils.UnmarshalMessageFailed
-	}
-	return utils.Success
-}
-
 func GetTokenFromKeyValuePairs(kvList string, token string) string {
 	attributes := strings.Split(kvList, ",")
 	tokenMap := make(map[string]string)
@@ -67,128 +32,76 @@ func GetTokenFromKeyValuePairs(kvList string, token string) string {
 	return tokenMap[token]
 }
 
-func (service *ProvisioningService) GetPublicKeyCerts(certs *[]publickey.PublicKeyCertificate) utils.ReturnCode {
+func (service *ProvisioningService) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
 
-	var pullRspEnv publickey.PullResponseEnvelope
-	rc := service.EnumPullUnmarshal(
-		service.amtMessages.PublicKeyCertificate.Enumerate,
-		service.amtMessages.PublicKeyCertificate.Pull,
-		&pullRspEnv,
-	)
-	if rc != utils.Success {
-		return rc
+	response, err := service.wsmanMessages.AMT.PublicKeyCertificate.Enumerate()
+	if err != nil {
+		return nil, err
 	}
-	for _, publicKeyCert := range pullRspEnv.Body.PullResponse.Items {
-		*certs = append(*certs, publicKeyCert)
+	response, err = service.wsmanMessages.AMT.PublicKeyCertificate.Pull(response.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return nil, err
 	}
-	return utils.Success
+
+	return response.Body.PullResponse.PublicKeyCertificateItems, nil
 }
 
 // GetPublicPrivateKeyPairs
 // NOTE: RSA Key encoded as DES PKCS#1. The Exponent (E) is 65537 (0x010001).
 // When this structure is used as an output parameter (GET or PULL method),
 // only the public section of the key is exported.
-func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicprivate.PublicPrivateKeyPair) utils.ReturnCode {
-
-	var pullRspEnv publicprivate.PullResponseEnvelope
-	rc := service.EnumPullUnmarshal(
-		service.amtMessages.PublicPrivateKeyPair.Enumerate,
-		service.amtMessages.PublicPrivateKeyPair.Pull,
-		&pullRspEnv,
-	)
-	if rc != utils.Success {
-		return rc
+func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicprivate.PublicPrivateKeyPair) ([]publicprivate.PublicPrivateKeyPair, error) {
+	response, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Enumerate()
+	if err != nil {
+		return nil, err
 	}
-	for _, keyPair := range pullRspEnv.Body.PullResponse.Items {
-		*keyPairs = append(*keyPairs, keyPair)
+	response, err = service.wsmanMessages.AMT.PublicPrivateKeyPair.Pull(response.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return nil, err
 	}
-	return utils.Success
+	return response.Body.PullResponse.PublicPrivateKeyPairItems, nil
 }
 
-func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string) utils.ReturnCode {
+func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string) error {
 	log.Infof("deleting public private key pair instance: %s", instanceId)
-	xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(instanceId)
-	// the response has no addiitonal information
-	// if post is successful, then deletion is successful
-	_, err := service.wsmanMessages.Post(xmlMsg)
+	_, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)
 	if err != nil {
 		log.Errorf("unable to delete: %s", instanceId)
 		return utils.DeleteWifiConfigFailed
 	}
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) DeletePublicCert(instanceId string) utils.ReturnCode {
+func (service *ProvisioningService) DeletePublicCert(instanceId string) error {
 	log.Infof("deleting public key certificate instance: %s", instanceId)
-	xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(instanceId)
-	// the response has no addiitonal information
-	// if post is successful, then deletion is successful
-	_, err := service.wsmanMessages.Post(xmlMsg)
+	_, err := service.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
 	if err != nil {
 		log.Errorf("unable to delete: %s", instanceId)
 		return utils.DeleteWifiConfigFailed
 	}
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) GetCredentialRelationships() ([]credential.Relationship, utils.ReturnCode) {
-	var items []credential.Relationship
-	var pullRspEnv credential.ContextPullResponseEnvelope
-	rc := service.EnumPullUnmarshal(
-		service.cimMessages.CredentialContext.Enumerate,
-		service.cimMessages.CredentialContext.Pull,
-		&pullRspEnv,
-	)
-	if rc != utils.Success {
-		return items, rc
+func (service *ProvisioningService) GetCredentialRelationships() ([]credential.CredentialContext, error) {
+	response, err := service.wsmanMessages.CIM.CredentialContext.Enumerate()
+	if err != nil {
+		return nil, err
 	}
-	for {
-		for i := range pullRspEnv.Body.PullResponse.Items {
-			items = append(items, pullRspEnv.Body.PullResponse.Items[i])
-		}
-		enumContext := pullRspEnv.Body.PullResponse.EnumerationContext
-		if enumContext == "" {
-			break
-		}
-		pullRspEnv = credential.ContextPullResponseEnvelope{}
-		rc = service.PostAndUnmarshal(
-			service.cimMessages.CredentialContext.Pull(enumContext),
-			&pullRspEnv,
-		)
-		if rc != utils.Success {
-			return items, rc
-		}
+	response, err = service.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return nil, err
 	}
-	return items, utils.Success
+	return response.Body.PullResponse.Items, nil
 }
 
-func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.Relationship, utils.ReturnCode) {
-	var items []concrete.Relationship
-	var pullRspEnv concrete.DependencyPullResponseEnvelope
-	rc := service.EnumPullUnmarshal(
-		service.cimMessages.ConcreteDependency.Enumerate,
-		service.cimMessages.ConcreteDependency.Pull,
-		&pullRspEnv,
-	)
-	if rc != utils.Success {
-		return items, rc
+func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
+	response, err := service.wsmanMessages.CIM.ConcreteDependency.Enumerate()
+	if err != nil {
+		return nil, err
 	}
-	for {
-		for i := range pullRspEnv.Body.PullResponse.Items {
-			items = append(items, pullRspEnv.Body.PullResponse.Items[i])
-		}
-		enumContext := pullRspEnv.Body.PullResponse.EnumerationContext
-		if enumContext == "" {
-			break
-		}
-		pullRspEnv = concrete.DependencyPullResponseEnvelope{}
-		rc = service.PostAndUnmarshal(
-			service.cimMessages.ConcreteDependency.Pull(enumContext),
-			&pullRspEnv,
-		)
-		if rc != utils.Success {
-			return items, rc
-		}
+	response, err = service.wsmanMessages.CIM.ConcreteDependency.Pull(response.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return nil, err
 	}
-	return items, utils.Success
+	return response.Body.PullResponse.Items, nil
 }

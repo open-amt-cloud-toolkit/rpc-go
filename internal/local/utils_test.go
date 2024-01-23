@@ -6,37 +6,37 @@ import (
 	"rpc/pkg/utils"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/common"
 	"github.com/stretchr/testify/assert"
 )
 
-var mpsCert = publickey.PublicKeyCertificate{
-	ElementName:           "Intel(r) AMT Certificate",
-	InstanceID:            "Intel(r) AMT Certificate: Handle: 0",
-	X509Certificate:       `MIIEkzCCA3ugAwIBAgIUL3WtF7HfMKxQOHcZy65Z0tsSoLwwDQYJKoZIhvc`,
-	TrustedRootCertficate: true,
-	Issuer:                "C=unknown,O=unknown,CN=MPSRoot-5bb511",
-	Subject:               "C=unknown,O=unknown,CN=MPSRoot-5bb511",
-	ReadOnlyCertificate:   true,
+var mpsCert = publickey.PublicKeyCertificateResponse{
+	ElementName:            "Intel(r) AMT Certificate",
+	InstanceID:             "Intel(r) AMT Certificate: Handle: 0",
+	X509Certificate:        `MIIEkzCCA3ugAwIBAgIUL3WtF7HfMKxQOHcZy65Z0tsSoLwwDQYJKoZIhvc`,
+	TrustedRootCertificate: true,
+	Issuer:                 "C=unknown,O=unknown,CN=MPSRoot-5bb511",
+	Subject:                "C=unknown,O=unknown,CN=MPSRoot-5bb511",
+	ReadOnlyCertificate:    true,
 }
-var caCert = publickey.PublicKeyCertificate{
-	ElementName:           "Intel(r) AMT Certificate",
-	InstanceID:            "Intel(r) AMT Certificate: Handle: 1",
-	X509Certificate:       `CERTHANDLE1MIIEkzCCA3ugAwIBAgIUL3WtF7HfMKxQOHcZy65Z0tsSoLwwDQYJKoZIhvc`,
-	TrustedRootCertficate: true,
-	Issuer:                `C=US,S=Arizona,L=Chandler,CN=Unit Tests Are Us`,
-	Subject:               `C=US,S=Arizona,L=Chandler,CN=Unit Test CA Root Certificate`,
+var caCert = publickey.PublicKeyCertificateResponse{
+	ElementName:            "Intel(r) AMT Certificate",
+	InstanceID:             "Intel(r) AMT Certificate: Handle: 1",
+	X509Certificate:        `CERTHANDLE1MIIEkzCCA3ugAwIBAgIUL3WtF7HfMKxQOHcZy65Z0tsSoLwwDQYJKoZIhvc`,
+	TrustedRootCertificate: true,
+	Issuer:                 `C=US,S=Arizona,L=Chandler,CN=Unit Tests Are Us`,
+	Subject:                `C=US,S=Arizona,L=Chandler,CN=Unit Test CA Root Certificate`,
 }
-var clientCert = publickey.PublicKeyCertificate{
-	ElementName:           "Intel(r) AMT Certificate",
-	InstanceID:            "Intel(r) AMT Certificate: Handle: 3",
-	X509Certificate:       `CERTHANDLE2AwIBAgIUBgF0PsmOxA/KJVDCcbW+n5IbemgwDQYJKoZIhvc`,
-	TrustedRootCertficate: false,
-	Issuer:                `C=US,S=Arizona,L=Chandler,CN=Unit Tests Are Us`,
-	Subject:               `C=US,S=Arizona,L=Chandler,CN=Unit Test Client Certificate`,
-	ReadOnlyCertificate:   true,
+var clientCert = publickey.PublicKeyCertificateResponse{
+	ElementName:            "Intel(r) AMT Certificate",
+	InstanceID:             "Intel(r) AMT Certificate: Handle: 3",
+	X509Certificate:        `CERTHANDLE2AwIBAgIUBgF0PsmOxA/KJVDCcbW+n5IbemgwDQYJKoZIhvc`,
+	TrustedRootCertificate: false,
+	Issuer:                 `C=US,S=Arizona,L=Chandler,CN=Unit Tests Are Us`,
+	Subject:                `C=US,S=Arizona,L=Chandler,CN=Unit Test Client Certificate`,
+	ReadOnlyCertificate:    true,
 }
 var keyPair01 = publicprivate.PublicPrivateKeyPair{
 	ElementName: "Intel(r) AMT Key",
@@ -44,12 +44,13 @@ var keyPair01 = publicprivate.PublicPrivateKeyPair{
 	DERKey:      `MIIBCgKCAQEA37Xwr/oVLFftw+2wkmwdzGaufBnLiwJCXwYrWLMld1+7Ve6DghlFPa+Mr`,
 }
 
-func runGetPublicKeyCertTest(t *testing.T, expectedCode utils.ReturnCode, responsers ResponseFuncArray) {
+func runGetPublicKeyCertTest(t *testing.T, expectedCode error, responsers ResponseFuncArray) {
 	f := &flags.Flags{}
 	lps := setupWsmanResponses(t, f, responsers)
-	var certs []publickey.PublicKeyCertificate
-	rc := lps.GetPublicKeyCerts(&certs)
-	assert.Equal(t, expectedCode, rc)
+	var certs []publickey.PublicKeyCertificateResponse
+	response, err := lps.GetPublicKeyCerts()
+	assert.Equal(t, expectedCode, response)
+	assert.NoError(t, err)
 	assert.Empty(t, certs)
 }
 
@@ -80,17 +81,17 @@ func TestGetPublicKeyCerts(t *testing.T) {
 	t.Run("expect Success for happy path (with no certs)", func(t *testing.T) {
 		r := ResponseFuncArray{
 			respondMsgFunc(t, enumRsp),
-			respondMsgFunc(t, publickey.PullResponseEnvelope{}),
+			respondMsgFunc(t, publickey.PullResponse{}),
 		}
-		runGetPublicKeyCertTest(t, utils.Success, r)
+		runGetPublicKeyCertTest(t, nil, r)
 	})
 }
 
-func runGetPublicPrivateKeyPairsTest(t *testing.T, expectedCode utils.ReturnCode, responsers ResponseFuncArray) {
+func runGetPublicPrivateKeyPairsTest(t *testing.T, expectedCode error, responsers ResponseFuncArray) {
 	f := &flags.Flags{}
 	lps := setupWsmanResponses(t, f, responsers)
 	var keyPairs []publicprivate.PublicPrivateKeyPair
-	rc := lps.GetPublicPrivateKeyPairs(&keyPairs)
+	rc, _ := lps.GetPublicPrivateKeyPairs(&keyPairs)
 	assert.Equal(t, expectedCode, rc)
 	assert.Empty(t, keyPairs)
 }
@@ -122,9 +123,9 @@ func TestGetPublicPrivateKeyPairs(t *testing.T) {
 	t.Run("expect Success for happy path (with no certs)", func(t *testing.T) {
 		r := ResponseFuncArray{
 			respondMsgFunc(t, enumRsp),
-			respondMsgFunc(t, publicprivate.PullResponseEnvelope{}),
+			respondMsgFunc(t, publicprivate.PullResponse{}),
 		}
-		runGetPublicPrivateKeyPairsTest(t, utils.Success, r)
+		runGetPublicPrivateKeyPairsTest(t, nil, r)
 	})
 }
 
@@ -135,16 +136,16 @@ func TestDeletePublicPrivateKeyPair(t *testing.T) {
 			respondStringFunc(t, "response does not matter"),
 		}
 		lps := setupWsmanResponses(t, f, r)
-		rc := lps.DeletePublicPrivateKeyPair("some instance Id")
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DeletePublicPrivateKeyPair("some instance Id")
+		assert.Equal(t, nil, err)
 	})
 	t.Run("expect DeleteWifiConfigFailed error", func(t *testing.T) {
 		r := ResponseFuncArray{
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, r)
-		rc := lps.DeletePublicPrivateKeyPair("some instance Id")
-		assert.Equal(t, utils.DeleteWifiConfigFailed, rc)
+		err := lps.DeletePublicPrivateKeyPair("some instance Id")
+		assert.Equal(t, utils.DeleteWifiConfigFailed, err)
 	})
 }
 
@@ -155,16 +156,16 @@ func TestDeletePublicCert(t *testing.T) {
 			respondStringFunc(t, "response does not matter"),
 		}
 		lps := setupWsmanResponses(t, f, r)
-		rc := lps.DeletePublicCert("some instance Id")
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DeletePublicCert("some instance Id")
+		assert.Equal(t, nil, err)
 	})
 	t.Run("expect DeleteWifiConfigFailed error", func(t *testing.T) {
 		r := ResponseFuncArray{
 			respondServerErrFunc(),
 		}
 		lps := setupWsmanResponses(t, f, r)
-		rc := lps.DeletePublicCert("some instance Id")
-		assert.Equal(t, utils.DeleteWifiConfigFailed, rc)
+		err := lps.DeletePublicCert("some instance Id")
+		assert.Equal(t, utils.DeleteWifiConfigFailed, err)
 	})
 }
 
@@ -180,7 +181,7 @@ func TestGetCredentialRelationships(t *testing.T) {
 		}
 		lps := setupWsmanResponses(t, f, r)
 		credentials, rc := lps.GetCredentialRelationships()
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 		assert.Equal(t, 4, len(credentials))
 	})
 	t.Run("expect WSMANMessageError on second pull", func(t *testing.T) {
@@ -217,7 +218,7 @@ func TestGetConcreteDependencies(t *testing.T) {
 		}
 		lps := setupWsmanResponses(t, f, r)
 		credentials, rc := lps.GetConcreteDependencies()
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 		assert.Equal(t, 6, len(credentials))
 	})
 	t.Run("expect WSMANMessageError on second pull", func(t *testing.T) {

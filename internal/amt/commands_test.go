@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"rpc/pkg/pthi"
+	"rpc/pkg/utils"
 	"testing"
 	"time"
 
@@ -153,19 +154,19 @@ func init() {
 	amt.PTHI = MockPTHICommands{}
 }
 func TestInitializeNoError(t *testing.T) {
-	result, err := amt.Initialize()
-	assert.NoError(t, err, result)
+	err := amt.Initialize()
+	assert.NoError(t, err)
 }
 func TestInitializeMEIError(t *testing.T) {
 	flag = true
-	result, err := amt.Initialize()
-	assert.Error(t, err, result)
+	err := amt.Initialize()
+	assert.Error(t, err, utils.HECIDriverNotDetected)
 	flag = false
 }
 func TestInitializeError(t *testing.T) {
 	flag1 = true
-	result, err := amt.Initialize()
-	assert.Error(t, err, result)
+	err := amt.Initialize()
+	assert.Error(t, err, utils.HECIDriverNotDetected)
 	flag1 = false
 }
 func TestGetVersionDataFromME(t *testing.T) {

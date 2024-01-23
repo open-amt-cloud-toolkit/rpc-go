@@ -14,15 +14,17 @@ func TestDisplayVersion(t *testing.T) {
 
 	t.Run("should return Success", func(t *testing.T) {
 		lps := setupService(f)
-		rc := lps.DisplayVersion()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayVersion()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("should return Success with json output", func(t *testing.T) {
 		f.JsonOutput = true
 		lps := setupService(f)
-		rc := lps.DisplayVersion()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayVersion()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 		f.JsonOutput = false
 	})
 

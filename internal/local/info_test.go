@@ -5,8 +5,8 @@ import (
 	"rpc/pkg/utils"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,8 +29,9 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f := &flags.Flags{}
 		f.AmtInfo = defaultFlags
 		lps := setupService(f)
-		rc := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success with json output", func(t *testing.T) {
@@ -38,8 +39,9 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 		lps := setupService(f)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success with certs", func(t *testing.T) {
@@ -48,8 +50,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.AmtInfo.UserCert = true
 		f.Password = "testPassword"
 		mockCertHashes = mockCertHashesDefault
-		pullEnvelope := publickey.PullResponseEnvelope{}
-		pullEnvelope.Body.PullResponse.Items = []publickey.PublicKeyCertificate{
+		pullEnvelope := publickey.PullResponse{}
+		pullEnvelope.PublicKeyCertificateItems = []publickey.PublicKeyCertificateResponse{
 			mpsCert,
 			clientCert,
 			caCert,
@@ -59,8 +61,9 @@ func TestDisplayAMTInfo(t *testing.T) {
 			respondMsgFunc(t, pullEnvelope),
 		}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success but logs errors on error conditions", func(t *testing.T) {
@@ -78,8 +81,9 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.JsonOutput = true
 
 		lps := setupService(f)
-		rc := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 		f.JsonOutput = false
 
 		mockUUIDErr = nil
@@ -98,8 +102,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockControlModeErr = mockStandardErr
 		rfa := ResponseFuncArray{}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
 		mockControlModeErr = nil
 	})
@@ -110,8 +114,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockControlMode = 0
 		rfa := ResponseFuncArray{}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
 		mockControlMode = orig
 	})
@@ -122,8 +126,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockControlMode = 2
 		rfa := ResponseFuncArray{}
 		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
 		assert.True(t, f.AmtInfo.UserCert)
 		mockControlMode = orig
 	})
