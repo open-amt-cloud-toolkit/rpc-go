@@ -2,6 +2,7 @@ package flags
 
 import (
 	"fmt"
+	"os"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 	"strings"
@@ -62,9 +63,7 @@ func TestPromptForSecrets(t *testing.T) {
 	})
 }
 
-func TestCmdLine(t *testing.T) {
-	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "PskPassphrase": "testPSK", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
-
+func TestHandleConfigureCommand(t *testing.T) {
 	t.Run("expect IncorrectCommandLineParameters with no subcommand", func(t *testing.T) {
 		f := NewFlags([]string{`rpc`, `configure`})
 		gotResult := f.ParseFlags()
@@ -75,6 +74,52 @@ func TestCmdLine(t *testing.T) {
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
+	t.Run("expect Success password on command line", func(t *testing.T) {
+		cmdLine := []string{
+			`rpc`, `configure`, `enablewifiport`,
+			`-password`, `cliP@ss0rd!`,
+		}
+		f := NewFlags(cmdLine)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, true, f.Local)
+		assert.Equal(t, f.Password, f.LocalConfig.Password)
+	})
+	t.Run("expect Success password from prompt", func(t *testing.T) {
+		expected := "userP@ssw0rd!"
+		defer userInput(t, expected)()
+		cmdLine := []string{
+			`rpc`, `configure`, `enablewifiport`,
+		}
+		f := NewFlags(cmdLine)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, expected, f.Password)
+	})
+	t.Run("expect Success password from environment", func(t *testing.T) {
+		orig, origPresent := os.LookupEnv("AMT_PASSWORD")
+		expected := "userP@ssw0rd!"
+		err := os.Setenv("AMT_PASSWORD", expected)
+		assert.Nil(t, err)
+		cmdLine := []string{
+			`rpc`, `configure`, `enablewifiport`,
+		}
+		f := NewFlags(cmdLine)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, expected, f.Password)
+		if origPresent {
+			err = os.Setenv("AMT_PASSWORD", orig)
+		} else {
+			err = os.Unsetenv("AMT_PASSWORD")
+		}
+		assert.Nil(t, err)
+	})
+}
+
+func TestAddWifiSettings(t *testing.T) {
+	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "PskPassphrase": "testPSK", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
+
 	t.Run("expect Success", func(t *testing.T) {
 		cmdLine := []string{
 			`rpc`, `configure`, `addwifisettings`,
@@ -84,6 +129,7 @@ func TestCmdLine(t *testing.T) {
 		f := NewFlags(cmdLine)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, utils.SubCommandAddWifiSettings, f.SubCommand)
 		assert.Equal(t, true, f.Local)
 		assert.Equal(t, f.Password, f.LocalConfig.Password)
 	})
@@ -124,31 +170,21 @@ func TestCmdLine(t *testing.T) {
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
 	})
+}
+
+func TestEnableWifiPort(t *testing.T) {
 	t.Run("enablewifiport: expect Success", func(t *testing.T) {
+		expectedPassword := `cliP@ss0rd!`
 		cmdLine := []string{
 			`rpc`, `configure`, `enablewifiport`,
-			`-password`, `cliP@ss0rd!`,
+			`-password`, expectedPassword,
 		}
 		f := NewFlags(cmdLine)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, utils.SubCommandEnableWifiPort, f.SubCommand)
 		assert.Equal(t, true, f.Local)
-		assert.Equal(t, f.Password, f.LocalConfig.Password)
-	})
-	t.Run("enablewifiport: expect MissingOrIncorrectPassword", func(t *testing.T) {
-		f := NewFlags([]string{
-			`rpc`, `configure`, `enablewifiport`, `-password`,
-		})
-		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
-	})
-	t.Run("enablewifiport: expect Success on password prompt", func(t *testing.T) {
-		defer userInput(t, "userP@ssw0rd!")()
-		f := NewFlags([]string{
-			`rpc`, `configure`, `enablewifiport`,
-		})
-		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, f.Password, expectedPassword)
 	})
 	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
 		f := NewFlags([]string{
@@ -157,12 +193,62 @@ func TestCmdLine(t *testing.T) {
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
-	t.Run("enablewifiport: ssexpect IncorrectCommandLineParameters", func(t *testing.T) {
+	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
 		f := NewFlags([]string{
 			`rpc`, `configure`, `enablewifiport`, `-bogus`, `testpw`,
 		})
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
+	})
+}
+
+func TestConfigureTLS(t *testing.T) {
+	for _, m := range []TLSMode{TLSModeServer, TLSModeServerAndNonTLS, TLSModeMutual, TLSModeMutualAndNonTLS} {
+		t.Run(fmt.Sprintf("expect Success for mode: %s", m), func(t *testing.T) {
+			expectedPassword := `cliP@ss0rd!`
+			cmdLine := []string{
+				`rpc`, `configure`, utils.SubCommandConfigureTLS,
+				`-mode`, m.String(),
+				`-password`, expectedPassword,
+			}
+			f := NewFlags(cmdLine)
+			gotResult := f.ParseFlags()
+			assert.Equal(t, utils.Success, gotResult)
+			assert.Equal(t, utils.SubCommandConfigureTLS, f.SubCommand)
+			assert.Equal(t, m, f.ConfigTLSInfo.TLSMode)
+			assert.Equal(t, true, f.Local)
+			assert.Equal(t, f.Password, expectedPassword)
+		})
+	}
+	t.Run(fmt.Sprintf("expect default tlsMode of server: %s", TLSModeServer), func(t *testing.T) {
+		expectedPassword := `cliP@ss0rd!`
+		cmdLine := []string{
+			`rpc`, `configure`, utils.SubCommandConfigureTLS,
+			`-password`, expectedPassword,
+		}
+		f := NewFlags(cmdLine)
+		_ = f.ParseFlags()
+		assert.Equal(t, TLSModeServer, f.ConfigTLSInfo.TLSMode)
+	})
+	t.Run("expect error from additional arguments", func(t *testing.T) {
+		cmdLine := []string{
+			`rpc`, `configure`, utils.SubCommandConfigureTLS,
+			`-mode`, `Server`,
+			`-this_is_not_right`,
+			`-password`, `somepassword`,
+		}
+		f := NewFlags(cmdLine)
+		rc := f.ParseFlags()
+		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
+	})
+	t.Run("expect error from unknown string", func(t *testing.T) {
+		mode, e := ParseTLSMode("unkown")
+		assert.NotNil(t, e)
+		assert.Equal(t, TLSModeServer, mode)
+	})
+	t.Run("expect Unknown tls mode as string", func(t *testing.T) {
+		badMode := TLSMode(22)
+		assert.Equal(t, "Unknown", badMode.String())
 	})
 }
 

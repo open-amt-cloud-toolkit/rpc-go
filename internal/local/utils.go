@@ -2,6 +2,7 @@ package local
 
 import (
 	"encoding/xml"
+	"time"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
@@ -13,6 +14,14 @@ import (
 	"rpc/pkg/utils"
 	"strings"
 )
+
+func (service *ProvisioningService) Pause(howManySeconds int) {
+	if howManySeconds <= 0 {
+		return
+	}
+	log.Debugf("pausing %d seconds", howManySeconds)
+	time.Sleep(time.Duration(howManySeconds) * time.Second)
+}
 
 func reflectObjectName(v any) string {
 	var vName string

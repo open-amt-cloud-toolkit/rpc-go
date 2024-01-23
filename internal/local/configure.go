@@ -23,6 +23,8 @@ func (service *ProvisioningService) Configure() utils.ReturnCode {
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()
+	case utils.SubCommandConfigureTLS:
+		return service.ConfigureTLS()
 	default:
 	}
 	return utils.IncorrectCommandLineParameters
@@ -337,6 +339,7 @@ func (service *ProvisioningService) EnableWifi() utils.ReturnCode {
 
 type Handles struct {
 	privateKeyHandle string
+	keyPairHandle    string
 	clientCertHandle string
 	rootCertHandle   string
 }
@@ -350,6 +353,17 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
 		} else {
 			log.Debugf("successfully deleted private key: %s", handles.privateKeyHandle)
+		}
+	}
+	if handles.keyPairHandle != "" {
+		log.Infof("rolling back private key %s", handles.keyPairHandle)
+		xmlMsg := service.amtMessages.PublicKeyManagementService.Delete(handles.keyPairHandle)
+		log.Trace(xmlMsg)
+		_, err := service.client.Post(xmlMsg)
+		if err != nil {
+			log.Errorf("failed deleting keyPairHandle: %s", handles.keyPairHandle)
+		} else {
+			log.Debugf("successfully deleted keyPairHandle: %s", handles.keyPairHandle)
 		}
 	}
 	if handles.clientCertHandle != "" {

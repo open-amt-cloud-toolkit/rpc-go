@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 	amt2 "rpc/internal/amt"
-	"rpc/internal/certtest"
+	"rpc/internal/certs"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
@@ -13,11 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var sortaSingletonCerts *certtest.TestCerts = nil
+var sortaSingletonCerts *certs.CompositeChain = nil
 
-func getTestCerts() *certtest.TestCerts {
+func getTestCerts() *certs.CompositeChain {
 	if sortaSingletonCerts == nil {
-		sortaSingletonCerts = certtest.New("P@ssw0rd")
+		cc, _ := certs.NewCompositeChain("P@ssw0rd")
+		sortaSingletonCerts = &cc
 	}
 	return sortaSingletonCerts
 }
@@ -226,7 +227,7 @@ func TestActivateACM(t *testing.T) {
 
 	mockCertHashes = []amt2.CertHashEntry{
 		{
-			Hash:      testCerts.CaFingerprint,
+			Hash:      testCerts.Root.Fingerprint,
 			Name:      "",
 			Algorithm: "",
 			IsActive:  true,
@@ -254,7 +255,7 @@ func TestInjectCertsErrors(t *testing.T) {
 	f := &flags.Flags{}
 	testCerts := getTestCerts()
 
-	certs := []string{testCerts.LeafPem, testCerts.InterPem, testCerts.CaPem}
+	certs := []string{testCerts.Leaf.Pem, testCerts.Intermediate.Pem, testCerts.Root.Pem}
 
 	t.Run("returns error on server error response", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
