@@ -59,7 +59,7 @@ func ExecuteCommand(flags *flags.Flags) error {
 		err = service.DisplayVersion()
 		break
 	}
-	if err != nil{
+	if err != nil {
 		log.Error(err)
 	}
 	return err

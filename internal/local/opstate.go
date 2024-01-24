@@ -43,7 +43,7 @@ func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) error 
 
 func (service *ProvisioningService) RenewIP() error {
 	err := service.networker.RenewDHCPLease()
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 	if log.IsLevelEnabled(log.DebugLevel) {

@@ -73,17 +73,22 @@ func parseCommandLine(args []string) (*flags.Flags, error) {
 func main() {
 	err := checkAccess()
 	if err != nil {
-		if err != nil {
-			log.Error(err.Error())
-		}
 		log.Error(AccessErrMsg)
-		//TODO: handle this safely
-		os.Exit(int(err.(*utils.CustomError).Code))
+		handleError(err)
 	}
+
 	err = runRPC(os.Args)
 	if err != nil {
-		log.Error(err.Error())
+		handleError(err)
 	}
-	//TODO: handle this safely
-	os.Exit(int(err.(*utils.CustomError).Code))
+}
+
+func handleError(err error) {
+	if customErr, ok := err.(utils.CustomError); ok {
+		log.Error(customErr.Error())
+		os.Exit(customErr.Code)
+	} else {
+		log.Error(err.Error())
+		os.Exit(utils.GenericFailure.Code)
+	}
 }
