@@ -1,7 +1,6 @@
 package local
 
 import (
-	"errors"
 	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -26,20 +25,16 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.Password == "" {
 		result, rc := service.flags.ReadPasswordFromUser()
 		if !result || rc != nil {
-			err = errors.New("Missing or Incorrect Password")
-			return err
+			return utils.MissingOrIncorrectPassword
 		}
 	}
-	service.setupWsmanClient("admin", service.flags.Password)
-	response, err := service.wsmanMessages.AMT.SetupAndConfigurationService.Unprovision(1)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password)
+	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate
 	}
-	if response.Body.Unprovision_OUTPUT.ReturnValue != 0 {
-		log.Error("Status: Failed to deactivate. ReturnValue: ", response.Body.Unprovision_OUTPUT.ReturnValue)
-		return utils.DeactivationFailed
-	}
+
 	log.Info("Status: Device deactivated in ACM.")
 	return nil
 }

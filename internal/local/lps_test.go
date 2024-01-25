@@ -25,6 +25,38 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 	return mockRenewDHCPLeaseerr
 }
 
+// Mock the go-wsman-messages
+type MockWSMAN struct{}
+
+var mockACMUnprovisionValue = 0
+var mockACMUnprovisionErr error = nil
+
+func (m MockWSMAN) Unprovision(int) (setupandconfiguration.Response, error) {
+	return setupandconfiguration.Response{
+		Body: setupandconfiguration.Body{
+			Unprovision_OUTPUT: setupandconfiguration.Unprovision_OUTPUT{
+				ReturnValue: mockACMUnprovisionValue,
+			},
+		},
+	}, mockACMUnprovisionErr
+}
+func (m MockWSMAN) SetupWsmanClient(username string, password string) {}
+func (m MockWSMAN) GetGeneralSettings() (general.Response, error) {
+	return general.Response{}, nil
+}
+func (m MockWSMAN) HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error) {
+	return hostbasedsetup.Response{}, nil
+}
+func (m MockWSMAN) GetHostBasedSetupService() (hostbasedsetup.Response, error) {
+	return hostbasedsetup.Response{}, nil
+}
+func (m MockWSMAN) AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error) {
+	return hostbasedsetup.Response{}, nil
+}
+func (m MockWSMAN) HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error) {
+	return hostbasedsetup.Response{}, nil
+}
+
 // Mock the AMT Hardware
 type MockAMT struct{}
 
@@ -178,6 +210,7 @@ func setupService(f *flags.Flags) ProvisioningService {
 	service := NewProvisioningService(f)
 	service.amtCommand = MockAMT{}
 	service.networker = &MockOSNetworker{}
+	service.interfacedWsmanMessage = MockWSMAN{}
 	return service
 }
 

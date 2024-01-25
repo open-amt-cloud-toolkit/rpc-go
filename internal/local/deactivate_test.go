@@ -2,7 +2,6 @@ package local
 
 import (
 	"errors"
-	"net/http"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
@@ -75,50 +74,23 @@ func TestDeactivateACM(t *testing.T) {
 
 	t.Run("returns Success for happy path", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondUnprovision(t, w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		err := lps.Deactivate()
 		assert.Equal(t, nil, err)
 	})
 	t.Run("returns UnableToDeactivate with no password", func(t *testing.T) {
 		f.Password = ""
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondServerError(w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		err := lps.Deactivate()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
 	})
 
 	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision server error", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondServerError(w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		mockACMUnprovisionErr = errors.New("yep, it failed")
+		lps := setupService(f)
 		err := lps.Deactivate()
 		assert.Equal(t, utils.UnableToDeactivate, err)
-	})
-	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision xml error", func(t *testing.T) {
-		f.Password = "P@ssw0rd"
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondBadXML(t, w)
-		})
-		lps := setupWithWsmanClient(f, handler)
-		err := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, err)
-	})
-	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
-		f.Password = "P@ssw0rd"
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			mockUnprovisionResponse.ReturnValue = 1
-			respondUnprovision(t, w)
-			mockUnprovisionResponse.ReturnValue = 0
-		})
-		lps := setupWithWsmanClient(f, handler)
-		err := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, err)
+		mockACMUnprovisionErr = nil
 	})
 }
