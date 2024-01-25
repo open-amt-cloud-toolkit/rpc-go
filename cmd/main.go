@@ -74,16 +74,16 @@ func main() {
 	err := checkAccess()
 	if err != nil {
 		log.Error(AccessErrMsg)
-		handleError(err)
+		handleErrorAndExit(err)
 	}
 
 	err = runRPC(os.Args)
 	if err != nil {
-		handleError(err)
+		handleErrorAndExit(err)
 	}
 }
 
-func handleError(err error) {
+func handleErrorAndExit(err error) {
 	if customErr, ok := err.(utils.CustomError); ok {
 		log.Error(customErr.Error())
 		os.Exit(customErr.Code)

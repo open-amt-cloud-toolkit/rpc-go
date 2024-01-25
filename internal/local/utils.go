@@ -36,11 +36,11 @@ func (service *ProvisioningService) GetPublicKeyCerts() ([]publickey.PublicKeyCe
 
 	response, err := service.wsmanMessages.AMT.PublicKeyCertificate.Enumerate()
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	response, err = service.wsmanMessages.AMT.PublicKeyCertificate.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 
 	return response.Body.PullResponse.PublicKeyCertificateItems, nil
@@ -50,14 +50,14 @@ func (service *ProvisioningService) GetPublicKeyCerts() ([]publickey.PublicKeyCe
 // NOTE: RSA Key encoded as DES PKCS#1. The Exponent (E) is 65537 (0x010001).
 // When this structure is used as an output parameter (GET or PULL method),
 // only the public section of the key is exported.
-func (service *ProvisioningService) GetPublicPrivateKeyPairs(keyPairs *[]publicprivate.PublicPrivateKeyPair) ([]publicprivate.PublicPrivateKeyPair, error) {
+func (service *ProvisioningService) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
 	response, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Enumerate()
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	response, err = service.wsmanMessages.AMT.PublicPrivateKeyPair.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	return response.Body.PullResponse.PublicPrivateKeyPairItems, nil
 }
@@ -85,11 +85,11 @@ func (service *ProvisioningService) DeletePublicCert(instanceId string) error {
 func (service *ProvisioningService) GetCredentialRelationships() ([]credential.CredentialContext, error) {
 	response, err := service.wsmanMessages.CIM.CredentialContext.Enumerate()
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	response, err = service.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	return response.Body.PullResponse.Items, nil
 }
@@ -97,11 +97,11 @@ func (service *ProvisioningService) GetCredentialRelationships() ([]credential.C
 func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
 	response, err := service.wsmanMessages.CIM.ConcreteDependency.Enumerate()
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	response, err = service.wsmanMessages.CIM.ConcreteDependency.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return nil, utils.WSMANMessageError
 	}
 	return response.Body.PullResponse.Items, nil
 }

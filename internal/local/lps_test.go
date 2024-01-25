@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	amt2 "rpc/internal/amt"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
@@ -66,7 +67,7 @@ const ChangeEnabledResponseNotNew = 0x00
 
 var mockChangeEnabledResponse = amt2.ChangeEnabledResponse(ChangeEnabledResponseNewEnabled)
 var mockChangeEnabledErr error = nil
-var mockStandardErr = errors.New("yep, it failed")
+var mockStandardErr = errors.New("failed")
 
 func (c MockAMT) Initialize() error {
 	return nil
@@ -217,7 +218,7 @@ func setupService(f *flags.Flags) ProvisioningService {
 func setupWithTestServer(f *flags.Flags, handler http.Handler) ProvisioningService {
 	service := setupService(f)
 	server := httptest.NewServer(handler)
-	service.serverURL = server.URL
+	service.serverURL, _ = url.Parse(server.URL)
 	return service
 }
 

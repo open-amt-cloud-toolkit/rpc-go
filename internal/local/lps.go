@@ -1,6 +1,7 @@
 package local
 
 import (
+	"net/url"
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
@@ -29,8 +30,11 @@ type ProvisioningService struct {
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
-	// supports unit testing
-	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
+	serverURL := &url.URL{
+		Scheme: "http",
+		Host:   utils.LMSAddress + ":" + utils.LMSPort,
+		Path:   "/wsman",
+	}
 	return ProvisioningService{
 		flags:                  flags,
 		serverURL:              serverURL,
@@ -65,5 +69,4 @@ func ExecuteCommand(flags *flags.Flags) error {
 }
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {
-
 }

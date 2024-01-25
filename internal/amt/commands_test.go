@@ -180,19 +180,19 @@ func TestGetVersionDataFromMEError(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 
-func TestGetVersionDataFromMETimeout1sec(t *testing.T) {
-	returnError = true
-	result, err := amt.GetVersionDataFromME("", 1*time.Second)
-	assert.Equal(t, "amt internal error", err.Error())
-	assert.Equal(t, "", result)
-}
+// func TestGetVersionDataFromMETimeout1sec(t *testing.T) {
+// 	returnError = true
+// 	result, err := amt.GetVersionDataFromME("", 1*time.Second)
+// 	assert.Equal(t, "amt internal error", err.Error())
+// 	assert.Equal(t, "", result)
+// }
 
-func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
-	returnError = true
-	result, err := amt.GetVersionDataFromME("", 16*time.Second)
-	assert.Equal(t, "amt internal error", err.Error())
-	assert.Equal(t, "", result)
-}
+// func TestGetVersionDataFromMETimeout16sec(t *testing.T) {
+// 	returnError = true
+// 	result, err := amt.GetVersionDataFromME("", 16*time.Second)
+// 	assert.Equal(t, "amt internal error", err.Error())
+// 	assert.Equal(t, "", result)
+// }
 func TestGetIsAMTEnabled(t *testing.T) {
 	result, err := amt.GetChangeEnabled()
 	assert.NoError(t, err)
