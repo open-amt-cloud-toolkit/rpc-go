@@ -20,7 +20,7 @@ type RealOSNetworker struct{}
 
 type ProvisioningService struct {
 	flags                  *flags.Flags
-	serverURL              string
+	serverURL              *url.URL
 	wsmanMessages          wsman.Messages
 	interfacedWsmanMessage bacon.WSMANer
 	config                 *config.Config
