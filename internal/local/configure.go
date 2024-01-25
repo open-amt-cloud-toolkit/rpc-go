@@ -6,8 +6,6 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publicprivate"
-
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/wifi"
@@ -52,7 +50,10 @@ func (service *ProvisioningService) AddWifiSettings() (err error) {
 
 func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 	// get these handles BEFORE deleting the wifi profiles
-	certHandles, keyPairHandles := service.GetWifiIeee8021xCerts()
+	certHandles, keyPairHandles, err := service.GetWifiIeee8021xCerts()
+	if err != nil {
+		return err
+	}
 
 	response, err := service.wsmanMessages.CIM.WiFiEndpointSettings.Enumerate()
 	if err != nil {
@@ -77,7 +78,8 @@ func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 			failures = append(failures, wifiSetting.InstanceID)
 			continue
 		}
-		successes = append(successes, wifiSetting.InstanceID)
+		// logged success, no need to keep the successes
+		_ = append(successes, wifiSetting.InstanceID)
 	}
 
 	service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
@@ -108,13 +110,18 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 	return failedCertHandles, failedKeyPairHandles
 }
 
-func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []string, keyPairHandles []string) {
-	publicCerts, _ := service.GetPublicKeyCerts()
-	var keyPairs []publicprivate.PublicPrivateKeyPair
-	service.GetPublicPrivateKeyPairs(&keyPairs)
+func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
+	publicCerts, err := service.GetPublicKeyCerts()
+	if err != nil {
+		return certHandles, keyPairHandles, err
+	}
+	_, err = service.GetPublicPrivateKeyPairs()
+	if err != nil {
+		return certHandles, keyPairHandles, err
+	}
 	credentials, err := service.GetCredentialRelationships()
 	if err != nil {
-		return certHandles, keyPairHandles
+		return certHandles, keyPairHandles, err
 	}
 	certHandleMap := make(map[string]bool)
 	for i := range credentials {
@@ -136,7 +143,7 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []strin
 		}
 	}
 	if len(certHandles) == 0 {
-		return certHandles, keyPairHandles
+		return certHandles, keyPairHandles, err
 	}
 
 	keyPairHandleMap := make(map[string]bool)
@@ -164,7 +171,7 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []strin
 		}
 	}
 
-	return certHandles, keyPairHandles
+	return certHandles, keyPairHandles, err
 }
 
 func (service *ProvisioningService) ProcessWifiConfigs() error {
@@ -274,7 +281,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	if err != nil {
 		// The AddWiFiSettings call failed, return error response from go-wsman-messages
 		service.RollbackAddedItems(&handles)
-		return err
+		return utils.WSMANMessageError
 	}
 	if response.Body.AddWiFiSettings_OUTPUT.ReturnValue != 0 {
 		// AMT returned an unsuccessful response
@@ -332,7 +339,7 @@ func (service *ProvisioningService) EnableWifi() (err error) {
 	response, err := service.wsmanMessages.AMT.WiFiPortConfigurationService.Get()
 	if err != nil {
 		log.Error(err)
-		return utils.AMTConnectionFailed
+		return utils.WSMANMessageError
 	}
 
 	// if local sync not enable, enable it
@@ -355,7 +362,7 @@ func (service *ProvisioningService) EnableWifi() (err error) {
 		putResponse, err := service.wsmanMessages.AMT.WiFiPortConfigurationService.Put(putRequest)
 		if err != nil {
 			log.Error(err)
-			return utils.WiFiConfigurationFailed
+			return utils.WSMANMessageError
 		}
 		if putResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == 0 {
 			log.Error("failed to enable wifi local profile synchronization")
@@ -367,7 +374,7 @@ func (service *ProvisioningService) EnableWifi() (err error) {
 	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
 	_, err = service.wsmanMessages.CIM.WiFiPort.RequestStateChange(32769)
 	if err != nil {
-		return err
+		return utils.WSMANMessageError
 	}
 	return nil
 }

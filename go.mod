@@ -3,9 +3,10 @@ module rpc
 go 1.20
 
 // uncomment if developing with go-wsman-messages locally
-// replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../go-wsman-messages
+replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../go-wsman-messages
 
 require (
+	github.com/google/uuid v1.4.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
@@ -17,7 +18,6 @@ require (
 
 require (
 	github.com/geoffgarside/ber v1.1.0 // indirect
-	github.com/google/uuid v1.4.0 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 )
@@ -31,5 +31,3 @@ require (
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
-
-replace github.com/open-amt-cloud-toolkit/go-wsman-messages => ../../go-wsman-messages

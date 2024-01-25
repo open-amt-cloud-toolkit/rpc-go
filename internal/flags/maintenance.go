@@ -154,7 +154,6 @@ func (f *Flags) handleMaintenanceSyncIP() error {
 		f.amtMaintenanceSyncIPCommand.Usage()
 		// Parse the error message to find the problematic flag.
 		// The problematic flag is of the following format '-' followed by flag name and then a ':'
-		var err error
 		re := regexp.MustCompile(`-.*:`)
 		switch re.FindString(err.Error()) {
 		case "-netmask:":

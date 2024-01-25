@@ -1,6 +1,7 @@
 package local
 
 import (
+	"net/url"
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
@@ -18,7 +19,7 @@ type RealOSNetworker struct{}
 
 type ProvisioningService struct {
 	flags            *flags.Flags
-	serverURL        string
+	serverURL        *url.URL
 	wsmanMessages    wsman.Messages
 	config           *config.Config
 	amtCommand       internalAMT.Interface
@@ -27,8 +28,11 @@ type ProvisioningService struct {
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
-	// supports unit testing
-	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
+	serverURL := &url.URL{
+		Scheme: "http",
+		Host:   utils.LMSAddress + ":" + utils.LMSPort,
+		Path:   "/wsman",
+	}
 	return ProvisioningService{
 		flags:            flags,
 		serverURL:        serverURL,
@@ -45,19 +49,14 @@ func ExecuteCommand(flags *flags.Flags) error {
 	switch flags.Command {
 	case utils.CommandActivate:
 		err = service.Activate()
-		break
 	case utils.CommandAMTInfo:
 		err = service.DisplayAMTInfo()
-		break
 	case utils.CommandDeactivate:
 		err = service.Deactivate()
-		break
 	case utils.CommandConfigure:
 		err = service.Configure()
-		break
 	case utils.CommandVersion:
 		err = service.DisplayVersion()
-		break
 	}
 	if err != nil {
 		log.Error(err)
@@ -67,12 +66,11 @@ func ExecuteCommand(flags *flags.Flags) error {
 
 func (service *ProvisioningService) setupWsmanClient(username string, password string) {
 	clientParams := wsman.ClientParameters{
-		Target:    service.flags.LMSAddress,
+		Target:    service.serverURL,
 		Username:  username,
 		Password:  password,
 		UseDigest: true,
 		UseTLS:    false,
 	}
 	service.wsmanMessages = wsman.NewMessages(clientParams)
-	// service.client = wsman.NewClient(service.serverURL, username, password, true, service.flags.Verbose)
 }

@@ -210,7 +210,7 @@ func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) 
 	}
 	privateKey, certificate, extraCerts, err := pkcs12.DecodeChain(pfx, passphrase)
 	if err != nil {
-		return CertsAndKeys{}, errors.New("Decrypting provisioning certificate failed")
+		return CertsAndKeys{}, errors.New("decrypting provisioning certificate failed")
 	}
 	certs := append([]*x509.Certificate{certificate}, extraCerts...)
 	pfxOut := CertsAndKeys{certs: certs, keys: []interface{}{privateKey}}
@@ -241,7 +241,7 @@ func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error 
 			return nil
 		}
 	}
-	return errors.New("The root of the provisioning certificate does not match any of the trusted roots in AMT.")
+	return errors.New("the root of the provisioning certificate does not match any of the trusted roots in AMT")
 }
 
 func (service *ProvisioningService) injectCertificate(certChain []string) error {
@@ -254,7 +254,7 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 		err := service.AddNextCertInChain(cert, isLeaf, isRoot)
 		if err != nil {
 			log.Error(err)
-			return errors.New("Failed to add certificate to AMT.")
+			return errors.New("failed to add certificate to AMT")
 		}
 	}
 	return nil

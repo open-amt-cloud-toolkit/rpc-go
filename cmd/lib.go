@@ -19,16 +19,16 @@ import (
 
 //export rpcCheckAccess
 func rpcCheckAccess() int {
-	rc, err := checkAccess()
+	err := checkAccess()
 	if err != nil {
-		log.Error(err.Error())
+		return handleError(err)
 	}
-	return int(rc)
+	return int(utils.Success)
 }
 
 //export rpcExec
 func rpcExec(Input *C.char, Output **C.char) int {
-	if accessStatus := rpcCheckAccess(); accessStatus != int(nil) {
+	if accessStatus := rpcCheckAccess(); accessStatus != int(utils.Success) {
 		*Output = C.CString(AccessErrMsg)
 		return accessStatus
 	}
@@ -41,12 +41,22 @@ func rpcExec(Input *C.char, Output **C.char) int {
 	args, err := r.Read()
 	if err != nil {
 		log.Error(err.Error())
-		return int(utils.InvalidParameterCombination)
+		return utils.InvalidParameterCombination.Code
 	}
 	args = append([]string{"rpc"}, args...)
-	rc := runRPC(args)
+	err = runRPC(args)
 	if err != nil {
 		*Output = C.CString("rpcExec failed: " + inputString)
 	}
-	return int(rc)
+	return handleError(err)
+}
+
+func handleError(err error) int {
+	if customErr, ok := err.(utils.CustomError); ok {
+		log.Error(customErr.Error())
+		return customErr.Code
+	} else {
+		log.Error(err.Error())
+		return utils.GenericFailure.Code
+	}
 }

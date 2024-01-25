@@ -2,7 +2,6 @@ package flags
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -386,7 +385,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) error {
 }
 
 func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
-	var err error = errors.New("Missing or invalid configuration")
+	var err error = utils.MissingOrInvalidConfiguration
 	if cfg.Username == "" {
 		log.Error("missing username for config: ", cfg.ProfileName)
 		return err

@@ -7,7 +7,6 @@ package flags
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -259,7 +258,7 @@ func (f *Flags) handleLocalConfig() error {
 	if f.configContent == "" {
 		return nil
 	}
-	err := errors.New("failed to read configuration")
+	err := utils.FailedReadingConfiguration
 	ext := filepath.Ext(strings.ToLower(f.configContent))
 	isPFX := ext == ".pfx"
 	if strings.HasPrefix(f.configContent, "smb:") {
@@ -272,7 +271,7 @@ func (f *Flags) handleLocalConfig() error {
 		configBytes, err := f.SambaService.FetchFileContents(f.configContent)
 		if err != nil {
 			log.Error("config error: ", err)
-			return err
+			return utils.FailedReadingConfiguration
 		}
 		if isPFX {
 			f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(configBytes)
@@ -291,7 +290,7 @@ func (f *Flags) handleLocalConfig() error {
 		pfxBytes, err := os.ReadFile(f.configContent)
 		if err != nil {
 			log.Error("config error: ", err)
-			return err
+			return utils.FailedReadingConfiguration
 		}
 		f.LocalConfig.ACMSettings.ProvisioningCert = base64.StdEncoding.EncodeToString(pfxBytes)
 	} else {

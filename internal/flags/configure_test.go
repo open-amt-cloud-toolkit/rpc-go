@@ -300,12 +300,8 @@ var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
 
 func runVerifyWifiConfiguration(t *testing.T, expectedResult error, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
 	f := Flags{}
-	for _, cfg := range wifiCfgs {
-		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, cfg)
-	}
-	for _, cfg := range ieee8021xCfgs {
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
-	}
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgs...)
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgs...)
 	gotResult := f.verifyWifiConfigurations()
 	assert.Equal(t, expectedResult, gotResult)
 }
@@ -532,8 +528,8 @@ func TestInvalidAuthenticationProtocols(t *testing.T) {
 		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.protocol),
 			func(t *testing.T) {
 				f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(tc.protocol)
-				rc := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
-				assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
+				err := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, err)
 			})
 	}
 }

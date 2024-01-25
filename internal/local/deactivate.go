@@ -1,7 +1,6 @@
 package local
 
 import (
-	"errors"
 	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -26,8 +25,7 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.Password == "" {
 		result, rc := service.flags.ReadPasswordFromUser()
 		if !result || rc != nil {
-			err = errors.New("Missing or Incorrect Password")
-			return err
+			return utils.MissingOrIncorrectPassword
 		}
 	}
 	service.setupWsmanClient("admin", service.flags.Password)

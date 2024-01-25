@@ -34,7 +34,6 @@ func (f *Flags) handleActivateCommand() error {
 	}
 	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
 		re := regexp.MustCompile(`: .*`)
-		var err = utils.IncorrectCommandLineParameters
 		switch re.FindString(err.Error()) {
 		case ": -d":
 			err = utils.MissingDNSSuffix

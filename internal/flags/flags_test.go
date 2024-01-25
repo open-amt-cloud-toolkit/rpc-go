@@ -428,8 +428,8 @@ func TestHandleLocalConfig(t *testing.T) {
 		flags := NewFlags(args)
 		flags.configContent = "smb://localhost/xxx/nope.html"
 		flags.SambaService = NewMockSambaService(nil)
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 
 	t.Run("expect FailedReadingConfiguration for smb fetch file error", func(t *testing.T) {
@@ -437,15 +437,15 @@ func TestHandleLocalConfig(t *testing.T) {
 		flags := NewFlags(args)
 		flags.configContent = "smb://localhost/xxx/yep.yaml"
 		flags.SambaService = NewMockSambaService(errors.New("test error"))
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 
 	t.Run("expect FailedReadingConfiguration for local pfx ReadFile", func(t *testing.T) {
 		args := []string{"./rpc"}
 		flags := NewFlags(args)
 		flags.configContent = "/tmp/thisfilebetterneverexist.pfx"
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 }
