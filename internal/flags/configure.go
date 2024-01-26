@@ -78,7 +78,7 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandEnableWifiPort + " -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandConfigureTLS + "             Configures TLS in AMT. AMT password is required.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -tlsMode Server -password YourAMTPassword\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -mode Server -password YourAMTPassword\n"
 	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
