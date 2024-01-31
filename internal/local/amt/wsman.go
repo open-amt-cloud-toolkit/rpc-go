@@ -2,12 +2,38 @@ package bacon
 
 import (
 	"encoding/base64"
+	"rpc/internal/lm"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/client"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/ips/hostbasedsetup"
 )
+
+type LocalWsman struct {
+	local  lm.LocalMananger
+	data   chan []byte
+	errors chan error
+	status chan bool
+}
+
+func NewLocalWsman(username string, password string) LocalWsman {
+	lmDataChannel := make(chan []byte)
+	lmErrorChannel := make(chan error)
+	lmStatus := make(chan bool)
+	lm := LocalWsman{
+		local:  lm.NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatus),
+		data:   lmDataChannel,
+		errors: lmErrorChannel,
+		status: lmStatus,
+	}
+	lm.local.Initialize()
+	return lm
+}
+func (l LocalWsman) Post(msg string) (response []byte, err error) {
+	return nil, nil
+}
 
 type WSMANer interface {
 	SetupWsmanClient(username string, password string)
@@ -43,7 +69,13 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string) {
 		UseDigest: true,
 		UseTLS:    false,
 	}
-	g.wsmanMessages = wsman.NewMessages(clientParams)
+	if g.target != "local" {
+		wsmanClient := client.NewWsman(clientParams.Target, clientParams.Username, clientParams.Password, clientParams.UseDigest, clientParams.UseTLS, clientParams.SelfSignedAllowed)
+		g.wsmanMessages = wsman.NewMessages(wsmanClient)
+	} else {
+		wsmanClient := NewLocalWsman("", "")
+		g.wsmanMessages = wsman.NewMessages(wsmanClient)
+	}
 }
 
 func (g *GoWSMANMessages) GetGeneralSettings() (general.Response, error) {
