@@ -5,8 +5,8 @@ import (
 	"rpc/pkg/utils"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/stretchr/testify/assert"
 )
 

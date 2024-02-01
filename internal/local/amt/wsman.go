@@ -3,11 +3,11 @@ package bacon
 import (
 	"encoding/base64"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/general"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/setupandconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/client"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/client"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 )
 
 type WSMANer interface {

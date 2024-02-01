@@ -8,7 +8,7 @@ import (
 	bacon "rpc/internal/local/amt"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
 	log "github.com/sirupsen/logrus"
 )
 
