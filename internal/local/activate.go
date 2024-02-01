@@ -36,7 +36,7 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.setupWsmanClient(lsa.Username, lsa.Password)
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password)
 
 	if service.flags.UseACM {
 		err = service.ActivateACM()

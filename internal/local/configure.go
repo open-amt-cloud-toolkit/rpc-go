@@ -13,15 +13,28 @@ import (
 )
 
 func (service *ProvisioningService) Configure() (err error) {
-	service.setupWsmanClient("admin", service.flags.Password)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password)
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()
+	case utils.SubCommandSetMEBx:
+		return service.SetMebx()
 	default:
 	}
 	return utils.IncorrectCommandLineParameters
+}
+
+func (service *ProvisioningService) SetMebx() (err error) {
+	response, err := service.interfacedWsmanMessage.SetupMEBX(service.flags.MEBxPassword)
+	log.Info(response)
+	if err != nil {
+		log.Error("Failed to configure MEBx Password.")
+	} else {
+		log.Info("Successfully configured MEBx Password.")
+	}
+	return err
 }
 
 func (service *ProvisioningService) EnableWifiPort() (err error) {

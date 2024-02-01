@@ -67,6 +67,3 @@ func ExecuteCommand(flags *flags.Flags) error {
 	}
 	return err
 }
-
-func (service *ProvisioningService) setupWsmanClient(username string, password string) {
-}
