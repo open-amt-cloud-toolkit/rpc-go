@@ -229,7 +229,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.setupWsmanClient("admin", service.flags.Password)
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password)
 		userCerts, _ := service.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.PublicKeyCertificateResponse{}
 		for i := range userCerts {

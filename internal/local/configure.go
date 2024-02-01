@@ -13,7 +13,7 @@ import (
 )
 
 func (service *ProvisioningService) Configure() (err error) {
-	service.setupWsmanClient("admin", service.flags.Password)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password)
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
