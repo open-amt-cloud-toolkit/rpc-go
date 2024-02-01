@@ -84,6 +84,7 @@ type Flags struct {
 	versionCommand                      *flag.FlagSet
 	flagSetAddWifiSettings              *flag.FlagSet
 	flagSetEnableWifiPort               *flag.FlagSet
+	flagSetMEBx                         *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -93,6 +94,7 @@ type Flags struct {
 	AmtInfo                             AmtInfoFlags
 	SkipIPRenew                         bool
 	SambaService                        smb.ServiceInterface
+	MEBxPassword                        string
 }
 
 func NewFlags(args []string) *Flags {
@@ -115,6 +117,7 @@ func NewFlags(args []string) *Flags {
 
 	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
 	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
+	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}

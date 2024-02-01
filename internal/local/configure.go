@@ -19,9 +19,22 @@ func (service *ProvisioningService) Configure() (err error) {
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()
+	case utils.SubCommandSetMEBx:
+		return service.SetMebx()
 	default:
 	}
 	return utils.IncorrectCommandLineParameters
+}
+
+func (service *ProvisioningService) SetMebx() (err error) {
+	response, err := service.wsmanMessages.AMT.SetupAndConfigurationService.SetMEBXPassword(service.flags.MEBxPassword)
+	log.Info(response)
+	if err != nil {
+		log.Error("Failed to configure MEBx Password.")
+	} else {
+		log.Info("Successfully configured MEBx Password.")
+	}
+	return err
 }
 
 func (service *ProvisioningService) EnableWifiPort() (err error) {

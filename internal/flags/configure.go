@@ -8,8 +8,8 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/wifi"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/ips/ieee8021x"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 
 	"github.com/ilyakaznacheev/cleanenv"
 	log "github.com/sirupsen/logrus"
@@ -21,9 +21,11 @@ func (f *Flags) printConfigurationUsage() string {
 	usage = usage + "Usage: " + executable + " configure COMMAND [OPTIONS]\n\n"
 	usage = usage + "Supported Configuration Commands:\n"
 	usage = usage + "  addwifisettings Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage = usage + "                 Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
+	usage = usage + "                  Example: " + executable + " configure addwifisettings -password YourAMTPassword -config wificonfig.yaml\n"
 	usage = usage + "  enablewifiport  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
-	usage = usage + "                 Example: " + executable + " configure enablewifiport -password YourAMTPassword\n"
+	usage = usage + "                  Example: " + executable + " configure enablewifiport -password YourAMTPassword\n"
+	usage = usage + "  mebx            Configure MEBx Password. AMT password is required.\n"
+	usage = usage + "                  Example: " + executable + " configure mebx -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
 	usage = usage + "\nRun '" + executable + " configure COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -43,6 +45,8 @@ func (f *Flags) handleConfigureCommand() error {
 		err = f.handleAddWifiSettings()
 	case "enablewifiport":
 		err = f.handleEnableWifiPort()
+	case "mebx":
+		err = f.handleMEBxPassword()
 	default:
 		f.printConfigurationUsage()
 		err = utils.IncorrectCommandLineParameters
@@ -68,6 +72,25 @@ func (f *Flags) handleConfigureCommand() error {
 			log.Error("password does not match config file password")
 			return utils.MissingOrIncorrectPassword
 		}
+	}
+	return nil
+}
+
+func (f *Flags) handleMEBxPassword() error {
+	var err error
+	if len(f.commandLineArgs) > 7 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	f.flagSetMEBx.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetMEBx.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetMEBx.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetMEBx.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+	f.flagSetMEBx.StringVar(&f.MEBxPassword, "mebxpassword", f.lookupEnvOrString("MEBX_PASSWORD", ""), "MEBX password")
+
+	if err = f.flagSetMEBx.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
 	}
 	return nil
 }
