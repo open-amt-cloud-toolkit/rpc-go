@@ -1,66 +1,66 @@
 {
     "version": "0.2.0",
     "configurations": [
-        // {
-        //     "name": "Activate Device",
-        //     "type": "go",
-        //     "asRoot": true,
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/cmd/main.go",
-        //     "args": [
-        //         "activate",
-        //         "-u",
-        //         "wss://[server]/activate",
-        //         "--profile",
-        //         "[profile]",
-        //         "-n",
-        //         "-v"
-        //     ],
-        //     "console": "integratedTerminal"
-        // },
-        // {
-        //     "name": "AMT Info",
-        //     "type": "go",
-        //     "asRoot": true,
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/cmd/main.go",
-        //     "args": [
-        //         "amtinfo"
-        //     ],
-        //     "console": "integratedTerminal"
-        // },
-        // {
-        //     "name": "Deactivate Device",
-        //     "type": "go",
-        //     "asRoot": true,
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/cmd/main.go",
-        //     "args": [
-        //         "deactivate",
-        //         "-u",
-        //         "wss://[server]/activate",
-        //         "-f",
-        //         "-n",
-        //         "-v"
-        //     ],
-        //     "console": "integratedTerminal"
-        // },
-        // {
-        //     "name": "Maintenance Task ",
-        //     "type": "go",
-        //     "asRoot": true,
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/cmd/main.go",
-        //     "args": [
-        //         "maintenance",
-        //         "deviceinfo",
-        //         "-u",
-        //         "wss://[server]/activate",
-        //         "-n",
-        //         "-v"
-        //     ],
-        //     "console": "integratedTerminal"
-        // },
+        {
+            "name": "Activate Device",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "activate",
+                "-u",
+                "wss://[server]/activate",
+                "--profile",
+                "[profile]",
+                "-n",
+                "-v"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "AMT Info",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "amtinfo"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Deactivate Device",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "deactivate",
+                "-u",
+                "wss://[server]/activate",
+                "-f",
+                "-n",
+                "-v"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Maintenance Task ",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "maintenance",
+                "deviceinfo",
+                "-u",
+                "wss://[server]/activate",
+                "-n",
+                "-v"
+            ],
+            "console": "integratedTerminal"
+        },
         {
             "name": "Configuration Task ",
             "type": "go",
@@ -77,16 +77,16 @@
             ],
             "console": "integratedTerminal"
         },
-        // {
-        //     "name": "Version Info",
-        //     "type": "go",
-        //     "asRoot": true,
-        //     "request": "launch",
-        //     "program": "${workspaceFolder}/cmd/main.go",
-        //     "args": [
-        //         "version"
-        //     ],
-        //     "console": "integratedTerminal"
-        // }
+        {
+            "name": "Version Info",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "version"
+            ],
+            "console": "integratedTerminal"
+        }
     ]
 }
