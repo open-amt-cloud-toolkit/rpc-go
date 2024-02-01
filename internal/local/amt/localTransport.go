@@ -45,7 +45,6 @@ func NewLocalTransport() *LocalTransport {
 // Custom dialer function
 func (l *LocalTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	//Something comes here...Maybe
-	logrus.Info("FUCK YEAH")
 	go l.local.Listen()
 
 	// send channel open

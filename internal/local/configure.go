@@ -6,9 +6,9 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/amt/wifiportconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/models"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman/cim/wifi"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	log "github.com/sirupsen/logrus"
 )
 
