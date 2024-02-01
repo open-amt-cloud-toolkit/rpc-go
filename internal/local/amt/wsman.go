@@ -6,7 +6,6 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/client"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 )
 
@@ -18,6 +17,7 @@ type WSMANer interface {
 	GetHostBasedSetupService() (hostbasedsetup.Response, error)
 	AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error)
 	HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error)
+	SetupMEBX(string) (response setupandconfiguration.Response, err error)
 }
 
 type GoWSMANMessages struct {
@@ -41,10 +41,9 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string) {
 		UseTLS:    false,
 	}
 
-	wsmanClient := client.NewWsman(clientParams.Target, clientParams.Username, clientParams.Password, clientParams.UseDigest, clientParams.UseTLS, clientParams.SelfSignedAllowed)
-	lt := NewLocalTransport()
-	wsmanClient.Transport = lt
-
+	// wsmanClient := client.NewWsman(clientParams.Target, clientParams.Username, clientParams.Password, clientParams.UseDigest, clientParams.UseTLS, clientParams.SelfSignedAllowed)
+	// lt := NewLocalTransport()
+	// wsmanClient.Transport = lt
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 	// } else {
 	// 	wsmanClient := NewLocalWsman("", "")
@@ -74,4 +73,8 @@ func (g *GoWSMANMessages) HostBasedSetupServiceAdmin(password, digestRealm strin
 
 func (g *GoWSMANMessages) Unprovision(int) (setupandconfiguration.Response, error) {
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.Unprovision(1)
+}
+
+func (g *GoWSMANMessages) SetupMEBX(password string) (response setupandconfiguration.Response, err error) {
+	return g.wsmanMessages.AMT.SetupAndConfigurationService.SetMEBXPassword(password)
 }

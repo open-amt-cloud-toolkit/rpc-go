@@ -27,7 +27,7 @@ func (service *ProvisioningService) Configure() (err error) {
 }
 
 func (service *ProvisioningService) SetMebx() (err error) {
-	response, err := service.wsmanMessages.AMT.SetupAndConfigurationService.SetMEBXPassword(service.flags.MEBxPassword)
+	response, err := service.interfacedWsmanMessage.SetupMEBX(service.flags.MEBxPassword)
 	log.Info(response)
 	if err != nil {
 		log.Error("Failed to configure MEBx Password.")
