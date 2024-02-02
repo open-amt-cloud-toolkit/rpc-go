@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// const trustedRootXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>2</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddTrustedRootCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A988</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddTrustedRootCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 2</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddTrustedRootCertificate_OUTPUT></a:Body></a:Envelope>"
-// const clientCertXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>1</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddCertificateResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89C</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddCertificate_OUTPUT><g:CreatedCertificate><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Certificate: Handle: 1</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedCertificate><g:ReturnValue>0</g:ReturnValue></g:AddCertificate_OUTPUT></a:Body></a:Envelope>"
-// const addKeyXMLResponse = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><a:Envelope xmlns:a=\"http://www.w3.org/2003/05/soap-envelope\" xmlns:b=\"http://schemas.xmlsoap.org/ws/2004/08/addressing\" xmlns:c=\"http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd\" xmlns:d=\"http://schemas.xmlsoap.org/ws/2005/02/trust\" xmlns:e=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" xmlns:f=\"http://schemas.dmtf.org/wbem/wsman/1/cimbinding.xsd\" xmlns:g=\"http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><a:Header><b:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:To><b:RelatesTo>0</b:RelatesTo><b:Action a:mustUnderstand=\"true\">http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps/AddKeyResponse</b:Action><b:MessageID>uuid:00000000-8086-8086-8086-00000003A89B</b:MessageID><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyManagementlps</c:ResourceURI></a:Header><a:Body><g:AddKey_OUTPUT><g:CreatedKey><b:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</b:Address><b:ReferenceParameters><c:ResourceURI>http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair</c:ResourceURI><c:SelectorSet><c:Selector Name=\"InstanceID\">Intel(r) AMT Key: Handle: 0</c:Selector></c:SelectorSet></b:ReferenceParameters></g:CreatedKey><g:ReturnValue>0</g:ReturnValue></g:AddKey_OUTPUT></a:Body></a:Envelope>"
-
 var wifiCfgWPA = config.WifiConfig{
 	ProfileName:          "wifiWPA",
 	SSID:                 "ssid",
@@ -57,26 +53,6 @@ var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
 	PrivateKey:             "privateKey",
 }
 
-// var wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2 = config.WifiConfig{
-// 	ProfileName:          "wifiWPA28021x",
-// 	SSID:                 "ssid",
-// 	Priority:             2,
-// 	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA2_IEEE8021x),
-// 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
-// 	PskPassphrase:        "",
-// 	Ieee8021xProfileName: "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
-// }
-
-// var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
-// 	ProfileName:            "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
-// 	Username:               "username",
-// 	Password:               "password",
-// 	AuthenticationProtocol: int(ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2),
-// 	ClientCert:             "clientCert",
-// 	CACert:                 "caCert",
-// 	PrivateKey:             "privateKey",
-// }
-
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
 
@@ -104,21 +80,6 @@ func TestAddWifiSettings(t *testing.T) {
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
 	pcsRsp := wifiportconfiguration.Response{}
 	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-	// t.Run("expect Success on happy path", func(t *testing.T) {
-	// 	rfa := append(
-	// 		emptyGetWifiIeee8021xCerts(t),
-	// 		ResponseFuncArray{
-	// 			respondMsgFunc(t, common.EnumerationResponse{}),
-	// 			respondMsgFunc(t, wifi.PullResponse{}),
-	// 			respondMsgFunc(t, pcsRsp),
-	// 			respondMsgFunc(t, wifi.Body{}), // TBD
-	// 			respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
-	// 		}...,
-	// 	)
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.AddWifiSettings()
-	// 	assert.Equal(t, nil, err)
-	// })
 	t.Run("expect error from PruneWifiConfigs path", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.AddWifiSettings()
@@ -135,15 +96,7 @@ func TestProcessWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA2)
-	// t.Run("expect WifiConfigurationWithWarnings if some configs fail", func(t *testing.T) {
-	// 	f.LocalConfig.WifiConfigs[0].ProfileName = "bad-name"
-	// 	rfa := ResponseFuncArray{
-	// 		respondMsgFunc(t, wifiportconfiguration.AddWiFiSettingsResponse{}),
-	// 	}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	rc := lps.ProcessWifiConfigs()
-	// 	assert.Equal(t, utils.WifiConfigurationWithWarnings, rc)
-	// })
+
 	t.Run("expect WiFiConfigurationFailed if all configs fail", func(t *testing.T) {
 		f.LocalConfig.WifiConfigs[1].ProfileName = "bad-name"
 		lps := setupService(f)
@@ -171,209 +124,18 @@ func TestProcessWifiConfig(t *testing.T) {
 		rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
 		assert.Equal(t, utils.WSMANMessageError, rc)
 	})
-	// t.Run("expect unsuccessful return value error for AddWiFiSettings()", func(t *testing.T) {
-	// 	msgRsp := wifiportconfiguration.AddWiFiSettingsResponse{}
-	// 	msgRsp.AddWiFiSettings_OUTPUT.ReturnValue = 1
-	// 	expected := utils.WiFiConfigurationFailed
-	// 	rfa := ResponseFuncArray{respondMsgFunc(t, msgRsp)}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
-	// 	assert.Equal(t, expected, rc)
-	// })
+
 }
 
 func TestPruneWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
 
-	// t.Run("expect Success when there are no configs", func(t *testing.T) {
-	// 	rfa := append(
-	// 		emptyGetWifiIeee8021xCerts(t),
-	// 		ResponseFuncArray{
-	// 			respondMsgFunc(t, common.EnumerationResponse{}),
-	// 			respondMsgFunc(t, wifi.PullResponse{}),
-	// 		}...,
-	// 	)
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.PruneWifiConfigs()
-	// 	assert.Equal(t, nil, err)
-	// })
-	// t.Run("expect success when there are configs", func(t *testing.T) {
-	// 	pullEnvelope := wifi.PullResponse{}
-	// 	pullEnvelope.EndpointSettingsItems = append(pullEnvelope.EndpointSettingsItems, wifi.WiFiEndpointSettingsResponse{InstanceID: "Config1"})
-	// 	pullEnvelope.EndpointSettingsItems = append(pullEnvelope.EndpointSettingsItems, wifi.WiFiEndpointSettingsResponse{InstanceID: "Config2"})
-	// 	pullEnvelope.EndpointSettingsItems = append(pullEnvelope.EndpointSettingsItems, wifi.WiFiEndpointSettingsResponse{InstanceID: ""})
-	// 	rfa := append(
-	// 		emptyGetWifiIeee8021xCerts(t),
-	// 		ResponseFuncArray{
-	// 			respondMsgFunc(t, common.EnumerationResponse{}),
-	// 			respondMsgFunc(t, pullEnvelope),
-	// 			respondMsgFunc(t, "Config1 Deleted"),
-	// 			respondMsgFunc(t, "Config2 Deleted"),
-	// 			respondServerErrFunc(), // this one should NOT get called
-	// 		}...,
-	// 	)
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.PruneWifiConfigs()
-	// 	assert.Equal(t, nil, err)
-	// })
-	// t.Run("expect DeleteWifiConfigFailed", func(t *testing.T) {
-	// 	pullEnvelope := wifi.PullResponse{}
-	// 	pullEnvelope.EndpointSettingsItems = append(pullEnvelope.EndpointSettingsItems, wifi.WiFiEndpointSettingsResponse{InstanceID: "Config1"})
-	// 	pullEnvelope.EndpointSettingsItems = append(pullEnvelope.EndpointSettingsItems, wifi.WiFiEndpointSettingsResponse{InstanceID: "Config2"})
-	// 	rfa := append(
-	// 		emptyGetWifiIeee8021xCerts(t),
-	// 		ResponseFuncArray{
-	// 			respondMsgFunc(t, common.EnumerationResponse{}),
-	// 			respondMsgFunc(t, pullEnvelope),
-	// 			respondMsgFunc(t, "Config1 Deleted"),
-	// 			respondServerErrFunc(),
-	// 		}...,
-	// 	)
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.PruneWifiConfigs()
-	// 	assert.Equal(t, utils.DeleteWifiConfigFailed, err)
-	// })
 	t.Run("expect WSMANMessageError error on EnumPullUnmarshal", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.PruneWifiConfigs()
 		assert.Equal(t, utils.WSMANMessageError, err)
 	})
 }
-
-// func TestPruneIeee8012xConfig(t *testing.T) {
-// 	f := &flags.Flags{}
-// 	certHandles := []string{"handle 1", "handle 2"}
-// 	keyPairHandles := []string{"handle 3", "handle 4"}
-// 	rfa := ResponseFuncArray{
-// 		respondMsgFunc(t, "Deleted"),
-// 		respondServerErrFunc(),
-// 		respondMsgFunc(t, "Deleted"),
-// 		respondServerErrFunc(),
-// 	}
-// 	lps := setupWsmanResponses(t, f, rfa)
-// 	failCerts, failKeyPairs := lps.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
-// 	assert.NotEmpty(t, failCerts)
-// 	assert.Equal(t, "handle 2", failCerts[0])
-// 	assert.NotEmpty(t, failKeyPairs)
-// 	assert.Equal(t, "handle 4", failKeyPairs[0])
-// }
-
-// func TestGetWifiIeee8021xCerts(t *testing.T) {
-// 	f := &flags.Flags{}
-// 	re := regexp.MustCompile(enumCtxElement)
-// 	relationshipsEOS := re.ReplaceAllString(credCtxPullRspString, endOfSequenceElement)
-// 	dependenciesEOS := re.ReplaceAllString(concreteDependencyPullRspString, endOfSequenceElement)
-// 	// make a publickey response to match the credCtx
-// 	instanceId := "Intel(r) AMT Certificate: Handle: 1"
-// 	x509CertString := "ThisIsJustFakeCertBytes"
-// 	pkPullRspEnv := publickey.PullResponse{}
-// 	pkPullRspEnv.PublicKeyCertificateItems = []publickey.PublicKeyCertificateResponse{
-// 		{
-// 			InstanceID:      instanceId,
-// 			X509Certificate: x509CertString,
-// 		},
-// 	}
-// 	rfa := ResponseFuncArray{
-// 		respondMsgFunc(t, common.EnumerationResponse{}),
-// 		respondMsgFunc(t, pkPullRspEnv),
-// 		respondMsgFunc(t, common.EnumerationResponse{}),
-// 		respondMsgFunc(t, publicprivate.PullResponse{}),
-// 		respondMsgFunc(t, common.EnumerationResponse{}),
-// 		respondStringFunc(t, relationshipsEOS),
-// 		respondMsgFunc(t, common.EnumerationResponse{}),
-// 		respondStringFunc(t, dependenciesEOS),
-// 	}
-// 	lps := setupWsmanResponses(t, f, rfa)
-// 	certHandles, keyPairHandles, err := lps.GetWifiIeee8021xCerts()
-// 	assert.NoError(t, err)
-// 	assert.Equal(t, 2, len(certHandles))
-// 	assert.Equal(t, 1, len(keyPairHandles))
-// 	assert.Equal(t, x509CertString, lps.handlesWithCerts[instanceId])
-// }
-
-// func TestProcessIeee8012xConfig(t *testing.T) {
-// 	f := &flags.Flags{}
-
-// 	t.Run("expect error on missing ieee8021x profile", func(t *testing.T) {
-// 		ieee8021xSettings := &models.IEEE8021xSettings{}
-// 		handles := Handles{}
-// 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-// 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
-// 		lps := setupWsmanResponses(t, f, ResponseFuncArray{})
-// 		rc, _ := lps.ProcessIeee8012xConfig("someothername", ieee8021xSettings, &handles)
-// 		assert.Equal(t, utils.MissingIeee8021xConfiguration, rc)
-// 		assert.Empty(t, ieee8021xSettings.ElementName)
-// 		assert.Empty(t, handles.privateKeyHandle)
-// 		assert.Empty(t, handles.clientCertHandle)
-// 		assert.Empty(t, handles.rootCertHandle)
-// 	})
-// 	t.Run("expect error on AddPrivateKey error", func(t *testing.T) {
-// 		ieee8021xSettings := &models.IEEE8021xSettings{}
-// 		handles := Handles{}
-// 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-// 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgPEAPv0_EAPMSCHAPv2)
-// 		rfa := ResponseFuncArray{respondServerErrFunc()}
-// 		lps := setupWsmanResponses(t, f, rfa)
-// 		rc, _ := lps.ProcessIeee8012xConfig(ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings, &handles)
-// 		assert.Equal(t, utils.WSMANMessageError, rc)
-// 		assert.Equal(t, ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName, ieee8021xSettings.ElementName)
-// 		assert.Empty(t, handles.privateKeyHandle)
-// 		assert.Empty(t, handles.clientCertHandle)
-// 		assert.Empty(t, handles.rootCertHandle)
-// 	})
-// 	t.Run("expect error on AddClientCert error", func(t *testing.T) {
-// 		ieee8021xSettings := &models.IEEE8021xSettings{}
-// 		handles := Handles{}
-// 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-// 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
-// 		rfa := ResponseFuncArray{
-// 			respondStringFunc(t, addKeyXMLResponse),
-// 			respondServerErrFunc()}
-// 		lps := setupWsmanResponses(t, f, rfa)
-// 		rc, _ := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-// 		assert.Equal(t, utils.WSMANMessageError, rc)
-// 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
-// 		assert.NotEmpty(t, handles.privateKeyHandle)
-// 		assert.Empty(t, handles.clientCertHandle)
-// 		assert.Empty(t, handles.rootCertHandle)
-// 	})
-// 	t.Run("expect error on AddTrustedRootCert error", func(t *testing.T) {
-// 		ieee8021xSettings := &models.IEEE8021xSettings{}
-// 		handles := Handles{}
-// 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-// 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
-// 		rfa := ResponseFuncArray{
-// 			respondStringFunc(t, addKeyXMLResponse),
-// 			respondStringFunc(t, clientCertXMLResponse),
-// 			respondServerErrFunc(),
-// 		}
-// 		lps := setupWsmanResponses(t, f, rfa)
-// 		rc, _ := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-// 		assert.Equal(t, utils.WSMANMessageError, rc)
-// 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
-// 		assert.NotEmpty(t, handles.privateKeyHandle)
-// 		assert.NotEmpty(t, handles.clientCertHandle)
-// 		assert.Empty(t, handles.rootCertHandle)
-// 	})
-// 	t.Run("expect success on happy path", func(t *testing.T) {
-// 		ieee8021xSettings := &models.IEEE8021xSettings{}
-// 		handles := Handles{}
-// 		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-// 		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
-// 		rfa := ResponseFuncArray{
-// 			respondStringFunc(t, addKeyXMLResponse),
-// 			respondStringFunc(t, clientCertXMLResponse),
-// 			respondStringFunc(t, trustedRootXMLResponse),
-// 		}
-// 		lps := setupWsmanResponses(t, f, rfa)
-// 		rc, _ := lps.ProcessIeee8012xConfig(ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings, &handles)
-// 		assert.Equal(t, nil, rc)
-// 		assert.Equal(t, ieee8021xCfgEAPTLS.ProfileName, ieee8021xSettings.ElementName)
-// 		assert.NotEmpty(t, handles.privateKeyHandle)
-// 		assert.NotEmpty(t, handles.clientCertHandle)
-// 		assert.NotEmpty(t, handles.rootCertHandle)
-// 	})
-// }
 
 func TestEnableWifiErrors(t *testing.T) {
 	f := &flags.Flags{}
@@ -400,22 +162,7 @@ func TestEnableWifiErrors(t *testing.T) {
 		err := lps.EnableWifi()
 		assert.Equal(t, utils.WSMANMessageError, err)
 	})
-	// t.Run("expect non-zero error for RequestStateChange()", func(t *testing.T) {
-	// 	pcsResponse := wifiportconfiguration.Response{}
-	// 	pcsResponseEnabled := wifiportconfiguration.Response{}
-	// 	pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-	// 	stateChangeResponse := common.ReturnValue{}
-	// 	stateChangeResponse.ReturnValue = 1
-	// 	expected := utils.AmtPtStatusCodeBase + error(stateChangeResponse.Body.RequestStateChange_OUTPUT.ReturnValue)
-	// 	rfa := ResponseFuncArray{
-	// 		respondMsgFunc(t, pcsResponse),
-	// 		respondMsgFunc(t, pcsResponseEnabled),
-	// 		respondMsgFunc(t, stateChangeResponse),
-	// 	}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.EnableWifi()
-	// 	assert.Equal(t, expected, err)
-	// })
+
 }
 
 func TestRollbackAddedItems(t *testing.T) {
@@ -437,51 +184,12 @@ func TestRollbackAddedItems(t *testing.T) {
 }
 
 func TestAddTrustedRootCert(t *testing.T) {
-	// t.Run("expect WSMANMessageError", func(t *testing.T) {
-	// 	rfa := ResponseFuncArray{respondServerErrFunc()}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, rc := lps.AddTrustedRootCert("AABBCCDD")
-	// 	assert.Equal(t, utils.WSMANMessageError, rc)
-	// 	assert.Empty(t, handle)
-	// })
-	// t.Run("expect non-zero error ", func(t *testing.T) {
-	// 	dup := strings.Replace(trustedRootXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
-	// 	expected := errors.New("RequestStateChange failed with return code 1")
-	// 	rfa := ResponseFuncArray{respondStringFunc(t, dup)}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, err := lps.AddTrustedRootCert("AABBCCDD")
-	// 	assert.Equal(t, expected, err)
-	// 	assert.Empty(t, handle)
-	// })
-	// t.Run("expect success when credential already added", func(t *testing.T) {
-	// 	lps := setupService(f)
-	// 	instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
-	// 	associatedCredential := `THISISAFAKECERTSTRING`
-	// 	lps.handlesWithCerts[instanceId] = associatedCredential
-	// 	handle, resultCode := lps.AddTrustedRootCert(associatedCredential)
-	// 	assert.Equal(t, nil, resultCode)
-	// 	assert.Equal(t, instanceId, handle)
-	// })
+
 }
 
 func TestAddClientCert(t *testing.T) {
 	f := &flags.Flags{}
-	// t.Run("expect WSMANMessageError", func(t *testing.T) {
-	// 	rfa := ResponseFuncArray{respondServerErrFunc()}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, rc := lps.AddClientCert("AABBCCDD")
-	// 	assert.Equal(t, utils.WSMANMessageError, rc)
-	// 	assert.Empty(t, handle)
-	// })
-	// t.Run("expect non-zero error ", func(t *testing.T) {
-	// 	dup := strings.Replace(clientCertXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
-	// 	expected := errors.New("RequestStateChange failed with return code 1")
-	// 	rfa := ResponseFuncArray{respondStringFunc(t, dup)}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, err := lps.AddClientCert("AABBCCDD")
-	// 	assert.Equal(t, expected, err)
-	// 	assert.Empty(t, handle)
-	// })
+
 	t.Run("expect success when credential already added", func(t *testing.T) {
 		lps := setupService(f)
 		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
@@ -495,22 +203,7 @@ func TestAddClientCert(t *testing.T) {
 
 func TestAddPrivateKey(t *testing.T) {
 	f := &flags.Flags{}
-	// t.Run("expect WSMANMessageError", func(t *testing.T) {
-	// 	rfa := ResponseFuncArray{respondServerErrFunc()}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, rc := lps.AddPrivateKey("AABBCCDD")
-	// 	assert.Equal(t, utils.WSMANMessageError, rc)
-	// 	assert.Empty(t, handle)
-	// })
-	// t.Run("expect non-zero error ", func(t *testing.T) {
-	// 	dup := strings.Replace(addKeyXMLResponse, `<g:ReturnValue>0</g:ReturnValue>`, `<g:ReturnValue>1</g:ReturnValue>`, 1)
-	// 	expected := errors.New("RequestStateChange failed with return code 1")
-	// 	rfa := ResponseFuncArray{respondStringFunc(t, dup)}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	handle, err := lps.AddPrivateKey("AABBCCDD")
-	// 	assert.Equal(t, expected, err)
-	// 	assert.Empty(t, handle)
-	// })
+
 	t.Run("expect success when credential already added", func(t *testing.T) {
 
 		lps := setupService(f)
@@ -528,17 +221,7 @@ func TestEnableWifiPort(t *testing.T) {
 	pcsRsp := wifiportconfiguration.Response{}
 	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
 	pcsRsp.Body.WiFiPortConfigurationService.EnabledState = 1
-	// t.Run("enablewifiport: expect Success on happy path", func(t *testing.T) {
-	// 	rfa := ResponseFuncArray{
-	// 		respondMsgFunc(t, common.EnumerationResponse{}),
-	// 		respondMsgFunc(t, wifi.PullResponse{}),
-	// 		respondMsgFunc(t, pcsRsp),
-	// 		respondMsgFunc(t, common.ReturnValue{}),
-	// 	}
-	// 	lps := setupWsmanResponses(t, f, rfa)
-	// 	err := lps.EnableWifiPort()
-	// 	assert.Equal(t, nil, err)
-	// })
+
 	t.Run("enablewifiport: expect WSMANMessageError ", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.EnableWifiPort()

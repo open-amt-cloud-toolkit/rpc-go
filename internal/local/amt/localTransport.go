@@ -1,4 +1,4 @@
-package bacon
+package amt
 
 import (
 	"bufio"
