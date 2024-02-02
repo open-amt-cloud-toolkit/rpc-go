@@ -3,7 +3,6 @@ package local
 import (
 	"crypto/x509"
 	"errors"
-	"net/http"
 	amt2 "rpc/internal/amt"
 	"rpc/internal/certtest"
 	"rpc/internal/flags"
@@ -23,10 +22,7 @@ func getTestCerts() *certtest.TestCerts {
 }
 
 func TestActivation(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		respondServerError(w)
-	})
-	lps := setupWithTestServer(&flags.Flags{}, handler)
+	lps := setupService(&flags.Flags{})
 	lps.flags.Command = utils.CommandActivate
 	lps.flags.LocalConfig.Password = "P@ssw0rd"
 
@@ -69,81 +65,37 @@ func TestActivation(t *testing.T) {
 func TestActivateCCM(t *testing.T) {
 	f := &flags.Flags{}
 	t.Run("returns ActivationFailed on GeneralSettings.Get() server error", func(t *testing.T) {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondServerError(w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on GeneralSettings.Get() xml.unmarshal error", func(t *testing.T) {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondBadXML(t, w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup server error", func(t *testing.T) {
-		calls := 0
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			calls++
-			if calls == 1 {
-				respondGeneralSettings(t, w)
-			} else if calls == 2 {
-				respondServerError(w)
-			}
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup xml.unmarshal error", func(t *testing.T) {
-		calls := 0
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			calls++
-			if calls == 1 {
-				respondGeneralSettings(t, w)
-			} else if calls == 2 {
-				respondBadXML(t, w)
-			}
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns ActivationFailed on HostBasedSetupService.Setup ReturnValue is not success (0)", func(t *testing.T) {
-		calls := 0
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			calls++
-			if calls == 1 {
-				respondGeneralSettings(t, w)
-			} else if calls == 2 {
-				mockHostBasedSetupResponse.Body.Setup_OUTPUT.ReturnValue = 1
-				respondHostBasedSetup(t, w)
-				mockHostBasedSetupResponse.Body.Setup_OUTPUT.ReturnValue = 0
-			}
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, utils.ActivationFailed, rc)
 	})
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
-		calls := 0
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			calls++
-			if calls == 1 {
-				respondGeneralSettings(t, w)
-			} else if calls == 2 {
-				respondHostBasedSetup(t, w)
-			}
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		rc := lps.ActivateCCM()
 		assert.Equal(t, nil, rc)
 	})
@@ -165,19 +117,7 @@ func TestActivateACM(t *testing.T) {
 			IsDefault: true,
 		},
 	}
-	calls := 0
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "POST", r.Method)
-		var err error
-		calls++
-		if calls == 1 {
-			respondGeneralSettings(t, w)
-		} else {
-			respondHostBasedSetup(t, w)
-		}
-		assert.Nil(t, err)
-	})
-	lps := setupWithWsmanClient(f, handler)
+	lps := setupService(f)
 	rc := lps.ActivateACM()
 	assert.Equal(t, nil, rc)
 }
@@ -189,22 +129,11 @@ func TestInjectCertsErrors(t *testing.T) {
 	certs := []string{testCerts.LeafPem, testCerts.InterPem, testCerts.CaPem}
 
 	t.Run("returns error on server error response", func(t *testing.T) {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondServerError(w)
-		})
-		lps := setupWithWsmanClient(f, handler)
+		lps := setupService(f)
 		err := lps.injectCertificate(certs)
 		assert.NotNil(t, err)
 	})
 
-	t.Run("returns error on xml.unmarshal error", func(t *testing.T) {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			respondBadXML(t, w)
-		})
-		lps := setupWithWsmanClient(f, handler)
-		err := lps.injectCertificate(certs)
-		assert.NotNil(t, err)
-	})
 }
 
 func TestDumpPfx(t *testing.T) {

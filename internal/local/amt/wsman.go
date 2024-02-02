@@ -38,7 +38,7 @@ type WSMANer interface {
 	AddClientCert(clientCert string) (string, error)
 	AddPrivateKey(privateKey string) (string, error)
 	EnableWiFi() error
-	AddWiFiSettings(wifi.WiFiEndpointSettingsRequest, models.IEEE8021xSettings, string, string, string) (wifiportconfiguration.Response, error)
+	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
 }
 
 type GoWSMANMessages struct {
@@ -139,10 +139,12 @@ func (g *GoWSMANMessages) GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse
 	return response.Body.PullResponse.EndpointSettingsItems, nil
 }
 func (g *GoWSMANMessages) DeletePublicPrivateKeyPair(instanceId string) error {
-	return g.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)
+	_, err := g.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)
+	return err
 }
 func (g *GoWSMANMessages) DeletePublicCert(instanceId string) error {
-	return g.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
+	_, err := g.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
+	return err
 }
 func (g *GoWSMANMessages) GetCredentialRelationships() ([]credential.CredentialContext, error) {
 	response, err := g.wsmanMessages.CIM.CredentialContext.Enumerate()
@@ -167,7 +169,8 @@ func (g *GoWSMANMessages) GetConcreteDependencies() ([]concrete.ConcreteDependen
 	return response.Body.PullResponse.Items, nil
 }
 func (g *GoWSMANMessages) DeleteWiFiSetting(instanceID string) error {
-	return g.wsmanMessages.CIM.WiFiEndpointSettings.Delete(instanceID)
+	_, err := g.wsmanMessages.CIM.WiFiEndpointSettings.Delete(instanceID)
+	return err
 }
 func (g *GoWSMANMessages) AddTrustedRootCert(caCert string) (handle string, err error) {
 	response, err := g.wsmanMessages.AMT.PublicKeyManagementService.AddTrustedRootCertificate(caCert)
@@ -199,7 +202,7 @@ func (g *GoWSMANMessages) AddPrivateKey(privateKey string) (handle string, err e
 	}
 	return handle, nil
 }
-func (g *GoWSMANMessages) EnableWifi() error {
+func (g *GoWSMANMessages) EnableWiFi() error {
 	response, err := g.wsmanMessages.AMT.WiFiPortConfigurationService.Get()
 	if err != nil {
 		return err

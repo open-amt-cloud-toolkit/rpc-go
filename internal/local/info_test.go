@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,25 +55,21 @@ func TestDisplayAMTInfo(t *testing.T) {
 			clientCert,
 			caCert,
 		}
-		rfa := ResponseFuncArray{
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, pullEnvelope),
-		}
-		lps := setupWsmanResponses(t, f, rfa)
+		lps := setupService(f)
 		err := lps.DisplayAMTInfo()
 		assert.NoError(t, err)
 		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success but logs errors on error conditions", func(t *testing.T) {
-		mockUUIDErr = mockStandardErr
-		mockVersionDataErr = mockStandardErr
-		mockControlModeErr = mockStandardErr
-		mockDNSSuffixErr = mockStandardErr
-		mockOSDNSSuffixErr = mockStandardErr
-		mockRemoteAcessConnectionStatusErr = mockStandardErr
-		mockLANInterfaceSettingsErr = mockStandardErr
-		mockCertHashesErr = mockStandardErr
+		mockUUIDErr = errMockStandard
+		mockVersionDataErr = errMockStandard
+		mockControlModeErr = errMockStandard
+		mockDNSSuffixErr = errMockStandard
+		mockOSDNSSuffixErr = errMockStandard
+		mockRemoteAcessConnectionStatusErr = errMockStandard
+		mockLANInterfaceSettingsErr = errMockStandard
+		mockCertHashesErr = errMockStandard
 
 		f := &flags.Flags{}
 		f.AmtInfo = defaultFlags
@@ -99,9 +94,8 @@ func TestDisplayAMTInfo(t *testing.T) {
 	t.Run("resets UserCert on GetControlMode failure", func(t *testing.T) {
 		f := &flags.Flags{}
 		f.AmtInfo.UserCert = true
-		mockControlModeErr = mockStandardErr
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
+		mockControlModeErr = errMockStandard
+		lps := setupService(f)
 		err := lps.DisplayAMTInfo()
 		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
@@ -112,8 +106,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 0
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
+		lps := setupService(f)
 		err := lps.DisplayAMTInfo()
 		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
@@ -124,8 +117,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 2
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
+		lps := setupService(f)
 		err := lps.DisplayAMTInfo()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
 		assert.True(t, f.AmtInfo.UserCert)

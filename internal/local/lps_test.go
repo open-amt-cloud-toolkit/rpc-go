@@ -1,11 +1,8 @@
 package local
 
 import (
-	"encoding/xml"
 	"errors"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	amt2 "rpc/internal/amt"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
@@ -13,7 +10,14 @@ import (
 	"time"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/concrete"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,6 +61,48 @@ func (m MockWSMAN) AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (ho
 func (m MockWSMAN) HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error) {
 	return hostbasedsetup.Response{}, nil
 }
+func (m MockWSMAN) SetupMEBX(string) (response setupandconfiguration.Response, err error) {
+	return response, nil
+}
+func (m MockWSMAN) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
+	return nil, nil
+}
+func (m MockWSMAN) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
+	return nil, nil
+}
+func (m MockWSMAN) DeletePublicPrivateKeyPair(instanceId string) error {
+	return nil
+}
+func (m MockWSMAN) DeletePublicCert(instanceId string) error {
+	return nil
+}
+func (m MockWSMAN) GetCredentialRelationships() ([]credential.CredentialContext, error) {
+	return nil, nil
+}
+func (m MockWSMAN) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
+	return nil, nil
+}
+func (m MockWSMAN) GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error) {
+	return nil, nil
+}
+func (m MockWSMAN) DeleteWiFiSetting(instanceId string) error {
+	return nil
+}
+func (m MockWSMAN) AddTrustedRootCert(caCert string) (string, error) {
+	return "", nil
+}
+func (m MockWSMAN) AddClientCert(clientCert string) (string, error) {
+	return "", nil
+}
+func (m MockWSMAN) AddPrivateKey(privateKey string) (string, error) {
+	return "", nil
+}
+func (m MockWSMAN) EnableWiFi() error {
+	return nil
+}
+func (m MockWSMAN) AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error) {
+	return wifiportconfiguration.Response{}, nil
+}
 
 // Mock the AMT Hardware
 type MockAMT struct{}
@@ -66,8 +112,8 @@ const ChangeEnabledResponseNewDisabled = 0x80
 const ChangeEnabledResponseNotNew = 0x00
 
 var mockChangeEnabledResponse = amt2.ChangeEnabledResponse(ChangeEnabledResponseNewEnabled)
-var mockChangeEnabledErr error = nil
-var mockStandardErr = errors.New("failed")
+var errMockChangeEnabled error = nil
+var errMockStandard = errors.New("failed")
 
 func (c MockAMT) Initialize() error {
 	return nil
@@ -79,7 +125,7 @@ func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (str
 	return "Version", mockVersionDataErr
 }
 func (c MockAMT) GetChangeEnabled() (amt2.ChangeEnabledResponse, error) {
-	return mockChangeEnabledResponse, mockChangeEnabledErr
+	return mockChangeEnabledResponse, errMockChangeEnabled
 }
 
 var mockEnableAMTErr error = nil
@@ -165,66 +211,11 @@ func (c MockAMT) Unprovision() (int, error) { return mockUnprovisionCode, mockUn
 
 type ResponseFuncArray []func(w http.ResponseWriter, r *http.Request)
 
-func setupWsmanResponses(t *testing.T, f *flags.Flags, responses ResponseFuncArray) ProvisioningService {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "POST", r.Method)
-		if len(responses) > 0 {
-			responses[0](w, r)
-			responses = responses[1:]
-		} else {
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}
-	})
-	return setupWithWsmanClient(f, handler)
-}
-
-func respondServerErrFunc() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-}
-
-func respondBadXmlFunc(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, rc := w.Write([]byte(`not really xml is it?`))
-		assert.Nil(t, rc)
-	}
-}
-
-func respondMsgFunc(t *testing.T, msg any) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bytes, err := xml.Marshal(msg)
-		assert.Nil(t, err)
-		_, err = w.Write(bytes)
-		assert.Nil(t, err)
-	}
-}
-
-func respondStringFunc(t *testing.T, msg string) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte(msg))
-		assert.Nil(t, err)
-	}
-}
-
 func setupService(f *flags.Flags) ProvisioningService {
 	service := NewProvisioningService(f)
 	service.amtCommand = MockAMT{}
 	service.networker = &MockOSNetworker{}
 	service.interfacedWsmanMessage = MockWSMAN{}
-	return service
-}
-
-func setupWithTestServer(f *flags.Flags, handler http.Handler) ProvisioningService {
-	service := setupService(f)
-	server := httptest.NewServer(handler)
-	service.serverURL, _ = url.Parse(server.URL)
-	return service
-}
-
-func setupWithWsmanClient(f *flags.Flags, handler http.Handler) ProvisioningService {
-	service := setupWithTestServer(f, handler)
-	service.setupWsmanClient("admin", "password")
 	return service
 }
 
@@ -248,40 +239,4 @@ func TestExecute(t *testing.T) {
 		rc := ExecuteCommand(f)
 		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 	})
-}
-
-func respondServerError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-}
-
-func respondBadXML(t *testing.T, w http.ResponseWriter) {
-	_, err := w.Write([]byte(`not really xml is it?`))
-	assert.Nil(t, err)
-}
-
-var mockGenerlSettingsResponse = general.Response{}
-
-func respondGeneralSettings(t *testing.T, w http.ResponseWriter) {
-	xmlString, err := xml.Marshal(mockGenerlSettingsResponse)
-	assert.Nil(t, err)
-	_, err = w.Write(xmlString)
-	assert.Nil(t, err)
-}
-
-var mockHostBasedSetupResponse = hostbasedsetup.Response{}
-
-func respondHostBasedSetup(t *testing.T, w http.ResponseWriter) {
-	xmlString, err := xml.Marshal(mockHostBasedSetupResponse)
-	assert.Nil(t, err)
-	_, err = w.Write(xmlString)
-	assert.Nil(t, err)
-}
-
-var mockUnprovisionResponse = setupandconfiguration.Unprovision_OUTPUT{}
-
-func respondUnprovision(t *testing.T, w http.ResponseWriter) {
-	xmlString, err := xml.Marshal(mockUnprovisionResponse)
-	assert.Nil(t, err)
-	_, err = w.Write(xmlString)
-	assert.Nil(t, err)
 }

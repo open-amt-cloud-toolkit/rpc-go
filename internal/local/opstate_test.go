@@ -25,7 +25,7 @@ func TestCheckAndEnableAMT(t *testing.T) {
 		{
 			name:             "expect AMTConnectionFailed",
 			expectedRC:       utils.AMTConnectionFailed,
-			errChangeEnabled: mockStandardErr,
+			errChangeEnabled: errMockStandard,
 		},
 		{
 			name:       "expect noop for older versions",
@@ -41,7 +41,7 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			name:         "expect AmtNotReady for enable if error occurs",
 			expectedRC:   utils.AmtNotReady,
 			rsp:          ChangeEnabledResponseNewDisabled,
-			errEnableAMT: mockStandardErr,
+			errEnableAMT: errMockStandard,
 		},
 		{
 			name:       "expect Success for enable happy path",
@@ -59,8 +59,8 @@ func TestCheckAndEnableAMT(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			origChangeEnabledErr := mockChangeEnabledErr
-			mockChangeEnabledErr = tc.errChangeEnabled
+			origChangeEnabledErr := errMockChangeEnabled
+			errMockChangeEnabled = tc.errChangeEnabled
 			origDisableAMTErr := mockDisableAMTErr
 			mockDisableAMTErr = tc.errDisableAMT
 			origEnableAMTErr := mockEnableAMTErr
@@ -74,7 +74,7 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
 			assert.Equal(t, tc.expectedRC, err)
 			mockChangeEnabledResponse = origRsp
-			mockChangeEnabledErr = origChangeEnabledErr
+			errMockChangeEnabled = origChangeEnabledErr
 			mockEnableAMTErr = origEnableAMTErr
 			mockDisableAMTErr = origDisableAMTErr
 			mockRenewDHCPLeaseerr = origRenewDHCPLeaseRC

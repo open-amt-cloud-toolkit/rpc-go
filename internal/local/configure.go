@@ -296,7 +296,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	// } else {
 	// 	wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
 	// }
-	response, err := service.wsmanMessages.AMT.WiFiPortConfigurationService.AddWiFiSettings(
+	response, err := service.interfacedWsmanMessage.AddWiFiSettings(
 		wifiEndpointSettings,
 		ieee8021xSettings,
 		"WiFi Endpoint 0",

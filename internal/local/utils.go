@@ -1,19 +1,8 @@
 package local
 
 import (
-	"reflect"
 	"strings"
 )
-
-func reflectObjectName(v any) string {
-	var vName string
-	if t := reflect.TypeOf(v); t.Kind() == reflect.Ptr {
-		vName = t.Elem().Name()
-	} else {
-		vName = t.Name()
-	}
-	return vName
-}
 
 func GetTokenFromKeyValuePairs(kvList string, token string) string {
 	attributes := strings.Split(kvList, ",")
