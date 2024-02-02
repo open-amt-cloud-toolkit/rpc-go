@@ -298,7 +298,7 @@ var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
 	PrivateKey:             "",
 }
 
-func runVerifyWifiConfiguration(t *testing.T, expectedResult error, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
+func runVerifyWifiConfiguration(t *testing.T, expectedResult error, wifiCfgs []config.WifiConfig, ieee8021xCfgs []config.Ieee8021xConfig) {
 	f := Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgs...)
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgs...)
@@ -310,85 +310,85 @@ func TestVerifyWifiConfiguration(t *testing.T) {
 
 	t.Run("expect Success for correct configs", func(t *testing.T) {
 		runVerifyWifiConfiguration(t, nil,
-			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 	})
 	t.Run("expect MissingOrInvalidConfiguration when missing ProfileName", func(t *testing.T) {
 		orig := wifiCfgWPA.ProfileName
 		wifiCfgWPA.ProfileName = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.ProfileName = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration when missing SSID", func(t *testing.T) {
 		orig := wifiCfgWPA.SSID
 		wifiCfgWPA.SSID = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.SSID = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid Priority", func(t *testing.T) {
 		orig := wifiCfgWPA.Priority
 		wifiCfgWPA.Priority = 0
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.Priority = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with duplicate Priority", func(t *testing.T) {
 		orig := wifiCfgWPA.Priority
 		wifiCfgWPA.Priority = wifiCfgWPA2.Priority
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA, wifiCfgWPA2},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.Priority = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid AuthenticationMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.AuthenticationMethod
 		wifiCfgWPA.AuthenticationMethod = int(wifi.AuthenticationMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.AuthenticationMethod = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid EncryptionMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.EncryptionMethod
 		wifiCfgWPA.EncryptionMethod = int(wifi.EncryptionMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.EncryptionMethod = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with missing passphrase", func(t *testing.T) {
 		orig := wifiCfgWPA2.PskPassphrase
 		wifiCfgWPA2.PskPassphrase = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA2},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA2},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA2.PskPassphrase = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with missing ieee8021x ProfileName", func(t *testing.T) {
 		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
 		ieee8021xCfgEAPTLS.ProfileName = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
 	})
 	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = "shouldn't be here"
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS})
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = ""
 	})
 	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = "shouldn't be here"
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = ""
 	})
 
@@ -398,12 +398,12 @@ func TestVerifyWifiConfiguration(t *testing.T) {
 		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
 		// authMethod 5
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		// authMethod 7
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
 		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgEAPTLS.ProfileName
 	})
