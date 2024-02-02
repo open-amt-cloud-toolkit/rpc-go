@@ -2,14 +2,7 @@ package local
 
 import (
 	"reflect"
-	"rpc/pkg/utils"
 	"strings"
-
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/concrete"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
-	log "github.com/sirupsen/logrus"
 )
 
 func reflectObjectName(v any) string {
@@ -32,76 +25,12 @@ func GetTokenFromKeyValuePairs(kvList string, token string) string {
 	return tokenMap[token]
 }
 
-func (service *ProvisioningService) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
-
-	response, err := service.wsmanMessages.AMT.PublicKeyCertificate.Enumerate()
-	if err != nil {
-		return nil, utils.WSMANMessageError
+func checkHandleExists(handles map[string]string, cert string) string {
+	// get the handle from the map
+	for k, v := range handles {
+		if v == cert {
+			return k
+		}
 	}
-	response, err = service.wsmanMessages.AMT.PublicKeyCertificate.Pull(response.Body.EnumerateResponse.EnumerationContext)
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-
-	return response.Body.PullResponse.PublicKeyCertificateItems, nil
-}
-
-// GetPublicPrivateKeyPairs
-// NOTE: RSA Key encoded as DES PKCS#1. The Exponent (E) is 65537 (0x010001).
-// When this structure is used as an output parameter (GET or PULL method),
-// only the public section of the key is exported.
-func (service *ProvisioningService) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
-	response, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Enumerate()
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	response, err = service.wsmanMessages.AMT.PublicPrivateKeyPair.Pull(response.Body.EnumerateResponse.EnumerationContext)
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	return response.Body.PullResponse.PublicPrivateKeyPairItems, nil
-}
-
-func (service *ProvisioningService) DeletePublicPrivateKeyPair(instanceId string) error {
-	log.Infof("deleting public private key pair instance: %s", instanceId)
-	_, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)
-	if err != nil {
-		log.Errorf("unable to delete: %s", instanceId)
-		return utils.DeleteWifiConfigFailed
-	}
-	return nil
-}
-
-func (service *ProvisioningService) DeletePublicCert(instanceId string) error {
-	log.Infof("deleting public key certificate instance: %s", instanceId)
-	_, err := service.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
-	if err != nil {
-		log.Errorf("unable to delete: %s", instanceId)
-		return utils.DeleteWifiConfigFailed
-	}
-	return nil
-}
-
-func (service *ProvisioningService) GetCredentialRelationships() ([]credential.CredentialContext, error) {
-	response, err := service.wsmanMessages.CIM.CredentialContext.Enumerate()
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	response, err = service.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	return response.Body.PullResponse.Items, nil
-}
-
-func (service *ProvisioningService) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
-	response, err := service.wsmanMessages.CIM.ConcreteDependency.Enumerate()
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	response, err = service.wsmanMessages.CIM.ConcreteDependency.Pull(response.Body.EnumerateResponse.EnumerationContext)
-	if err != nil {
-		return nil, utils.WSMANMessageError
-	}
-	return response.Body.PullResponse.Items, nil
+	return ""
 }

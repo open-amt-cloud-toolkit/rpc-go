@@ -6,7 +6,6 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	log "github.com/sirupsen/logrus"
@@ -67,25 +66,20 @@ func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 	if err != nil {
 		return err
 	}
-
-	response, err := service.wsmanMessages.CIM.WiFiEndpointSettings.Enumerate()
+	wifiEndpointSettings, err := service.interfacedWsmanMessage.GetWiFiSettings()
 	if err != nil {
-		return utils.WSMANMessageError
-	}
-	response, err = service.wsmanMessages.CIM.WiFiEndpointSettings.Pull(response.Body.EnumerateResponse.EnumerationContext)
-	if err != nil {
-		return utils.WSMANMessageError
+		return err
 	}
 
 	var successes []string
 	var failures []string
-	for _, wifiSetting := range response.Body.PullResponse.EndpointSettingsItems {
+	for _, wifiSetting := range wifiEndpointSettings {
 		// while testing, saw some cases where the PullResponse returned items with no InstanceID?
 		if wifiSetting.InstanceID == "" {
 			continue
 		}
 		log.Infof("deleting wifiSetting: %s", wifiSetting.InstanceID)
-		_, err := service.wsmanMessages.CIM.WiFiEndpointSettings.Delete(wifiSetting.InstanceID)
+		err := service.interfacedWsmanMessage.DeleteWiFiSetting(wifiSetting.InstanceID)
 		if err != nil {
 			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
 			failures = append(failures, wifiSetting.InstanceID)
@@ -105,7 +99,7 @@ func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 
 func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (failedCertHandles []string, failedKeyPairHandles []string) {
 	for _, handle := range certHandles {
-		err := service.DeletePublicCert(handle)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handle)
 		if err != nil {
 			failedCertHandles = append(failedCertHandles, handle)
 		} else {
@@ -113,7 +107,7 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 		}
 	}
 	for _, handle := range keyPairHandles {
-		err := service.DeletePublicPrivateKeyPair(handle)
+		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handle)
 		if err != nil {
 			failedKeyPairHandles = append(failedKeyPairHandles, handle)
 		} else {
@@ -124,15 +118,15 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 }
 
 func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
-	publicCerts, err := service.GetPublicKeyCerts()
+	publicCerts, err := service.interfacedWsmanMessage.GetPublicKeyCerts()
 	if err != nil {
 		return certHandles, keyPairHandles, err
 	}
-	_, err = service.GetPublicPrivateKeyPairs()
+	_, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
 	if err != nil {
 		return certHandles, keyPairHandles, err
 	}
-	credentials, err := service.GetCredentialRelationships()
+	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
 	if err != nil {
 		return certHandles, keyPairHandles, err
 	}
@@ -160,7 +154,7 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPai
 	}
 
 	keyPairHandleMap := make(map[string]bool)
-	dependencies, _ := service.GetConcreteDependencies()
+	dependencies, _ := service.interfacedWsmanMessage.GetConcreteDependencies()
 	for i := range dependencies {
 		antecedent := &dependencies[i].Antecedent.ReferenceParameters
 		if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
@@ -258,18 +252,35 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 			ieee8021xSettings.Password = ieee8021xConfig.Password
 		}
 		if ieee8021xConfig.PrivateKey != "" {
-			handles.privateKeyHandle, err = service.AddPrivateKey(ieee8021xConfig.PrivateKey)
-			if err != nil {
-				return err
+			handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+			if handles.privateKeyHandle == "" {
+				handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
+				service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
+				if err != nil {
+					return err
+				}
 			}
 		}
 		if ieee8021xConfig.ClientCert != "" {
-			handles.clientCertHandle, err = service.AddClientCert(ieee8021xConfig.ClientCert)
-			if err != nil {
-				return err
+			handles.clientCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+			if handles.clientCertHandle == "" {
+				handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
+				service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
+				if err != nil {
+					return err
+				}
 			}
 		}
-		handles.rootCertHandle, err = service.AddTrustedRootCert(ieee8021xConfig.CACert)
+		if ieee8021xConfig.CACert != "" {
+			handles.rootCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.CACert)
+			if handles.rootCertHandle == "" {
+				handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
+				service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
+				if err != nil {
+					return err
+				}
+			}
+		}
 	} else {
 		// not using IEEE8021x, so set the wireless passphrase
 		wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
@@ -349,45 +360,9 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 // }
 
 func (service *ProvisioningService) EnableWifi() (err error) {
-	response, err := service.wsmanMessages.AMT.WiFiPortConfigurationService.Get()
+	err = service.interfacedWsmanMessage.EnableWiFi()
 	if err != nil {
-		log.Error(err)
-		return utils.WSMANMessageError
-	}
-
-	// if local sync not enable, enable it
-	if response.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == wifiportconfiguration.LocalSyncDisabled {
-		putRequest := wifiportconfiguration.WiFiPortConfigurationServiceRequest{
-			RequestedState:                     response.Body.WiFiPortConfigurationService.RequestedState,
-			EnabledState:                       response.Body.WiFiPortConfigurationService.EnabledState,
-			HealthState:                        response.Body.WiFiPortConfigurationService.HealthState,
-			ElementName:                        response.Body.WiFiPortConfigurationService.ElementName,
-			SystemCreationClassName:            response.Body.WiFiPortConfigurationService.SystemCreationClassName,
-			SystemName:                         response.Body.WiFiPortConfigurationService.SystemName,
-			CreationClassName:                  response.Body.WiFiPortConfigurationService.CreationClassName,
-			Name:                               response.Body.WiFiPortConfigurationService.Name,
-			LocalProfileSynchronizationEnabled: wifiportconfiguration.UnrestrictedSync,
-			LastConnectedSsidUnderMeControl:    response.Body.WiFiPortConfigurationService.LastConnectedSsidUnderMeControl,
-			NoHostCsmeSoftwarePolicy:           response.Body.WiFiPortConfigurationService.NoHostCsmeSoftwarePolicy,
-			UEFIWiFiProfileShareEnabled:        response.Body.WiFiPortConfigurationService.UEFIWiFiProfileShareEnabled,
-		}
-
-		putResponse, err := service.wsmanMessages.AMT.WiFiPortConfigurationService.Put(putRequest)
-		if err != nil {
-			log.Error(err)
-			return utils.WSMANMessageError
-		}
-		if putResponse.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == 0 {
-			log.Error("failed to enable wifi local profile synchronization")
-			return utils.WiFiConfigurationFailed
-		}
-	}
-
-	// always turn wifi on via state change request
-	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
-	_, err = service.wsmanMessages.CIM.WiFiPort.RequestStateChange(32769)
-	if err != nil {
-		return utils.WSMANMessageError
+		return err
 	}
 	return nil
 }
@@ -401,7 +376,7 @@ type Handles struct {
 func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.privateKeyHandle != "" {
 		log.Infof("rolling back private key %s", handles.privateKeyHandle)
-		_, err := service.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(handles.privateKeyHandle)
+		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handles.privateKeyHandle)
 		if err != nil {
 			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
 		} else {
@@ -410,7 +385,7 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	}
 	if handles.clientCertHandle != "" {
 		log.Infof("rolling back client cert %s", handles.clientCertHandle)
-		_, err := service.wsmanMessages.AMT.PublicKeyCertificate.Delete(handles.clientCertHandle)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handles.clientCertHandle)
 		if err != nil {
 			log.Errorf("failed deleting client cert: %s", handles.clientCertHandle)
 		} else {
@@ -419,68 +394,11 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	}
 	if handles.rootCertHandle != "" {
 		log.Infof("rolling back root cert %s", handles.rootCertHandle)
-		_, err := service.wsmanMessages.AMT.PublicKeyCertificate.Delete(handles.rootCertHandle)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handles.rootCertHandle)
 		if err != nil {
 			log.Errorf("failed deleting root cert: %s", handles.rootCertHandle)
 		} else {
 			log.Debugf("successfully deleted root cert: %s", handles.rootCertHandle)
 		}
 	}
-}
-
-func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, error) {
-	// check if this has been added already
-	for k, v := range service.handlesWithCerts {
-		if v == caCert {
-			return k, nil
-		}
-	}
-	response, err := service.wsmanMessages.AMT.PublicKeyManagementService.AddTrustedRootCertificate(caCert)
-	if err != nil {
-		return "", err
-	}
-	var handle string
-	if len(response.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selectors) > 0 {
-		handle = response.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selectors[0].Text
-	}
-	service.handlesWithCerts[handle] = caCert
-	return handle, nil
-}
-
-func (service *ProvisioningService) AddClientCert(clientCert string) (string, error) {
-	// check if this has been added already
-	for k, v := range service.handlesWithCerts {
-		if v == clientCert {
-			return k, nil
-		}
-	}
-	response, err := service.wsmanMessages.AMT.PublicKeyManagementService.AddCertificate(clientCert)
-	if err != nil {
-		return "", err
-	}
-	var handle string
-	if len(response.Body.AddCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selectors) > 0 {
-		handle = response.Body.AddCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selectors[0].Text
-	}
-	service.handlesWithCerts[handle] = clientCert
-	return handle, nil
-}
-
-func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, error) {
-	// check if this has been added already, but need the publik key of the pair
-	for k, v := range service.handlesWithCerts {
-		if v == privateKey {
-			return k, nil
-		}
-	}
-	response, err := service.wsmanMessages.AMT.PublicKeyManagementService.AddKey(privateKey)
-	if err != nil {
-		return "", err
-	}
-	var handle string
-	if len(response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors) > 0 {
-		handle = response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors[0].Text
-	}
-	service.handlesWithCerts[handle] = privateKey
-	return handle, nil
 }

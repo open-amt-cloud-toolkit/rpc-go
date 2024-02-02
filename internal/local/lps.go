@@ -8,7 +8,6 @@ import (
 	bacon "rpc/internal/local/amt"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +20,6 @@ type RealOSNetworker struct{}
 type ProvisioningService struct {
 	flags                  *flags.Flags
 	serverURL              *url.URL
-	wsmanMessages          wsman.Messages
 	interfacedWsmanMessage bacon.WSMANer
 	config                 *config.Config
 	amtCommand             internalAMT.Interface
