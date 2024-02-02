@@ -2,7 +2,6 @@ package amt
 
 import (
 	"encoding/base64"
-	"rpc/pkg/utils"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
@@ -236,7 +235,7 @@ func (g *GoWSMANMessages) EnableWiFi() error {
 	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
 	_, err = g.wsmanMessages.CIM.WiFiPort.RequestStateChange(32769)
 	if err != nil {
-		return utils.WSMANMessageError
+		return err // utils.WSMANMessageError
 	}
 	return nil
 }

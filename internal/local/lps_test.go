@@ -46,62 +46,278 @@ func (m MockWSMAN) Unprovision(int) (setupandconfiguration.Response, error) {
 	}, mockACMUnprovisionErr
 }
 func (m MockWSMAN) SetupWsmanClient(username string, password string) {}
+
+var mockGeneralSettings = general.Response{}
+var errMockGeneralSettings error = nil
+
 func (m MockWSMAN) GetGeneralSettings() (general.Response, error) {
-	return general.Response{}, nil
+	return mockGeneralSettings, errMockGeneralSettings
 }
+
+var mockHostBasedSetupService = hostbasedsetup.Response{}
+var errHostBasedSetupService error = nil
+
 func (m MockWSMAN) HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error) {
-	return hostbasedsetup.Response{}, nil
+	return mockHostBasedSetupService, errHostBasedSetupService
 }
+
+var mockGetHostBasedSetupService = hostbasedsetup.Response{}
+var errGetHostBasedSetupService error = nil
+
 func (m MockWSMAN) GetHostBasedSetupService() (hostbasedsetup.Response, error) {
-	return hostbasedsetup.Response{}, nil
+	return mockGetHostBasedSetupService, errGetHostBasedSetupService
 }
+
+var mockAddNextCertInChain = hostbasedsetup.Response{}
+var errAddNextCertInChain error = nil
+
 func (m MockWSMAN) AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error) {
-	return hostbasedsetup.Response{}, nil
+	return mockAddNextCertInChain, errAddNextCertInChain
 }
+
+var mockHostBasedSetupServiceAdmin = hostbasedsetup.Response{}
+var errHostBasedSetupServiceAdmin error = nil
+
 func (m MockWSMAN) HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error) {
-	return hostbasedsetup.Response{}, nil
+	return mockHostBasedSetupServiceAdmin, errHostBasedSetupServiceAdmin
 }
+
+var errSetupMEBX error = nil
+
 func (m MockWSMAN) SetupMEBX(string) (response setupandconfiguration.Response, err error) {
-	return response, nil
+	return response, errSetupMEBX
 }
+
+var errGetPublicKeyCerts error = nil
+
 func (m MockWSMAN) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
-	return nil, nil
+	certs := []publickey.PublicKeyCertificateResponse{
+		mpsCert,
+		clientCert,
+		caCert,
+	}
+	return certs, errGetPublicKeyCerts
 }
+
+var errGetPublicPrivateKeyPairs error = nil
+
 func (m MockWSMAN) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
-	return nil, nil
+	return nil, errGetPublicPrivateKeyPairs
 }
+
+var errDeletePublicPrivateKeyPair error = nil
+
 func (m MockWSMAN) DeletePublicPrivateKeyPair(instanceId string) error {
-	return nil
+	return errDeletePublicPrivateKeyPair
 }
+
+var errDeletePublicCert error = nil
+
 func (m MockWSMAN) DeletePublicCert(instanceId string) error {
-	return nil
+	return errDeletePublicCert
 }
+
+var errGetCredentialRelationships error = nil
+
 func (m MockWSMAN) GetCredentialRelationships() ([]credential.CredentialContext, error) {
-	return nil, nil
+	return []credential.CredentialContext{{
+		ElementInContext: models.AssociationReference{
+			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+			ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+				SelectorSet: []models.SelectorNoNamespace{
+					{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Certificate: Handle: 2",
+					},
+				},
+			},
+		},
+		ElementProvidingContext: models.AssociationReference{
+			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+			ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+				SelectorSet: []models.SelectorNoNamespace{{
+					Name:  "InstanceID",
+					Value: "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+				}},
+			},
+		},
+	}, {
+		ElementInContext: models.AssociationReference{
+			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+			ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+				SelectorSet: []models.SelectorNoNamespace{
+					{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Certificate: Handle: 1",
+					},
+				},
+			},
+		},
+		ElementProvidingContext: models.AssociationReference{
+			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+			ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+				SelectorSet: []models.SelectorNoNamespace{{
+					Name:  "InstanceID",
+					Value: "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+				}},
+			},
+		},
+	}}, errGetCredentialRelationships
 }
+
+var errGetConcreteDependencies error = nil
+
 func (m MockWSMAN) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
-	return nil, nil
+	return []concrete.ConcreteDependency{
+		{
+			Antecedent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTableService",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "CreationClassName",
+						Value: "AMT_AssetTableService",
+					}, {
+						Name:  "Name",
+						Value: "Intel(r) AMT Asset Table Service",
+					}, {
+						Name:  "SystemCreationClassName",
+						Value: "CIM_ComputerSystem",
+					}, {
+						Name:  "SystemName",
+						Value: "Intel(r) AMT",
+					}},
+				},
+			},
+			Dependent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTable",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "InstanceID",
+						Value: "1",
+					}, {
+						Name:  "TableType",
+						Value: "131",
+					}},
+				},
+			},
+		},
+		{
+			Antecedent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Certificate: Handle: 1",
+					}},
+				},
+			},
+			Dependent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Key: Handle: 0",
+					}},
+				},
+			},
+		}, {
+			Antecedent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Certificate: Handle: 1",
+					}},
+				},
+			},
+			Dependent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_SOME_UNHANDLED_RESOURCE_FOR_TESTING",
+					SelectorSet: []models.SelectorNoNamespace{{
+						Name:  "InstanceID",
+						Value: "Intel(r) AMT Key: Handle: 0",
+					}},
+				},
+			},
+		},
+	}, errGetConcreteDependencies
 }
+
+var errGetWiFiSettings error = nil
+var getWiFiSettingsResponse = []wifi.WiFiEndpointSettingsResponse{{
+	AuthenticationMethod: 0,
+	BSSType:              0,
+	ElementName:          "",
+	EncryptionMethod:     0,
+	InstanceID:           "Config1",
+	Priority:             0,
+	SSID:                 "",
+}, {
+	AuthenticationMethod: 0,
+	BSSType:              0,
+	ElementName:          "",
+	EncryptionMethod:     0,
+	InstanceID:           "Config2",
+	Priority:             0,
+	SSID:                 "",
+}, {
+	AuthenticationMethod: 0,
+	BSSType:              0,
+	ElementName:          "",
+	EncryptionMethod:     0,
+	InstanceID:           "",
+	Priority:             0,
+	SSID:                 "",
+}}
+
 func (m MockWSMAN) GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error) {
-	return nil, nil
+	return getWiFiSettingsResponse, errGetWiFiSettings
 }
+
+var errDeleteWiFiSetting error = nil
+
 func (m MockWSMAN) DeleteWiFiSetting(instanceId string) error {
-	return nil
+	return errDeleteWiFiSetting
 }
+
+var errAddTrustedRootCert error = nil
+
 func (m MockWSMAN) AddTrustedRootCert(caCert string) (string, error) {
-	return "", nil
+	return "rootCertHandle", errAddTrustedRootCert
 }
+
+var errAddClientCert error = nil
+
 func (m MockWSMAN) AddClientCert(clientCert string) (string, error) {
-	return "", nil
+	return "clientCertHandle", errAddClientCert
 }
+
+var errAddPrivateKey error = nil
+
 func (m MockWSMAN) AddPrivateKey(privateKey string) (string, error) {
-	return "", nil
+	return "privateKeyHandle", errAddPrivateKey
 }
+
+var errEnableWiFi error = nil
+
 func (m MockWSMAN) EnableWiFi() error {
-	return nil
+	return errEnableWiFi
 }
+
+var errAddWiFiSettings error = nil
+
 func (m MockWSMAN) AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error) {
-	return wifiportconfiguration.Response{}, nil
+	return wifiportconfiguration.Response{}, errAddWiFiSettings
 }
 
 // Mock the AMT Hardware

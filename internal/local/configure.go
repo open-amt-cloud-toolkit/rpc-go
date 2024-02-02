@@ -37,13 +37,13 @@ func (service *ProvisioningService) SetMebx() (err error) {
 }
 
 func (service *ProvisioningService) EnableWifiPort() (err error) {
-	err = service.EnableWifi()
+	err = service.interfacedWsmanMessage.EnableWiFi()
 	if err != nil {
 		log.Error("Failed to enable wifi port and local profile synchronization.")
-	} else {
-		log.Info("Successfully enabled wifi port and local profile synchronization.")
+		return
 	}
-	return err
+	log.Info("Successfully enabled wifi port and local profile synchronization.")
+	return
 }
 
 func (service *ProvisioningService) AddWifiSettings() (err error) {
@@ -53,7 +53,7 @@ func (service *ProvisioningService) AddWifiSettings() (err error) {
 	// PruneWifiConfigs is best effort
 	// it will log error messages, but doesn't stop the configuration flow
 	service.PruneWifiConfigs()
-	err = service.EnableWifi()
+	err = service.EnableWifiPort()
 	if err != nil {
 		return err
 	}
@@ -71,64 +71,59 @@ func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 		return err
 	}
 
-	var successes []string
-	var failures []string
 	for _, wifiSetting := range wifiEndpointSettings {
 		// while testing, saw some cases where the PullResponse returned items with no InstanceID?
 		if wifiSetting.InstanceID == "" {
+			// Skip wifiSettings with no InstanceID
 			continue
 		}
 		log.Infof("deleting wifiSetting: %s", wifiSetting.InstanceID)
 		err := service.interfacedWsmanMessage.DeleteWiFiSetting(wifiSetting.InstanceID)
 		if err != nil {
 			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
-			failures = append(failures, wifiSetting.InstanceID)
+			err = utils.DeleteWifiConfigFailed
 			continue
 		}
-		// logged success, no need to keep the successes
-		_ = append(successes, wifiSetting.InstanceID)
+
+		log.Infof("successfully deleted wifiSetting: %s", wifiSetting.InstanceID)
 	}
 
-	service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
+	err = service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
 
-	if len(failures) > 0 {
-		return utils.DeleteWifiConfigFailed // logged failures already....
-	}
-	return nil
+	return err
 }
 
-func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (failedCertHandles []string, failedKeyPairHandles []string) {
+func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (err error) {
 	for _, handle := range certHandles {
 		err := service.interfacedWsmanMessage.DeletePublicCert(handle)
 		if err != nil {
-			failedCertHandles = append(failedCertHandles, handle)
-		} else {
-			delete(service.handlesWithCerts, handle)
+			log.Infof("unable to delete: %s %s", handle, err)
+			err = utils.DeleteWifiConfigFailed
 		}
 	}
 	for _, handle := range keyPairHandles {
 		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handle)
 		if err != nil {
-			failedKeyPairHandles = append(failedKeyPairHandles, handle)
-		} else {
-			delete(service.handlesWithCerts, handle)
+			log.Infof("unable to delete: %s %s", handle, err)
+			err = utils.DeleteWifiConfigFailed
 		}
 	}
-	return failedCertHandles, failedKeyPairHandles
+	return err
 }
 
 func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
 	publicCerts, err := service.interfacedWsmanMessage.GetPublicKeyCerts()
 	if err != nil {
-		return certHandles, keyPairHandles, err
+		return []string{}, []string{}, err
 	}
-	_, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
-	if err != nil {
-		return certHandles, keyPairHandles, err
-	}
+	// what/wjhere is this used? keyPairs
+	// _, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
+	// if err != nil {
+	// 	return []string{}, []string{}, err
+	// }
 	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
 	if err != nil {
-		return certHandles, keyPairHandles, err
+		return []string{}, []string{}, err
 	}
 	certHandleMap := make(map[string]bool)
 	for i := range credentials {
@@ -216,6 +211,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	}
 
 	// Set wifiEndpointSettings properties from wifiCfg file
+
 	wifiEndpointSettings := wifi.WiFiEndpointSettingsRequest{
 		ElementName:          wifiCfg.ProfileName,
 		InstanceID:           fmt.Sprintf("Intel(r) AMT:WiFi Endpoint Settings %s", wifiCfg.ProfileName),
@@ -225,146 +221,84 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 		EncryptionMethod:     wifi.EncryptionMethod(wifiCfg.EncryptionMethod),
 	}
 
-	// Find the correct Ieee8021xConfig from wifiCfg file
-	var ieee8021xConfig config.Ieee8021xConfig
-	var found bool
-	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
-		if curCfg.ProfileName == wifiCfg.ProfileName {
-			ieee8021xConfig = curCfg
-			found = true
-			break
-		}
-	}
-
 	// Create an empty handles reference holder
 	handles := Handles{}
 
+	// Find the correct Ieee8021xConfig from wifiCfg file
+	ieee8021xConfig := service.checkForIeee8021xConfig(wifiCfg)
 	// If we find a matching Ieee8021xConfig, populate the IEEE8021xSettings and add any required private keys and certificates
 	var ieee8021xSettings models.IEEE8021xSettings
-	if found {
-		ieee8021xSettings = models.IEEE8021xSettings{
-			ElementName:            ieee8021xConfig.ProfileName,
-			InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
-			AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
-			Username:               ieee8021xConfig.Username,
-		}
-		if ieee8021xSettings.AuthenticationProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
-			ieee8021xSettings.Password = ieee8021xConfig.Password
-		}
-		if ieee8021xConfig.PrivateKey != "" {
-			handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
-			if handles.privateKeyHandle == "" {
-				handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
-				service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if ieee8021xConfig.ClientCert != "" {
-			handles.clientCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
-			if handles.clientCertHandle == "" {
-				handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
-				service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if ieee8021xConfig.CACert != "" {
-			handles.rootCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.CACert)
-			if handles.rootCertHandle == "" {
-				handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
-				service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
-				if err != nil {
-					return err
-				}
-			}
+	if ieee8021xConfig != nil {
+		ieee8021xSettings, err = service.setIeee8021xConfig(ieee8021xConfig, handles)
+		if err != nil {
+			return err
 		}
 	} else {
 		// not using IEEE8021x, so set the wireless passphrase
 		wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
 	}
-	// // QUESTION: why check for these?  why not just check if a Ieee8021xProfileName is present?  or maybe profile name and authmethod?
-	// if wifiEndpointSettings.AuthenticationMethod == wifi.AuthenticationMethod_WPA_IEEE8021x ||
-	// 	wifiEndpointSettings.AuthenticationMethod == wifi.AuthenticationMethod_WPA2_IEEE8021x {
-	// 	ieee8021xSettings, err := service.ProcessIeee8012xConfig(wifiCfg.Ieee8021xProfileName, &handles)
-	// 	if err != nil {
-	// 		service.RollbackAddedItems(&handles)
-	// 		return err
-	// 	}
-	// } else {
-	// 	wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
-	// }
-	response, err := service.interfacedWsmanMessage.AddWiFiSettings(
-		wifiEndpointSettings,
-		ieee8021xSettings,
-		"WiFi Endpoint 0",
-		handles.clientCertHandle,
-		handles.rootCertHandle)
+
+	_, err = service.interfacedWsmanMessage.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, "WiFi Endpoint 0", handles.clientCertHandle, handles.rootCertHandle)
 	if err != nil {
 		// The AddWiFiSettings call failed, return error response from go-wsman-messages
 		service.RollbackAddedItems(&handles)
-		return utils.WSMANMessageError
+		return utils.WiFiConfigurationFailed //should we return err?
 	}
-	if response.Body.AddWiFiSettings_OUTPUT.ReturnValue != 0 {
-		// AMT returned an unsuccessful response
-		service.RollbackAddedItems(&handles)
-		log.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", response.Body.AddWiFiSettings_OUTPUT.ReturnValue)
-		return utils.WiFiConfigurationFailed
-	}
+
 	return nil
 }
 
-// func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, handles *Handles) (ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest, err error) {
-// 	ieee8021xSettings = ieee8021x.IEEE8021xSettingsRequest{}
-// 	// find the matching configuration
-// 	var ieee8021xConfig config.Ieee8021xConfig
-// 	var found bool
-// 	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
-// 		if curCfg.ProfileName == profileName {
-// 			ieee8021xConfig = curCfg
-// 			found = true
-// 			break
-// 		}
-// 	}
-// 	if !found {
-// 		log.Errorf("missing Ieee8021xConfig %s", profileName)
-// 		return ieee8021xSettings, utils.MissingIeee8021xConfiguration
-// 	}
-
-// 	// translate from configuration to settings
-// 	ieee8021xSettings.ElementName = ieee8021xConfig.ProfileName
-// 	ieee8021xSettings.InstanceID = fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName)
-// 	ieee8021xSettings.AuthenticationProtocol = ieee8021x.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol)
-// 	ieee8021xSettings.Username = ieee8021xConfig.Username
-// 	if ieee8021xSettings.AuthenticationProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
-// 		ieee8021xSettings.Password = ieee8021xConfig.Password
-// 	}
-
-// 	// add key and certs
-// 	if ieee8021xConfig.PrivateKey != "" {
-// 		handles.privateKeyHandle, err = service.AddPrivateKey(ieee8021xConfig.PrivateKey)
-// 		if err != nil {
-// 			return ieee8021xSettings, err
-// 		}
-// 	}
-// 	if ieee8021xConfig.ClientCert != "" {
-// 		handles.clientCertHandle, err = service.AddClientCert(ieee8021xConfig.ClientCert)
-// 		if err != nil {
-// 			return ieee8021xSettings, err
-// 		}
-// 	}
-// 	handles.rootCertHandle, err = service.AddTrustedRootCert(ieee8021xConfig.CACert)
-// 	return ieee8021xSettings, err
-// }
-
-func (service *ProvisioningService) EnableWifi() (err error) {
-	err = service.interfacedWsmanMessage.EnableWiFi()
-	if err != nil {
-		return err
+func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.Ieee8021xConfig, handles Handles) (ieee8021xSettings models.IEEE8021xSettings, err error) {
+	ieee8021xSettings = models.IEEE8021xSettings{
+		ElementName:            ieee8021xConfig.ProfileName,
+		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
+		AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
+		Username:               ieee8021xConfig.Username,
 	}
-	return nil
+	if ieee8021xSettings.AuthenticationProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
+		ieee8021xSettings.Password = ieee8021xConfig.Password
+	}
+	if ieee8021xConfig.PrivateKey != "" {
+		handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+		if handles.privateKeyHandle == "" {
+			handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
+			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
+			if err != nil {
+				return ieee8021xSettings, err
+			}
+		}
+	}
+	if ieee8021xConfig.ClientCert != "" {
+		handles.clientCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+		if handles.clientCertHandle == "" {
+			handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
+			service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
+			if err != nil {
+				return ieee8021xSettings, err
+			}
+		}
+	}
+	if ieee8021xConfig.CACert != "" {
+		handles.rootCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.CACert)
+		if handles.rootCertHandle == "" {
+			handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
+			service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
+			if err != nil {
+				return ieee8021xSettings, err
+			}
+		}
+	}
+	return ieee8021xSettings, nil
+}
+
+func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig) {
+	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
+		if curCfg.ProfileName == wifiCfg.Ieee8021xProfileName {
+			ieee8021xConfig = &curCfg
+			break
+		}
+	}
+	return ieee8021xConfig
 }
 
 type Handles struct {

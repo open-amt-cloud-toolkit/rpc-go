@@ -1,12 +1,12 @@
 package local
 
 import (
+	"errors"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 
@@ -52,6 +52,7 @@ var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
 	CACert:                 "caCert",
 	PrivateKey:             "privateKey",
 }
+var errTestError = errors.New("test error")
 
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
@@ -63,45 +64,81 @@ func TestConfigure(t *testing.T) {
 	})
 	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
+		errEnableWiFi = errTestError
 		lps := setupService(f)
 		err := lps.Configure()
-		assert.Equal(t, utils.WSMANMessageError, err)
+		assert.Error(t, err)
+		errEnableWiFi = nil
 	})
-	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
+	t.Run("expect success for SubCommandAddWifiSettings", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandAddWifiSettings
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.NoError(t, err)
+	})
+	t.Run("expect error for SubCommandEnableWifiPort", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandEnableWifiPort
+		errEnableWiFi = errTestError
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.Error(t, err)
+		errEnableWiFi = nil
+	})
+	t.Run("expect success for SubCommandEnableWifiPort", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandEnableWifiPort
 		lps := setupService(f)
 		err := lps.Configure()
-		assert.Equal(t, utils.WSMANMessageError, err)
+		assert.NoError(t, err)
+	})
+	t.Run("expect error for SetMebx", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandSetMEBx
+		lps := setupService(f)
+		errSetupMEBX = errTestError
+		err := lps.Configure()
+		assert.Error(t, err)
+		errSetupMEBX = nil
+	})
+	t.Run("expect success for SetMebx", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandSetMEBx
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.NoError(t, err)
 	})
 }
 
 func TestAddWifiSettings(t *testing.T) {
 	f := &flags.Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
-	pcsRsp := wifiportconfiguration.Response{}
-	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-	t.Run("expect error from PruneWifiConfigs path", func(t *testing.T) {
+
+	t.Run("expect success when AddWifiSettings", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.AddWifiSettings()
-		assert.NotEqual(t, nil, err)
+		assert.NoError(t, err)
 	})
-	t.Run("expect error from EnableWifi path", func(t *testing.T) {
+	t.Run("expect error failed wifi port", func(t *testing.T) {
+		errEnableWiFi = errTestError
 		lps := setupService(f)
 		err := lps.AddWifiSettings()
-		assert.NotEqual(t, nil, err)
+		assert.Error(t, err)
+		errEnableWiFi = nil
 	})
 }
 
 func TestProcessWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
-	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA2)
 
-	t.Run("expect WiFiConfigurationFailed if all configs fail", func(t *testing.T) {
+	t.Run("expect success processing wifi configs", func(t *testing.T) {
+		lps := setupService(f)
+		err := lps.ProcessWifiConfigs()
+		assert.NoError(t, err)
+	})
+	t.Run("expect warning processing 2 wifi configs with 1 bad-name", func(t *testing.T) {
+		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA2)
 		f.LocalConfig.WifiConfigs[1].ProfileName = "bad-name"
 		lps := setupService(f)
-		rc := lps.ProcessWifiConfigs()
-		assert.Equal(t, utils.WiFiConfigurationFailed, rc)
+		err := lps.ProcessWifiConfigs()
+		assert.Equal(t, utils.WifiConfigurationWithWarnings, err)
 	})
 }
 
@@ -109,62 +146,71 @@ func TestProcessWifiConfig(t *testing.T) {
 	f := &flags.Flags{}
 
 	// bad name error already tested
-	t.Run("expect WSMANMessageError for ProcessIeee8012xConfig", func(t *testing.T) {
+	t.Run("expect success when handling ieee8021x config", func(t *testing.T) {
 		orig := wifiCfgWPA8021xEAPTLS.AuthenticationMethod
 		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = int(wifi.AuthenticationMethod_WPA_IEEE8021x)
-		f.LocalConfig.Ieee8021xConfigs = config.Ieee8021xConfigs{}
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
+		f.LocalConfig.Ieee8021xConfigs = []config.Ieee8021xConfig{
+			ieee8021xCfgEAPTLS,
+		}
 		lps := setupService(f)
-		rc := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
-		assert.Equal(t, utils.WSMANMessageError, rc)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
+		assert.NoError(t, err)
 		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = orig
 	})
-	t.Run("expect WSMANMessageError for AddWiFiSettings()", func(t *testing.T) {
+	t.Run("expect success when handling non-ieee8021x config", func(t *testing.T) {
 		lps := setupService(f)
-		rc := lps.ProcessWifiConfig(&wifiCfgWPA2)
-		assert.Equal(t, utils.WSMANMessageError, rc)
+		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
+		assert.NoError(t, err)
 	})
 
 }
-
 func TestPruneWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
 
-	t.Run("expect WSMANMessageError error on EnumPullUnmarshal", func(t *testing.T) {
+	t.Run("expect Success when there are no configs", func(t *testing.T) {
+		lps := setupService(f)
+		tempStorage := getWiFiSettingsResponse
+		// empty the response
+		getWiFiSettingsResponse = []wifi.WiFiEndpointSettingsResponse{}
+		err := lps.PruneWifiConfigs()
+		assert.NoError(t, err)
+		//restore
+		getWiFiSettingsResponse = tempStorage
+	})
+	t.Run("expect success when there are configs", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.PruneWifiConfigs()
-		assert.Equal(t, utils.WSMANMessageError, err)
+		assert.NoError(t, err)
 	})
 }
 
 func TestEnableWifiErrors(t *testing.T) {
 	f := &flags.Flags{}
-	t.Run("expect WSMANMessageError for WiFiPortConfigurationService.Get()", func(t *testing.T) {
+	t.Run("expect success for EnableWifi", func(t *testing.T) {
 		lps := setupService(f)
-		err := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, err)
+		err := lps.EnableWifiPort()
+		assert.NoError(t, err)
 	})
-	t.Run("expect WSMANMessageError for WiFiPortConfigurationService.Put()", func(t *testing.T) {
+	t.Run("expect failure for EnableWifi", func(t *testing.T) {
+		errEnableWiFi = errTestError
 		lps := setupService(f)
-		err := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, err)
-	})
-	t.Run("expect WiFiConfigurationFailed when enable is unsuccessful", func(t *testing.T) {
-
-		lps := setupService(f)
-		err := lps.EnableWifi()
-		assert.Equal(t, utils.WiFiConfigurationFailed, err)
-	})
-	t.Run("expect WSMANMessageError for RequestStateChange()", func(t *testing.T) {
-		pcsResponseEnabled := wifiportconfiguration.Response{}
-		pcsResponseEnabled.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-		lps := setupService(f)
-		err := lps.EnableWifi()
-		assert.Equal(t, utils.WSMANMessageError, err)
+		err := lps.EnableWifiPort()
+		assert.Error(t, err)
+		errEnableWiFi = nil
 	})
 
 }
-
+func TestGetWifiIeee8021xCerts(t *testing.T) {
+	f := &flags.Flags{}
+	t.Run("expect all error paths traversed for coverage", func(t *testing.T) {
+		lps := setupService(f)
+		certHandles, keyPairHandles, err := lps.GetWifiIeee8021xCerts()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(certHandles))
+		assert.Equal(t, 1, len(keyPairHandles))
+		assert.Equal(t, caCert.X509Certificate, lps.handlesWithCerts["Intel(r) AMT Certificate: Handle: 1"])
+	})
+}
 func TestRollbackAddedItems(t *testing.T) {
 	f := &flags.Flags{}
 	handles := Handles{
@@ -180,51 +226,5 @@ func TestRollbackAddedItems(t *testing.T) {
 	t.Run("expect all happy paths traversed for coverage", func(t *testing.T) {
 		lps := setupService(f)
 		lps.RollbackAddedItems(&handles)
-	})
-}
-
-func TestAddTrustedRootCert(t *testing.T) {
-
-}
-
-func TestAddClientCert(t *testing.T) {
-	f := &flags.Flags{}
-
-	t.Run("expect success when credential already added", func(t *testing.T) {
-		lps := setupService(f)
-		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
-		associatedCredential := `THISISAFAKECERTSTRING`
-		lps.handlesWithCerts[instanceId] = associatedCredential
-		// handle, resultCode := lps.AddClientCert(associatedCredential)
-		// assert.Equal(t, nil, resultCode)
-		// assert.Equal(t, instanceId, handle)
-	})
-}
-
-func TestAddPrivateKey(t *testing.T) {
-	f := &flags.Flags{}
-
-	t.Run("expect success when credential already added", func(t *testing.T) {
-
-		lps := setupService(f)
-		instanceId := `Intel® AMT XXXCertYYYkey: Handle: 1`
-		associatedCredential := `THISISAFAKECERTSTRING`
-		lps.handlesWithCerts[instanceId] = associatedCredential
-		// handle, resultCode := lps.AddPrivateKey(associatedCredential)
-		// assert.Equal(t, nil, resultCode)
-		// assert.Equal(t, instanceId, handle)
-	})
-}
-
-func TestEnableWifiPort(t *testing.T) {
-	f := &flags.Flags{}
-	pcsRsp := wifiportconfiguration.Response{}
-	pcsRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = 1
-	pcsRsp.Body.WiFiPortConfigurationService.EnabledState = 1
-
-	t.Run("enablewifiport: expect WSMANMessageError ", func(t *testing.T) {
-		lps := setupService(f)
-		err := lps.EnableWifiPort()
-		assert.Equal(t, utils.WSMANMessageError, err)
 	})
 }

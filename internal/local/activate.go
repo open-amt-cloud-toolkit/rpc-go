@@ -233,8 +233,8 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 
 func (service *ProvisioningService) generateNonce() ([]byte, error) {
 	nonce := make([]byte, 20)
-	_, err := rand.Read(nonce)
-	if err != nil {
+	// fills nonce with 20 random bytes
+	if _, err := rand.Read(nonce); err != nil {
 		log.Error("Error generating nonce:", err)
 		return nil, err
 	}

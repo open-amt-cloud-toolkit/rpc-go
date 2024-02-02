@@ -2,7 +2,6 @@ package local
 
 import (
 	"crypto/x509"
-	"errors"
 	amt2 "rpc/internal/amt"
 	"rpc/internal/certtest"
 	"rpc/internal/flags"
@@ -26,78 +25,54 @@ func TestActivation(t *testing.T) {
 	lps.flags.Command = utils.CommandActivate
 	lps.flags.LocalConfig.Password = "P@ssw0rd"
 
+	t.Run("return nil activate is success", func(t *testing.T) {
+		err := lps.Activate()
+		assert.NoError(t, err)
+	})
 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
-		mockControlModeErr = errors.New("yep it failed")
-		rc := lps.Activate()
-		assert.Equal(t, utils.AMTConnectionFailed, rc)
+		mockControlModeErr = errTestError
+		err := lps.Activate()
+		assert.Error(t, err)
 		mockControlModeErr = nil
 	})
 
 	t.Run("returns UnableToActivate when already activated", func(t *testing.T) {
 		mockControlMode = 1
-		rc := lps.Activate()
-		assert.Equal(t, utils.UnableToActivate, rc)
+		err := lps.Activate()
+		assert.Error(t, err)
 		mockControlMode = 0
 	})
 
 	t.Run("returns AMTConnectionFailed when GetLocalSystemAccount fails", func(t *testing.T) {
-		mockLocalSystemAccountErr = errors.New("yep it failed")
-		rc := lps.Activate()
-		assert.Equal(t, utils.AMTConnectionFailed, rc)
+		mockLocalSystemAccountErr = errTestError
+		err := lps.Activate()
+		assert.Error(t, err)
 		mockLocalSystemAccountErr = nil
 	})
 
-	t.Run("returns ActivationFailed when UseACM and responses are not mocked", func(t *testing.T) {
-		lps.flags.UseACM = true
-		rc := lps.Activate()
-		assert.Equal(t, utils.ActivationFailed, rc)
-		lps.flags.UseACM = false
-	})
-
-	t.Run("returns ActivationFailed when UseCCM and responses are not mocked", func(t *testing.T) {
-		lps.flags.UseCCM = true
-		rc := lps.Activate()
-		assert.Equal(t, utils.ActivationFailed, rc)
-		lps.flags.UseCCM = false
-	})
 }
 
 func TestActivateCCM(t *testing.T) {
-	f := &flags.Flags{}
-	t.Run("returns ActivationFailed on GeneralSettings.Get() server error", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, rc)
+	lps := setupService(&flags.Flags{})
+	lps.flags.Command = utils.CommandActivate
+	lps.flags.LocalConfig.Password = "P@ssw0rd"
+	t.Run("returns ActivationFailed on GetGeneralSettings error", func(t *testing.T) {
+		errMockGeneralSettings = errTestError
+		err := lps.ActivateCCM()
+		assert.Error(t, err)
+		errMockGeneralSettings = nil
 	})
 
-	t.Run("returns ActivationFailed on GeneralSettings.Get() xml.unmarshal error", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, rc)
-	})
-
-	t.Run("returns ActivationFailed on HostBasedSetupService.Setup server error", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, rc)
-	})
-
-	t.Run("returns ActivationFailed on HostBasedSetupService.Setup xml.unmarshal error", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, rc)
-	})
-
-	t.Run("returns ActivationFailed on HostBasedSetupService.Setup ReturnValue is not success (0)", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, utils.ActivationFailed, rc)
+	t.Run("returns ActivationFailed on HostBasedSetupService", func(t *testing.T) {
+		errHostBasedSetupService = errTestError
+		err := lps.ActivateCCM()
+		assert.Error(t, err)
+		errHostBasedSetupService = nil
 	})
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
-		lps := setupService(f)
-		rc := lps.ActivateCCM()
-		assert.Equal(t, nil, rc)
+		err := lps.ActivateCCM()
+		assert.NoError(t, err)
 	})
 }
 
@@ -107,7 +82,9 @@ func TestActivateACM(t *testing.T) {
 	testCerts := getTestCerts()
 	f.LocalConfig.ACMSettings.ProvisioningCert = testCerts.Pfxb64
 	f.LocalConfig.ACMSettings.ProvisioningCertPwd = testCerts.PfxPassword
-
+	lps := setupService(f)
+	lps.flags.Command = utils.CommandActivate
+	lps.flags.LocalConfig.Password = "P@ssw0rd"
 	mockCertHashes = []amt2.CertHashEntry{
 		{
 			Hash:      testCerts.CaFingerprint,
@@ -117,9 +94,8 @@ func TestActivateACM(t *testing.T) {
 			IsDefault: true,
 		},
 	}
-	lps := setupService(f)
-	rc := lps.ActivateACM()
-	assert.Equal(t, nil, rc)
+	err := lps.ActivateACM()
+	assert.NoError(t, err)
 }
 
 func TestInjectCertsErrors(t *testing.T) {
@@ -128,12 +104,18 @@ func TestInjectCertsErrors(t *testing.T) {
 
 	certs := []string{testCerts.LeafPem, testCerts.InterPem, testCerts.CaPem}
 
-	t.Run("returns error on server error response", func(t *testing.T) {
+	t.Run("returns success on injectCerts", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.injectCertificate(certs)
-		assert.NotNil(t, err)
+		assert.NoError(t, err)
 	})
-
+	t.Run("returns error on injectCerts", func(t *testing.T) {
+		errAddNextCertInChain = errTestError
+		lps := setupService(f)
+		err := lps.injectCertificate(certs)
+		assert.Error(t, err)
+		errAddNextCertInChain = nil
+	})
 }
 
 func TestDumpPfx(t *testing.T) {
