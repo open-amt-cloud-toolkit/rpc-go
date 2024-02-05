@@ -13,6 +13,72 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testCase struct {
+	name           string
+	controlMode    int
+	controlModeErr error
+	setupMEBXResp  int
+	setupMEBXErr   error
+	expectedErr    error
+}
+
+func TestSetMebx(t *testing.T) {
+	tests := []testCase{
+		{
+			name:           "GetControlModeError",
+			controlModeErr: assert.AnError,
+			expectedErr:    utils.AMTConnectionFailed,
+		},
+		{
+			name:        "NotACM",
+			controlMode: 1, // Not ACM
+			expectedErr: utils.SetMEBXPasswordFailed,
+		},
+		{
+			name:         "SetupMEBXError",
+			controlMode:  2,
+			setupMEBXErr: assert.AnError,
+			expectedErr:  assert.AnError,
+		},
+		{
+			name:          "SetupMEBXFailReturnValue",
+			controlMode:   2,
+			setupMEBXResp: 1,
+			expectedErr:   utils.SetMEBXPasswordFailed,
+		},
+		{
+			name:          "Success",
+			controlMode:   2,
+			setupMEBXResp: 0,
+			expectedErr:   nil,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &flags.Flags{}
+			mockAMT := new(MockAMT)
+			mockWsman := new(MockWSMAN)
+			service := NewProvisioningService(f) // Placeholder for actual service initialization
+			service.amtCommand = mockAMT
+			service.interfacedWsmanMessage = mockWsman
+
+			mockControlMode = tc.controlMode
+			mockControlModeErr = tc.controlModeErr
+
+			mockSetupAndConfigurationValue = tc.setupMEBXResp
+			mockSetupAndConfigurationErr = tc.setupMEBXErr
+
+			err := service.SetMebx()
+
+			if tc.expectedErr != nil {
+				assert.ErrorIs(t, err, tc.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 var wifiCfgWPA = config.WifiConfig{
 	ProfileName:          "wifiWPA",
 	SSID:                 "ssid",
@@ -93,10 +159,10 @@ func TestConfigure(t *testing.T) {
 	t.Run("expect error for SetMebx", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSetMEBx
 		lps := setupService(f)
-		errSetupMEBX = errTestError
+        mockSetupAndConfigurationErr = errTestError
 		err := lps.Configure()
 		assert.Error(t, err)
-		errSetupMEBX = nil
+		mockSetupAndConfigurationErr = nil
 	})
 	t.Run("expect success for SetMebx", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSetMEBx

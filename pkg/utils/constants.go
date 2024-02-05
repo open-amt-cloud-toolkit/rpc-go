@@ -32,7 +32,7 @@ const (
 
 	SubCommandAddWifiSettings = "addwifisettings"
 	SubCommandEnableWifiPort  = "enablewifiport"
-	SubCommandSetMEBx		  = "mebx"
+	SubCommandSetMEBx         = "mebx"
 	SubCommandChangePassword  = "changepassword"
 	SubCommandSyncDeviceInfo  = "syncdeviceinfo"
 	SubCommandSyncClock       = "syncclock"
@@ -96,6 +96,7 @@ var UnmarshalMessageFailed = CustomError{Code: 113, Message: "UnmarshalMessageFa
 var DeleteWifiConfigFailed = CustomError{Code: 114, Message: "DeleteWifiConfigFailed"}
 var MissingOrIncorrectWifiProfileName = CustomError{Code: 116, Message: "MissingOrIncorrectWifiProfileName"}
 var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee8021xConfiguration"}
+var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}

@@ -45,6 +45,20 @@ func (m MockWSMAN) Unprovision(int) (setupandconfiguration.Response, error) {
 		},
 	}, mockACMUnprovisionErr
 }
+
+var mockSetupAndConfigurationValue = 0
+var mockSetupAndConfigurationErr error = nil
+
+func (m MockWSMAN) SetupMEBX(password string) (setupandconfiguration.Response, error) {
+	return setupandconfiguration.Response{
+		Body: setupandconfiguration.Body{
+			SetMEBxPassword_OUTPUT: setupandconfiguration.SetMEBxPassword_OUTPUT{
+				ReturnValue: mockSetupAndConfigurationValue,
+			},
+		},
+	}, mockSetupAndConfigurationErr
+}
+
 func (m MockWSMAN) SetupWsmanClient(username string, password string) {}
 
 var mockGeneralSettings = general.Response{}
@@ -80,12 +94,6 @@ var errHostBasedSetupServiceAdmin error = nil
 
 func (m MockWSMAN) HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error) {
 	return mockHostBasedSetupServiceAdmin, errHostBasedSetupServiceAdmin
-}
-
-var errSetupMEBX error = nil
-
-func (m MockWSMAN) SetupMEBX(string) (response setupandconfiguration.Response, err error) {
-	return response, errSetupMEBX
 }
 
 var errGetPublicKeyCerts error = nil

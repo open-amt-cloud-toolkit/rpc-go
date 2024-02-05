@@ -78,7 +78,7 @@ func (f *Flags) handleConfigureCommand() error {
 
 func (f *Flags) handleMEBxPassword() error {
 	var err error
-	if len(f.commandLineArgs) > 7 {
+	if len(f.commandLineArgs) == 3 {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}

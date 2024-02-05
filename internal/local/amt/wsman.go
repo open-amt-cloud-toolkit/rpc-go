@@ -228,11 +228,10 @@ func (g *GoWSMANMessages) EnableWiFi() error {
 		if err != nil {
 			return err
 		}
-		return nil
 	}
 
 	// always turn wifi on via state change request
-	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
+	// Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
 	_, err = g.wsmanMessages.CIM.WiFiPort.RequestStateChange(32769)
 	if err != nil {
 		return err // utils.WSMANMessageError

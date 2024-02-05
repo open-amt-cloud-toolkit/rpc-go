@@ -26,14 +26,36 @@ func (service *ProvisioningService) Configure() (err error) {
 }
 
 func (service *ProvisioningService) SetMebx() (err error) {
-	response, err := service.interfacedWsmanMessage.SetupMEBX(service.flags.MEBxPassword)
-	log.Info(response)
+	// Retrieve the current control mode from the AMT command interface.
+	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Error("Failed to configure MEBx Password.")
-	} else {
-		log.Info("Successfully configured MEBx Password.")
+		log.Error("Failed to get control mode:", err)
+		return utils.AMTConnectionFailed
 	}
-	return err
+
+	// Check if the control mode is ACM (Admin Control Mode)
+	if controlMode != 2 { // If not in ACM, return an error.
+		errMsg := "MEBx password can only be configured in ACM. Current device control mode: " + utils.InterpretControlMode(controlMode)
+		log.Error(errMsg)
+		return utils.SetMEBXPasswordFailed
+	}
+
+	// Set up MEBx with the provided password.
+	response, err := service.interfacedWsmanMessage.SetupMEBX(service.flags.MEBxPassword)
+	// log.Info(response.JSON())
+	if err != nil {
+		log.Error("Failed to configure MEBx Password:", err)
+		return err
+	}
+
+	// Check the response's success status.
+	if response.Body.SetMEBxPassword_OUTPUT.ReturnValue != 0 {
+		// If ReturnValue is not 0, configuration failed.
+		log.Error("Failed to configure MEBx Password with return value:", response.Body.SetMEBxPassword_OUTPUT.ReturnValue)
+		return utils.SetMEBXPasswordFailed
+	}
+	log.Info("Successfully configured MEBx Password.")
+	return nil
 }
 
 func (service *ProvisioningService) EnableWifiPort() (err error) {
