@@ -81,7 +81,7 @@ func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
 }
 
 type Interface interface {
-	Initialize() (utils.ReturnCode, error)
+	Initialize() error
 	GetChangeEnabled() (ChangeEnabledResponse, error)
 	EnableAMT() error
 	DisableAMT() error
@@ -117,20 +117,20 @@ func NewAMTCommand() AMTCommand {
 }
 
 // Initialize determines if rpc is able to initialize the heci driver
-func (amt AMTCommand) Initialize() (utils.ReturnCode, error) {
+func (amt AMTCommand) Initialize() error {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
 
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
-			return utils.HECIDriverNotDetected, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
+			return utils.HECIDriverNotDetected //, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
 		} else {
-			return utils.HECIDriverNotDetected, errors.New("unable to initialize")
+			return utils.HECIDriverNotDetected //, errors.New("unable to initialize")
 		}
 	}
 
 	defer amt.PTHI.Close()
-	return utils.Success, nil
+	return nil
 }
 
 // GetVersionDataFromME ...
@@ -177,6 +177,9 @@ func (amt AMTCommand) GetChangeEnabled() (ChangeEnabledResponse, error) {
 	}
 	defer amt.PTHI.Close()
 	rawVal, err := amt.PTHI.GetIsAMTEnabled()
+	if err != nil {
+		return ChangeEnabledResponse(0), err
+	}
 	return ChangeEnabledResponse(rawVal), nil
 }
 

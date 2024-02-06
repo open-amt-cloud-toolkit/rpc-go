@@ -3,14 +3,16 @@ package local
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
 	"os"
 	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
+
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,7 +21,7 @@ type PrivateKeyPairReference struct {
 	AssociatedCerts []string
 }
 
-func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
+func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	dataStruct := make(map[string]interface{})
 	cmd := service.amtCommand
 
@@ -34,12 +36,12 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 			log.Error(err)
 			service.flags.AmtInfo.UserCert = false
 		} else if result == 0 {
-			fmt.Println("Device is in pre-provisioning mode. User certificates are not available")
+			log.Warn("Device is in pre-provisioning mode. User certificates are not available")
 			service.flags.AmtInfo.UserCert = false
 		} else {
-			if _, rc := service.flags.ReadPasswordFromUser(); rc != 0 {
+			if _, err := service.flags.ReadPasswordFromUser(); err != nil {
 				fmt.Println("Invalid Entry")
-				return rc
+				return err
 			}
 		}
 	}
@@ -228,10 +230,9 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.setupWsmanClient("admin", service.flags.Password)
-		var userCerts []publickey.PublicKeyCertificate
-		service.GetPublicKeyCerts(&userCerts)
-		userCertMap := map[string]publickey.PublicKeyCertificate{}
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
+		userCertMap := map[string]publickey.PublicKeyCertificateResponse{}
 		for i := range userCerts {
 			c := userCerts[i]
 			name := GetTokenFromKeyValuePairs(c.Subject, "CN")
@@ -252,9 +253,9 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 			}
 			for k, c := range userCertMap {
 				fmt.Printf("%s", k)
-				if c.TrustedRootCertficate && c.ReadOnlyCertificate {
+				if c.TrustedRootCertificate && c.ReadOnlyCertificate {
 					fmt.Printf("  (TrustedRoot, ReadOnly)")
-				} else if c.TrustedRootCertficate {
+				} else if c.TrustedRootCertificate {
 					fmt.Printf("  (TrustedRoot)")
 				} else if c.ReadOnlyCertificate {
 					fmt.Printf("  (ReadOnly)")
@@ -272,7 +273,7 @@ func (service *ProvisioningService) DisplayAMTInfo() utils.ReturnCode {
 		}
 		println(output)
 	}
-	return utils.Success
+	return nil
 }
 
 func DecodeAMT(version, SKU string) string {

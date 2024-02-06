@@ -2,40 +2,34 @@ package local
 
 import (
 	"encoding/json"
+	"fmt"
 	"rpc/pkg/utils"
 	"strings"
 )
 
-func (service *ProvisioningService) DisplayVersion() utils.ReturnCode {
-	output := ""
+type VersionInfo struct {
+	App      string `json:"app"`
+	Version  string `json:"version"`
+	Protocol string `json:"protocol"`
+}
 
-	if !service.flags.JsonOutput {
-		output += strings.ToUpper(utils.ProjectName) + "\n"
-		output += "Version " + utils.ProjectVersion + "\n"
-		output += "Protocol " + utils.ProtocolVersion + "\n"
-
-		println(output)
-	}
-
+func (service *ProvisioningService) DisplayVersion() (err error) {
 	if service.flags.JsonOutput {
-		dataStruct := make(map[string]interface{})
-
-		projectName := strings.ToUpper(utils.ProjectName)
-		dataStruct["app"] = projectName
-
-		projectVersion := utils.ProjectVersion
-		dataStruct["version"] = projectVersion
-
-		protocolVersion := utils.ProtocolVersion
-		dataStruct["protocol"] = protocolVersion
-
-		outBytes, err := json.MarshalIndent(dataStruct, "", "  ")
-		output = string(outBytes)
-		if err != nil {
-			output = err.Error()
+		info := VersionInfo{
+			App:      strings.ToUpper(utils.ProjectName),
+			Version:  utils.ProjectVersion,
+			Protocol: utils.ProtocolVersion,
 		}
-		println(output)
+		outBytes, err := json.MarshalIndent(info, "", "  ")
+		if err != nil {
+			return err
+		}
+		println(string(outBytes))
+	} else {
+		fmt.Println(strings.ToUpper(utils.ProjectName))
+		fmt.Println("Version", utils.ProjectVersion)
+		fmt.Println("Protocol", utils.ProtocolVersion)
 	}
 
-	return utils.Success
+	return nil
 }

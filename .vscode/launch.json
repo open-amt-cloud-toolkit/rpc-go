@@ -19,6 +19,27 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "ACM Local Activate Device",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "activate",
+                "-local",
+                "-acm",
+                "-amtPassword",
+                "P@ssw0rd",
+                "-provisioningCert",
+                "",
+                "-provisioningCertPwd",
+                "P@ssw0rd",
+                "-l",
+                "debug"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "AMT Info",
             "type": "go",
             "asRoot": true,
@@ -69,8 +90,11 @@
             "program": "${workspaceFolder}/cmd/main.go",
             "args": [
                 "configure",
-                "enablewifiport",
-                "-h"
+                "mebx",
+                "-mebxpassword",
+                "P@ssw0rd",
+                "-password",
+                "P@ssw0rd"
             ],
             "console": "integratedTerminal"
         },

@@ -6,121 +6,125 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publicprivate"
-
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/wifiportconfiguration"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/wifi"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) Configure() utils.ReturnCode {
-	service.setupWsmanClient("admin", service.flags.Password)
+func (service *ProvisioningService) Configure() (err error) {
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()
+	case utils.SubCommandSetMEBx:
+		return service.SetMebx()
 	default:
 	}
 	return utils.IncorrectCommandLineParameters
 }
 
-func (service *ProvisioningService) EnableWifiPort() utils.ReturnCode {
-	rc := service.EnableWifi()
-	if rc != utils.Success {
-		log.Error("Failed to enable wifi port and local profile synchronization.")
+func (service *ProvisioningService) SetMebx() (err error) {
+	response, err := service.interfacedWsmanMessage.SetupMEBX(service.flags.MEBxPassword)
+	log.Info(response)
+	if err != nil {
+		log.Error("Failed to configure MEBx Password.")
 	} else {
-		log.Info("Successfully enabled wifi port and local profile synchronization.")
+		log.Info("Successfully configured MEBx Password.")
 	}
-	return rc
+	return err
 }
 
-func (service *ProvisioningService) AddWifiSettings() utils.ReturnCode {
+func (service *ProvisioningService) EnableWifiPort() (err error) {
+	err = service.interfacedWsmanMessage.EnableWiFi()
+	if err != nil {
+		log.Error("Failed to enable wifi port and local profile synchronization.")
+		return
+	}
+	log.Info("Successfully enabled wifi port and local profile synchronization.")
+	return
+}
+
+func (service *ProvisioningService) AddWifiSettings() (err error) {
 	// start with fresh map
 	service.handlesWithCerts = make(map[string]string)
 
 	// PruneWifiConfigs is best effort
 	// it will log error messages, but doesn't stop the configuration flow
 	service.PruneWifiConfigs()
-	rc := service.EnableWifi()
-	if rc != utils.Success {
-		return rc
+	err = service.EnableWifiPort()
+	if err != nil {
+		return err
 	}
 	return service.ProcessWifiConfigs()
 }
 
-func (service *ProvisioningService) PruneWifiConfigs() utils.ReturnCode {
+func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 	// get these handles BEFORE deleting the wifi profiles
-	certHandles, keyPairHandles := service.GetWifiIeee8021xCerts()
-
-	var pullRspEnv wifi.PullResponseEnvelope
-	rc := service.EnumPullUnmarshal(
-		service.cimMessages.WiFiEndpointSettings.Enumerate,
-		service.cimMessages.WiFiEndpointSettings.Pull,
-		&pullRspEnv,
-	)
-	if rc != utils.Success {
-		return rc
+	certHandles, keyPairHandles, err := service.GetWifiIeee8021xCerts()
+	if err != nil {
+		return err
 	}
-	var successes []string
-	var failures []string
-	for _, wifiSetting := range pullRspEnv.Body.PullResponse.Items {
+	wifiEndpointSettings, err := service.interfacedWsmanMessage.GetWiFiSettings()
+	if err != nil {
+		return err
+	}
+
+	for _, wifiSetting := range wifiEndpointSettings {
 		// while testing, saw some cases where the PullResponse returned items with no InstanceID?
 		if wifiSetting.InstanceID == "" {
+			// Skip wifiSettings with no InstanceID
 			continue
 		}
 		log.Infof("deleting wifiSetting: %s", wifiSetting.InstanceID)
-		xmlMsg := service.cimMessages.WiFiEndpointSettings.Delete(wifiSetting.InstanceID)
-		// the response does not return any additional useful information
-		_, err := service.client.Post(xmlMsg)
+		err := service.interfacedWsmanMessage.DeleteWiFiSetting(wifiSetting.InstanceID)
 		if err != nil {
 			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
-			failures = append(failures, wifiSetting.InstanceID)
+			err = utils.DeleteWifiConfigFailed
 			continue
 		}
-		successes = append(successes, wifiSetting.InstanceID)
+
+		log.Infof("successfully deleted wifiSetting: %s", wifiSetting.InstanceID)
 	}
 
-	service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
+	err = service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
 
-	if len(failures) > 0 {
-		return utils.DeleteWifiConfigFailed
-	}
-	return utils.Success
+	return err
 }
 
-func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (failedCertHandles []string, failedKeyPairHandles []string) {
+func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (err error) {
 	for _, handle := range certHandles {
-		rc := service.DeletePublicCert(handle)
-		if rc != utils.Success {
-			failedCertHandles = append(failedCertHandles, handle)
-		} else {
-			delete(service.handlesWithCerts, handle)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handle)
+		if err != nil {
+			log.Infof("unable to delete: %s %s", handle, err)
+			err = utils.DeleteWifiConfigFailed
 		}
 	}
 	for _, handle := range keyPairHandles {
-		rc := service.DeletePublicPrivateKeyPair(handle)
-		if rc != utils.Success {
-			failedKeyPairHandles = append(failedKeyPairHandles, handle)
-		} else {
-			delete(service.handlesWithCerts, handle)
+		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handle)
+		if err != nil {
+			log.Infof("unable to delete: %s %s", handle, err)
+			err = utils.DeleteWifiConfigFailed
 		}
 	}
-	return failedCertHandles, failedKeyPairHandles
+	return err
 }
 
-func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []string, keyPairHandles []string) {
-
-	var publicCerts []publickey.PublicKeyCertificate
-	service.GetPublicKeyCerts(&publicCerts)
-	var keyPairs []publicprivate.PublicPrivateKeyPair
-	service.GetPublicPrivateKeyPairs(&keyPairs)
-	credentials, rc := service.GetCredentialRelationships()
-	if rc != utils.Success {
-		return certHandles, keyPairHandles
+func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
+	publicCerts, err := service.interfacedWsmanMessage.GetPublicKeyCerts()
+	if err != nil {
+		return []string{}, []string{}, err
+	}
+	// what/wjhere is this used? keyPairs
+	// _, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
+	// if err != nil {
+	// 	return []string{}, []string{}, err
+	// }
+	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
+	if err != nil {
+		return []string{}, []string{}, err
 	}
 	certHandleMap := make(map[string]bool)
 	for i := range credentials {
@@ -142,11 +146,11 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []strin
 		}
 	}
 	if len(certHandles) == 0 {
-		return certHandles, keyPairHandles
+		return certHandles, keyPairHandles, err
 	}
 
 	keyPairHandleMap := make(map[string]bool)
-	dependencies, _ := service.GetConcreteDependencies()
+	dependencies, _ := service.interfacedWsmanMessage.GetConcreteDependencies()
 	for i := range dependencies {
 		antecedent := &dependencies[i].Antecedent.ReferenceParameters
 		if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
@@ -170,17 +174,17 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles []strin
 		}
 	}
 
-	return certHandles, keyPairHandles
+	return certHandles, keyPairHandles, err
 }
 
-func (service *ProvisioningService) ProcessWifiConfigs() utils.ReturnCode {
+func (service *ProvisioningService) ProcessWifiConfigs() error {
 	lc := service.flags.LocalConfig
 	var successes []string
 	var failures []string
 	for _, cfg := range lc.WifiConfigs {
 		log.Info("configuring wifi profile: ", cfg.ProfileName)
-		rc := service.ProcessWifiConfig(&cfg)
-		if rc != utils.Success {
+		err := service.ProcessWifiConfig(&cfg)
+		if err != nil {
 			log.Error("failed configuring: ", cfg.ProfileName)
 			failures = append(failures, cfg.ProfileName)
 		} else {
@@ -195,10 +199,10 @@ func (service *ProvisioningService) ProcessWifiConfigs() utils.ReturnCode {
 			return utils.WiFiConfigurationFailed
 		}
 	}
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) utils.ReturnCode {
+func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig) (err error) {
 
 	// profile names can only be alphanumeric (not even dashes)
 	var reAlphaNum = regexp.MustCompile("[^a-zA-Z0-9]+")
@@ -207,132 +211,95 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 		return utils.MissingOrIncorrectWifiProfileName
 	}
 
-	wiFiEndpointSettings := models.WiFiEndpointSettings{
+	// Set wifiEndpointSettings properties from wifiCfg file
+
+	wifiEndpointSettings := wifi.WiFiEndpointSettingsRequest{
 		ElementName:          wifiCfg.ProfileName,
 		InstanceID:           fmt.Sprintf("Intel(r) AMT:WiFi Endpoint Settings %s", wifiCfg.ProfileName),
 		SSID:                 wifiCfg.SSID,
 		Priority:             wifiCfg.Priority,
-		AuthenticationMethod: models.AuthenticationMethod(wifiCfg.AuthenticationMethod),
-		EncryptionMethod:     models.EncryptionMethod(wifiCfg.EncryptionMethod),
+		AuthenticationMethod: wifi.AuthenticationMethod(wifiCfg.AuthenticationMethod),
+		EncryptionMethod:     wifi.EncryptionMethod(wifiCfg.EncryptionMethod),
 	}
-	var ieee8021xSettings *models.IEEE8021xSettings
+
+	// Create an empty handles reference holder
 	handles := Handles{}
 
-	if wiFiEndpointSettings.AuthenticationMethod == models.AuthenticationMethod_WPA_IEEE8021x ||
-		wiFiEndpointSettings.AuthenticationMethod == models.AuthenticationMethod_WPA2_IEEE8021x {
-
-		ieee8021xSettings = &models.IEEE8021xSettings{}
-		rc := service.ProcessIeee8012xConfig(wifiCfg.Ieee8021xProfileName, ieee8021xSettings, &handles)
-		if rc != utils.Success {
-			service.RollbackAddedItems(&handles)
-			return rc
+	// Find the correct Ieee8021xConfig from wifiCfg file
+	ieee8021xConfig := service.checkForIeee8021xConfig(wifiCfg)
+	// If we find a matching Ieee8021xConfig, populate the IEEE8021xSettings and add any required private keys and certificates
+	var ieee8021xSettings models.IEEE8021xSettings
+	if ieee8021xConfig != nil {
+		ieee8021xSettings, err = service.setIeee8021xConfig(ieee8021xConfig, handles)
+		if err != nil {
+			return err
 		}
-
 	} else {
-		wiFiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
+		// not using IEEE8021x, so set the wireless passphrase
+		wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
 	}
-	xmlMsg := service.amtMessages.WiFiPortConfigurationService.AddWiFiSettings(
-		wiFiEndpointSettings,
-		ieee8021xSettings,
-		"WiFi Endpoint 0",
-		handles.clientCertHandle,
-		handles.rootCertHandle)
-	var addWifiSettingsRsp wifiportconfiguration.AddWiFiSettingsResponse
-	rc := service.PostAndUnmarshal(xmlMsg, &addWifiSettingsRsp)
-	if rc != utils.Success {
+
+	_, err = service.interfacedWsmanMessage.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, "WiFi Endpoint 0", handles.clientCertHandle, handles.rootCertHandle)
+	if err != nil {
+		// The AddWiFiSettings call failed, return error response from go-wsman-messages
 		service.RollbackAddedItems(&handles)
-		return rc
+		return utils.WiFiConfigurationFailed //should we return err?
 	}
-	rc = utils.ReturnCode(addWifiSettingsRsp.Body.AddWiFiSettings_OUTPUT.ReturnValue)
-	if rc != 0 {
-		service.RollbackAddedItems(&handles)
-		log.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", rc)
-		return utils.AmtPtStatusCodeBase + rc
-	}
-	return utils.Success
+
+	return nil
 }
 
-func (service *ProvisioningService) ProcessIeee8012xConfig(profileName string, settings *models.IEEE8021xSettings, handles *Handles) utils.ReturnCode {
-
-	// find the matching configuration
-	var ieee8021xConfig config.Ieee8021xConfig
-	var found bool
-	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
-		if curCfg.ProfileName == profileName {
-			ieee8021xConfig = curCfg
-			found = true
-			break
-		}
+func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.Ieee8021xConfig, handles Handles) (ieee8021xSettings models.IEEE8021xSettings, err error) {
+	ieee8021xSettings = models.IEEE8021xSettings{
+		ElementName:            ieee8021xConfig.ProfileName,
+		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
+		AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
+		Username:               ieee8021xConfig.Username,
 	}
-	if !found {
-		log.Errorf("missing Ieee8021xConfig %s", profileName)
-		return utils.MissingIeee8021xConfiguration
+	if ieee8021xSettings.AuthenticationProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
+		ieee8021xSettings.Password = ieee8021xConfig.Password
 	}
-
-	// translate from configuration to settings
-	settings.ElementName = ieee8021xConfig.ProfileName
-	settings.InstanceID = fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName)
-	settings.AuthenticationProtocol = models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol)
-	settings.Username = ieee8021xConfig.Username
-	if settings.AuthenticationProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
-		settings.Password = ieee8021xConfig.Password
-	}
-
-	// add key and certs
-	var rc utils.ReturnCode
 	if ieee8021xConfig.PrivateKey != "" {
-		handles.privateKeyHandle, rc = service.AddPrivateKey(ieee8021xConfig.PrivateKey)
-		if rc != utils.Success {
-			return rc
+		handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+		if handles.privateKeyHandle == "" {
+			handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
+			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
+			if err != nil {
+				return ieee8021xSettings, err
+			}
 		}
 	}
 	if ieee8021xConfig.ClientCert != "" {
-		handles.clientCertHandle, rc = service.AddClientCert(ieee8021xConfig.ClientCert)
-		if rc != utils.Success {
-			return rc
+		handles.clientCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+		if handles.clientCertHandle == "" {
+			handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
+			service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
+			if err != nil {
+				return ieee8021xSettings, err
+			}
 		}
 	}
-	handles.rootCertHandle, rc = service.AddTrustedRootCert(ieee8021xConfig.CACert)
-	return rc
+	if ieee8021xConfig.CACert != "" {
+		handles.rootCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.CACert)
+		if handles.rootCertHandle == "" {
+			handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
+			service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
+			if err != nil {
+				return ieee8021xSettings, err
+			}
+		}
+	}
+	return ieee8021xSettings, nil
 }
 
-func (service *ProvisioningService) EnableWifi() utils.ReturnCode {
-	xmlMsg := service.amtMessages.WiFiPortConfigurationService.Get()
-	var portCfgRsp wifiportconfiguration.Response
-	rc := service.PostAndUnmarshal(xmlMsg, &portCfgRsp)
-	if rc != utils.Success {
-		return rc
-	}
-
-	// if local sync not enable, enable it
-	if portCfgRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == wifiportconfiguration.LocalSyncDisabled {
-
-		portCfgRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled = wifiportconfiguration.UnrestrictedSync
-		xmlMsg = service.amtMessages.WiFiPortConfigurationService.Put(portCfgRsp.Body.WiFiPortConfigurationService)
-		rc = service.PostAndUnmarshal(xmlMsg, &portCfgRsp)
-		if rc != utils.Success {
-			return rc
-		}
-		if portCfgRsp.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == 0 {
-			log.Errorf("failed to enable wifi local profile synchronization")
-			return utils.WiFiConfigurationFailed
+func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig) {
+	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
+		if curCfg.ProfileName == wifiCfg.Ieee8021xProfileName {
+			ieee8021xConfig = &curCfg
+			break
 		}
 	}
-
-	// always turn wifi on via state change request
-	//   Enumeration 32769 - WiFi is enabled in S0 + Sx/AC
-	xmlMsg = service.cimMessages.WiFiPort.RequestStateChange(32769)
-	var stateChangeRsp wifi.RequestStateChangeResponse
-	rc = service.PostAndUnmarshal(xmlMsg, &stateChangeRsp)
-	if rc != utils.Success {
-		return rc
-	}
-	rc = utils.ReturnCode(stateChangeRsp.Body.RequestStateChange_OUTPUT.ReturnValue)
-	if rc != utils.Success {
-		log.Errorf("AddWiFiSettings_OUTPUT.ReturnValue: %d", rc)
-		return utils.AmtPtStatusCodeBase + rc
-	}
-	return utils.Success
+	return ieee8021xConfig
 }
 
 type Handles struct {
@@ -344,8 +311,7 @@ type Handles struct {
 func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	if handles.privateKeyHandle != "" {
 		log.Infof("rolling back private key %s", handles.privateKeyHandle)
-		xmlMsg := service.amtMessages.PublicPrivateKeyPair.Delete(handles.privateKeyHandle)
-		_, err := service.client.Post(xmlMsg)
+		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handles.privateKeyHandle)
 		if err != nil {
 			log.Errorf("failed deleting private key: %s", handles.privateKeyHandle)
 		} else {
@@ -354,8 +320,7 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	}
 	if handles.clientCertHandle != "" {
 		log.Infof("rolling back client cert %s", handles.clientCertHandle)
-		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.clientCertHandle)
-		_, err := service.client.Post(xmlMsg)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handles.clientCertHandle)
 		if err != nil {
 			log.Errorf("failed deleting client cert: %s", handles.clientCertHandle)
 		} else {
@@ -364,103 +329,11 @@ func (service *ProvisioningService) RollbackAddedItems(handles *Handles) {
 	}
 	if handles.rootCertHandle != "" {
 		log.Infof("rolling back root cert %s", handles.rootCertHandle)
-		xmlMsg := service.amtMessages.PublicKeyCertificate.Delete(handles.rootCertHandle)
-		_, err := service.client.Post(xmlMsg)
+		err := service.interfacedWsmanMessage.DeletePublicCert(handles.rootCertHandle)
 		if err != nil {
 			log.Errorf("failed deleting root cert: %s", handles.rootCertHandle)
 		} else {
 			log.Debugf("successfully deleted root cert: %s", handles.rootCertHandle)
 		}
 	}
-}
-
-func (service *ProvisioningService) AddTrustedRootCert(caCert string) (string, utils.ReturnCode) {
-	// check if this has been added already
-	for k, v := range service.handlesWithCerts {
-		if v == caCert {
-			return k, utils.Success
-		}
-	}
-	xmlMsg := service.amtMessages.PublicKeyManagementService.AddTrustedRootCertificate(caCert)
-	var rspEnv publickey.Response
-	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
-	if rc != utils.Success {
-		return "", rc
-	}
-	rc = checkReturnValue(utils.ReturnCode(rspEnv.Body.AddTrustedRootCertificate_OUTPUT.ReturnValue), "root certificate")
-	if rc != utils.Success {
-		return "", rc
-	}
-	var handle string
-	if len(rspEnv.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector) > 0 {
-		handle = rspEnv.Body.AddTrustedRootCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
-	}
-	service.handlesWithCerts[handle] = caCert
-	return handle, utils.Success
-}
-
-func (service *ProvisioningService) AddClientCert(clientCert string) (string, utils.ReturnCode) {
-	// check if this has been added already
-	for k, v := range service.handlesWithCerts {
-		if v == clientCert {
-			return k, utils.Success
-		}
-	}
-	xmlMsg := service.amtMessages.PublicKeyManagementService.AddCertificate(clientCert)
-	var rspEnv publickey.Response
-	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
-	if rc != utils.Success {
-		return "", rc
-	}
-	rc = checkReturnValue(utils.ReturnCode(rspEnv.Body.AddTrustedCertificate_OUTPUT.ReturnValue), "client certificate")
-	if rc != utils.Success {
-		return "", rc
-	}
-	var handle string
-	if len(rspEnv.Body.AddTrustedCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector) > 0 {
-		handle = rspEnv.Body.AddTrustedCertificate_OUTPUT.CreatedCertificate.ReferenceParameters.SelectorSet.Selector[0].Value
-	}
-	service.handlesWithCerts[handle] = clientCert
-	return handle, utils.Success
-}
-
-func (service *ProvisioningService) AddPrivateKey(privateKey string) (string, utils.ReturnCode) {
-	// check if this has been added already, but need the publik key of the pair
-	for k, v := range service.handlesWithCerts {
-		if v == privateKey {
-			return k, utils.Success
-		}
-	}
-	xmlMsg := service.amtMessages.PublicKeyManagementService.AddKey([]byte(privateKey))
-	var rspEnv publickey.Response
-	rc := service.PostAndUnmarshal(xmlMsg, &rspEnv)
-	if rc != utils.Success {
-		return "", rc
-	}
-	rc = checkReturnValue(utils.ReturnCode(rspEnv.Body.AddKey_OUTPUT.ReturnValue), "private key")
-	if rc != utils.Success {
-		return "", rc
-	}
-	var handle string
-	if len(rspEnv.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selector) > 0 {
-		handle = rspEnv.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selector[0].Value
-	}
-	service.handlesWithCerts[handle] = privateKey
-	return handle, utils.Success
-}
-
-func checkReturnValue(rc utils.ReturnCode, item string) utils.ReturnCode {
-	if rc != common.PT_STATUS_SUCCESS {
-		if rc == common.PT_STATUS_DUPLICATE {
-			log.Errorf("%s already exists and must be removed before continuing", item)
-			return utils.AmtPtStatusCodeBase + rc
-		} else if rc == common.PT_STATUS_INVALID_CERT {
-			log.Errorf("%s is invalid", item)
-			return utils.AmtPtStatusCodeBase + rc
-		} else {
-			log.Errorf("%s non-zero return code: %d", item, rc)
-			return utils.AmtPtStatusCodeBase + rc
-		}
-	}
-	return utils.Success
 }

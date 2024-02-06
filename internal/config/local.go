@@ -2,13 +2,12 @@ package config
 
 type (
 	Config struct {
-		Password         string `yaml:"password"`
-		WifiConfigs      `yaml:"wifiConfigs"`
-		Ieee8021xConfigs `yaml:"ieee8021xConfigs"`
-		ACMSettings      `yaml:"acmactivate"`
+		Password         string            `yaml:"password"`
+		WifiConfigs      []WifiConfig      `yaml:"wifiConfigs"`
+		Ieee8021xConfigs []Ieee8021xConfig `yaml:"ieee8021xConfigs"`
+		ACMSettings      ACMSettings       `yaml:"acmactivate"`
 	}
-	WifiConfigs []WifiConfig
-	WifiConfig  struct {
+	WifiConfig struct {
 		ProfileName          string `yaml:"profileName"`
 		SSID                 string `yaml:"ssid"`
 		Priority             int    `yaml:"priority"`
@@ -26,8 +25,7 @@ type (
 		PrivateKey    string `yaml:"privateKey"`
 		Password      string `yaml:"password"`
 	}
-	Ieee8021xConfigs []Ieee8021xConfig
-	Ieee8021xConfig  struct {
+	Ieee8021xConfig struct {
 		ProfileName            string `yaml:"profileName"`
 		Username               string `yaml:"username"`
 		Password               string `yaml:"password"`

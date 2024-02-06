@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +31,7 @@ func TestPromptForSecrets(t *testing.T) {
 		defer userInput(t, "userInput\nuserInput\nuserInput")()
 		f := getPromptForSecretsFlags()
 		rc := f.promptForSecrets()
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 		assert.Equal(t, "userInput", f.LocalConfig.WifiConfigs[0].PskPassphrase)
 		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[0].PrivateKey)
 		assert.Equal(t, "userInput", f.LocalConfig.Ieee8021xConfigs[1].Password)
@@ -83,7 +85,7 @@ func TestCmdLine(t *testing.T) {
 		}
 		f := NewFlags(cmdLine)
 		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, true, f.Local)
 		assert.Equal(t, f.Password, f.LocalConfig.Password)
 	})
@@ -102,7 +104,7 @@ func TestCmdLine(t *testing.T) {
 			`-configJson`, jsonCfgStr,
 		})
 		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, nil, gotResult)
 	})
 	t.Run("expect Success when password is in config file", func(t *testing.T) {
 		defer userInput(t, "userP@ssw0rd!")()
@@ -112,7 +114,7 @@ func TestCmdLine(t *testing.T) {
 		})
 		f.LocalConfig.Password = "localP@ssw0rd!"
 		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, nil, gotResult)
 	})
 	t.Run("expect MissingOrIncorrectPassword when passwords do not match", func(t *testing.T) {
 		f := NewFlags([]string{
@@ -131,7 +133,7 @@ func TestCmdLine(t *testing.T) {
 		}
 		f := NewFlags(cmdLine)
 		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, true, f.Local)
 		assert.Equal(t, f.Password, f.LocalConfig.Password)
 	})
@@ -148,7 +150,7 @@ func TestCmdLine(t *testing.T) {
 			`rpc`, `configure`, `enablewifiport`,
 		})
 		gotResult := f.ParseFlags()
-		assert.Equal(t, utils.Success, gotResult)
+		assert.Equal(t, nil, gotResult)
 	})
 	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
 		f := NewFlags([]string{
@@ -172,14 +174,14 @@ func TestConfigJson(t *testing.T) {
 	args := strings.Fields(cmdLine)
 	flags := NewFlags(args)
 	gotResult := flags.ParseFlags()
-	assert.Equal(t, utils.Success, gotResult)
+	assert.Equal(t, nil, gotResult)
 }
 
 func TestHandleAddWifiSettings(t *testing.T) {
 	cases := []struct {
 		description    string
 		cmdLine        string
-		expectedResult utils.ReturnCode
+		expectedResult error
 	}{
 		{description: "Missing Ieee8021xProfileName value",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
@@ -223,11 +225,11 @@ func TestHandleAddWifiSettings(t *testing.T) {
 		},
 		{description: "Basic wifi config command line",
 			cmdLine:        `rpc configure addwifisettings -password Passw0rd! -profileName cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid "myclissid" -priority 1 -pskPassphrase "mypassword"`,
-			expectedResult: utils.Success,
+			expectedResult: nil,
 		},
 		{description: "Valid with reading from file",
 			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config ../../config.yaml -secrets ../../secrets.yaml",
-			expectedResult: utils.Success,
+			expectedResult: nil,
 		},
 	}
 	for _, tc := range cases {
@@ -244,8 +246,8 @@ var wifiCfgWPA = config.WifiConfig{
 	ProfileName:          "wifiWPA",
 	SSID:                 "ssid",
 	Priority:             1,
-	AuthenticationMethod: int(models.AuthenticationMethod_WPA_PSK),
-	EncryptionMethod:     int(models.EncryptionMethod_TKIP),
+	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_PSK),
+	EncryptionMethod:     int(wifi.EncryptionMethod_TKIP),
 	PskPassphrase:        "wifiWPAPassPhrase",
 }
 
@@ -253,8 +255,8 @@ var wifiCfgWPA2 = config.WifiConfig{
 	ProfileName:          "wifiWPA2",
 	SSID:                 "ssid",
 	Priority:             2,
-	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_PSK),
-	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA2_PSK),
+	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	PskPassphrase:        "wifiWPA2PassPhrase",
 }
 
@@ -262,8 +264,8 @@ var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
 	ProfileName:          "wifiWPA28021x",
 	SSID:                 "ssid",
 	Priority:             3,
-	AuthenticationMethod: int(models.AuthenticationMethod_WPA_IEEE8021x),
-	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_IEEE8021x),
+	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
 }
 
@@ -281,8 +283,8 @@ var wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2 = config.WifiConfig{
 	ProfileName:          "wifiWPA28021x",
 	SSID:                 "ssid",
 	Priority:             4,
-	AuthenticationMethod: int(models.AuthenticationMethod_WPA2_IEEE8021x),
-	EncryptionMethod:     int(models.EncryptionMethod_CCMP),
+	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA2_IEEE8021x),
+	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	Ieee8021xProfileName: "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
 }
 
@@ -290,20 +292,16 @@ var ieee8021xCfgPEAPv0_EAPMSCHAPv2 = config.Ieee8021xConfig{
 	ProfileName:            "ieee8021xCfgPEAPv0_EAPMSCHAPv2",
 	Username:               "username",
 	Password:               "password",
-	AuthenticationProtocol: int(models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2),
+	AuthenticationProtocol: int(ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2),
 	ClientCert:             "",
 	CACert:                 "caCert",
 	PrivateKey:             "",
 }
 
-func runVerifyWifiConfiguration(t *testing.T, expectedResult utils.ReturnCode, wifiCfgs config.WifiConfigs, ieee8021xCfgs config.Ieee8021xConfigs) {
+func runVerifyWifiConfiguration(t *testing.T, expectedResult error, wifiCfgs []config.WifiConfig, ieee8021xCfgs []config.Ieee8021xConfig) {
 	f := Flags{}
-	for _, cfg := range wifiCfgs {
-		f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, cfg)
-	}
-	for _, cfg := range ieee8021xCfgs {
-		f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, cfg)
-	}
+	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgs...)
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgs...)
 	gotResult := f.verifyWifiConfigurations()
 	assert.Equal(t, expectedResult, gotResult)
 }
@@ -311,86 +309,86 @@ func runVerifyWifiConfiguration(t *testing.T, expectedResult utils.ReturnCode, w
 func TestVerifyWifiConfiguration(t *testing.T) {
 
 	t.Run("expect Success for correct configs", func(t *testing.T) {
-		runVerifyWifiConfiguration(t, utils.Success,
-			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+		runVerifyWifiConfiguration(t, nil,
+			[]config.WifiConfig{wifiCfgWPA, wifiCfgWPA2, wifiCfgWPA8021xEAPTLS, wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 	})
 	t.Run("expect MissingOrInvalidConfiguration when missing ProfileName", func(t *testing.T) {
 		orig := wifiCfgWPA.ProfileName
 		wifiCfgWPA.ProfileName = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.ProfileName = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration when missing SSID", func(t *testing.T) {
 		orig := wifiCfgWPA.SSID
 		wifiCfgWPA.SSID = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.SSID = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid Priority", func(t *testing.T) {
 		orig := wifiCfgWPA.Priority
 		wifiCfgWPA.Priority = 0
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.Priority = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with duplicate Priority", func(t *testing.T) {
 		orig := wifiCfgWPA.Priority
 		wifiCfgWPA.Priority = wifiCfgWPA2.Priority
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA, wifiCfgWPA2},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA, wifiCfgWPA2},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.Priority = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid AuthenticationMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.AuthenticationMethod
-		wifiCfgWPA.AuthenticationMethod = int(models.AuthenticationMethod_DMTFReserved)
+		wifiCfgWPA.AuthenticationMethod = int(wifi.AuthenticationMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.AuthenticationMethod = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with invalid EncryptionMethod", func(t *testing.T) {
 		orig := wifiCfgWPA.EncryptionMethod
-		wifiCfgWPA.EncryptionMethod = int(models.EncryptionMethod_DMTFReserved)
+		wifiCfgWPA.EncryptionMethod = int(wifi.EncryptionMethod_DMTFReserved)
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA.EncryptionMethod = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with missing passphrase", func(t *testing.T) {
 		orig := wifiCfgWPA2.PskPassphrase
 		wifiCfgWPA2.PskPassphrase = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA2},
-			config.Ieee8021xConfigs{})
+			[]config.WifiConfig{wifiCfgWPA2},
+			[]config.Ieee8021xConfig{})
 		wifiCfgWPA2.PskPassphrase = orig
 	})
 	t.Run("expect MissingOrInvalidConfiguration with missing ieee8021x ProfileName", func(t *testing.T) {
 		orig8021xName := ieee8021xCfgEAPTLS.ProfileName
 		ieee8021xCfgEAPTLS.ProfileName = ""
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
 	})
 	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = "shouldn't be here"
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS})
 		wifiCfgWPA8021xEAPTLS.PskPassphrase = ""
 	})
 	t.Run("expect MissingOrInvalidConfiguration with PskPassphrase is present for ieee8021x profile", func(t *testing.T) {
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = "shouldn't be here"
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2.PskPassphrase = ""
 	})
 
@@ -400,12 +398,12 @@ func TestVerifyWifiConfiguration(t *testing.T) {
 		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgPEAPv0_EAPMSCHAPv2.ProfileName
 		// authMethod 5
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA8021xEAPTLS},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA8021xEAPTLS},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		// authMethod 7
 		runVerifyWifiConfiguration(t, utils.MissingOrInvalidConfiguration,
-			config.WifiConfigs{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
-			config.Ieee8021xConfigs{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
+			[]config.WifiConfig{wifiCfgWPA28021xPEAPv0_EAPMSCHAPv2},
+			[]config.Ieee8021xConfig{ieee8021xCfgEAPTLS, ieee8021xCfgPEAPv0_EAPMSCHAPv2})
 		ieee8021xCfgEAPTLS.ProfileName = orig8021xName
 		wifiCfgWPA8021xEAPTLS.Ieee8021xProfileName = ieee8021xCfgEAPTLS.ProfileName
 	})
@@ -453,7 +451,7 @@ func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
 	t.Run("expect Success", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTLS)
 		rc := f.verifyMatchingIeee8021xConfig(name)
-		assert.Equal(t, utils.Success, rc)
+		assert.Equal(t, nil, rc)
 	})
 	t.Run("expect MissingOrInvalidConfiguration for unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2", func(t *testing.T) {
 		f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(models.AuthenticationProtocolEAPTTLS_MSCHAPv2)
@@ -466,15 +464,15 @@ func TestInvalidAuthenticationMethods(t *testing.T) {
 	f := Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
 	cases := []struct {
-		method models.AuthenticationMethod
+		method wifi.AuthenticationMethod
 	}{
-		{method: models.AuthenticationMethod_Other},
-		{method: models.AuthenticationMethod_OpenSystem},
-		{method: models.AuthenticationMethod_SharedKey},
-		{method: models.AuthenticationMethod_DMTFReserved},
-		{method: models.AuthenticationMethod_WPA3_SAE},
-		{method: models.AuthenticationMethod_WPA3_OWE},
-		{method: models.AuthenticationMethod_VendorReserved},
+		{method: wifi.AuthenticationMethod_Other},
+		{method: wifi.AuthenticationMethod_OpenSystem},
+		{method: wifi.AuthenticationMethod_SharedKey},
+		{method: wifi.AuthenticationMethod_DMTFReserved},
+		{method: wifi.AuthenticationMethod_WPA3_SAE},
+		{method: wifi.AuthenticationMethod_WPA3_OWE},
+		{method: wifi.AuthenticationMethod_VendorReserved},
 		{method: 599},
 	}
 	for _, tc := range cases {
@@ -491,12 +489,12 @@ func TestInvalidEncryptionMethods(t *testing.T) {
 	f := Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
 	cases := []struct {
-		method models.EncryptionMethod
+		method wifi.EncryptionMethod
 	}{
-		{method: models.EncryptionMethod_Other},
-		{method: models.EncryptionMethod_WEP},
-		{method: models.EncryptionMethod_None},
-		{method: models.EncryptionMethod_DMTFReserved},
+		{method: wifi.EncryptionMethod_Other},
+		{method: wifi.EncryptionMethod_WEP},
+		{method: wifi.EncryptionMethod_None},
+		{method: wifi.EncryptionMethod_DMTFReserved},
 		{method: 599},
 	}
 	for _, tc := range cases {
@@ -513,25 +511,25 @@ func TestInvalidAuthenticationProtocols(t *testing.T) {
 	f := Flags{}
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
 	cases := []struct {
-		protocol models.AuthenticationProtocol
+		protocol ieee8021x.AuthenticationProtocol
 	}{
-		{protocol: models.AuthenticationProtocolEAPTTLS_MSCHAPv2},
-		{protocol: models.AuthenticationProtocolPEAPv1_EAPGTC},
-		{protocol: models.AuthenticationProtocolEAPFAST_MSCHAPv2},
-		{protocol: models.AuthenticationProtocolEAPFAST_GTC},
-		{protocol: models.AuthenticationProtocolEAP_MD5},
-		{protocol: models.AuthenticationProtocolEAP_PSK},
-		{protocol: models.AuthenticationProtocolEAP_SIM},
-		{protocol: models.AuthenticationProtocolEAP_AKA},
-		{protocol: models.AuthenticationProtocolEAPFAST_TLS},
+		{protocol: ieee8021x.AuthenticationProtocolEAPTTLS_MSCHAPv2},
+		{protocol: ieee8021x.AuthenticationProtocolPEAPv1_EAPGTC},
+		{protocol: ieee8021x.AuthenticationProtocolEAPFAST_MSCHAPv2},
+		{protocol: ieee8021x.AuthenticationProtocolEAPFAST_GTC},
+		{protocol: ieee8021x.AuthenticationProtocolEAP_MD5},
+		{protocol: ieee8021x.AuthenticationProtocolEAP_PSK},
+		{protocol: ieee8021x.AuthenticationProtocolEAP_SIM},
+		{protocol: ieee8021x.AuthenticationProtocolEAP_AKA},
+		{protocol: ieee8021x.AuthenticationProtocolEAPFAST_TLS},
 		{protocol: 599},
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("expect MissingOrInvalidConfiguration for AuthenticationProtocol %d", tc.protocol),
 			func(t *testing.T) {
 				f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = int(tc.protocol)
-				rc := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
-				assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
+				err := f.verifyIeee8021xConfig(f.LocalConfig.Ieee8021xConfigs[0])
+				assert.Equal(t, utils.MissingOrInvalidConfiguration, err)
 			})
 	}
 }
