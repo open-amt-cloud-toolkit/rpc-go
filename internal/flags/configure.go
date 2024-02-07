@@ -211,25 +211,24 @@ func (f *Flags) handleAddWifiSettings() error {
 	var secretsFilePath string
 	var wifiSecretConfig config.SecretConfig
 	var configJson string
-	fs := f.NewConfigureFlagSet(utils.SubCommandAddWifiSettings)
-	fs.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
-	fs.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
-	fs.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
+	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
+	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
+	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
 	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
-	fs.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
-	fs.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
-	fs.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
-	fs.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
-	fs.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", f.lookupEnvOrString("PSK_PASSPHRASE", ""), "specify psk passphrase")
-	fs.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
-	fs.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
-	fs.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
-	fs.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
-	fs.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
-	fs.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
-	fs.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
+	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
+	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
+	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
+	f.flagSetAddWifiSettings.StringVar(&wifiCfg.SSID, "ssid", "", "specify ssid")
+	f.flagSetAddWifiSettings.StringVar(&wifiCfg.PskPassphrase, "pskPassphrase", f.lookupEnvOrString("PSK_PASSPHRASE", ""), "specify psk passphrase")
+	f.flagSetAddWifiSettings.IntVar(&wifiCfg.Priority, "priority", 0, "specify priority")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
+	f.flagSetAddWifiSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
+	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
