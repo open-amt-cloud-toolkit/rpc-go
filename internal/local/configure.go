@@ -248,17 +248,21 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 
 	// Create an empty handles reference holder
 	handles := Handles{}
-
-	// Find the correct Ieee8021xConfig from wifiCfg file
-	ieee8021xConfig := service.checkForIeee8021xConfig(wifiCfg)
-	// If we find a matching Ieee8021xConfig, populate the IEEE8021xSettings and add any required private keys and certificates
+	// TODO: Check authenitcationMethod instead of profile  name
 	var ieee8021xSettings models.IEEE8021xSettings
-	if ieee8021xConfig != nil {
+	// Find the correct Ieee8021xConfig from wifiCfg file
+	if wifiCfg.Ieee8021xProfileName != "" {
+		// If we find a matching Ieee8021xConfig, populate the IEEE8021xSettings and add any required private keys and certificates
+		ieee8021xConfig, err := service.checkForIeee8021xConfig(wifiCfg)
+		if err != nil {
+			return err
+		}
 		ieee8021xSettings, err = service.setIeee8021xConfig(ieee8021xConfig, handles)
 		if err != nil {
 			return err
 		}
 	} else {
+
 		// not using IEEE8021x, so set the wireless passphrase
 		wifiEndpointSettings.PSKPassPhrase = wifiCfg.PskPassphrase
 	}
@@ -316,14 +320,15 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 	return ieee8021xSettings, nil
 }
 
-func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig) {
+func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig, err error) {
 	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
 		if curCfg.ProfileName == wifiCfg.Ieee8021xProfileName {
 			ieee8021xConfig = &curCfg
-			break
+			return ieee8021xConfig, nil
 		}
 	}
-	return ieee8021xConfig
+	log.Error("no matching 802.1x configuration found")
+	return nil, utils.Ieee8021xConfigurationFailed
 }
 
 type Handles struct {

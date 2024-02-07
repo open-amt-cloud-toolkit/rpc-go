@@ -81,7 +81,7 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "  " + utils.SubCommandConfigureTLS + "    Configures TLS in AMT. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -mode Server -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandSetMEBx + "         Configure MEBx Password. AMT password is required.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetMEBx + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
 	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -229,6 +229,10 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
 	f.flagSetAddWifiSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
+	f.flagSetAddWifiSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
