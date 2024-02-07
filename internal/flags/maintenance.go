@@ -46,23 +46,17 @@ func (f *Flags) handleMaintenanceCommand() error {
 	switch f.SubCommand {
 	case "syncclock":
 		err = f.handleMaintenanceSyncClock()
-		break
 	case "synchostname":
 		err = f.handleMaintenanceSyncHostname()
-		break
 	case "syncip":
 		err = f.handleMaintenanceSyncIP()
-		break
 	case "changepassword":
 		err = f.handleMaintenanceSyncChangePassword()
-		break
 	case "syncdeviceinfo":
 		err = f.handleMaintenanceSyncDeviceInfo()
-		break
 	default:
 		f.printMaintenanceUsage()
 		err = utils.IncorrectCommandLineParameters
-		break
 	}
 	if err != nil {
 		return err
