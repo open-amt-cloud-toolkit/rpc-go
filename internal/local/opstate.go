@@ -6,17 +6,17 @@ import (
 	"rpc/pkg/utils"
 )
 
-func (service *ProvisioningService) EnableAMT() utils.ReturnCode {
+func (service *ProvisioningService) EnableAMT() error {
 	log.Info("Enabling AMT")
 	err := service.amtCommand.EnableAMT()
 	if err != nil {
 		log.Error("Failed to enable AMT ", err)
 		return utils.AmtNotReady
 	}
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) utils.ReturnCode {
+func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) error {
 	rsp, err := service.amtCommand.GetChangeEnabled()
 	if err != nil {
 		log.Error(err)
@@ -24,25 +24,28 @@ func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) utils.
 	}
 	if !rsp.IsNewInterfaceVersion() {
 		log.Debug("this AMT version does not support SetAmtOperationalState")
-		return utils.Success
+		return nil
 	}
 	if rsp.IsAMTEnabled() {
 		log.Debug("AMT is alreay enabled")
-		return utils.Success
+		return nil
 	}
-	rc := service.EnableAMT()
-	if rc != utils.Success {
-		// error message is already logged
-		return rc
+	err = service.EnableAMT()
+	if err != nil {
+		return err
 	}
 	if !skipIPRenewal {
-		return service.RenewIP()
+		err := service.RenewIP()
+		return err
 	}
-	return rc
+	return nil
 }
 
-func (service *ProvisioningService) RenewIP() utils.ReturnCode {
-	rc := service.networker.RenewDHCPLease()
+func (service *ProvisioningService) RenewIP() error {
+	err := service.networker.RenewDHCPLease()
+	if err != nil {
+		return err
+	}
 	if log.IsLevelEnabled(log.DebugLevel) {
 		amtInfoOrig := service.flags.AmtInfo
 		service.flags.AmtInfo = flags.AmtInfoFlags{
@@ -52,5 +55,5 @@ func (service *ProvisioningService) RenewIP() utils.ReturnCode {
 		service.DisplayAMTInfo()
 		service.flags.AmtInfo = amtInfoOrig
 	}
-	return rc
+	return nil
 }

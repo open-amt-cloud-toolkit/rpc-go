@@ -27,8 +27,8 @@ var controlMode int = 0
 var err error = nil
 var mode int = 0
 
-func (c MockAMT) Initialize() (utils.ReturnCode, error) {
-	return utils.Success, nil
+func (c MockAMT) Initialize() error {
+	return nil
 }
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
 	return "Version", nil

@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (f *Flags) handleActivateCommand() utils.ReturnCode {
+func (f *Flags) handleActivateCommand() error {
 	f.amtActivateCommand.StringVar(&f.DNS, "d", f.lookupEnvOrString("DNS_SUFFIX", ""), "dns suffix override")
 	f.amtActivateCommand.StringVar(&f.Hostname, "h", f.lookupEnvOrString("HOSTNAME", ""), "hostname override")
 	f.amtActivateCommand.StringVar(&f.Profile, "profile", f.lookupEnvOrString("PROFILE", ""), "name of the profile to use")
@@ -34,20 +34,19 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 	}
 	if err := f.amtActivateCommand.Parse(f.commandLineArgs[2:]); err != nil {
 		re := regexp.MustCompile(`: .*`)
-		var rc = utils.IncorrectCommandLineParameters
 		switch re.FindString(err.Error()) {
 		case ": -d":
-			rc = utils.MissingDNSSuffix
+			err = utils.MissingDNSSuffix
 		case ": -p":
-			rc = utils.MissingProxyAddressAndPort
+			err = utils.MissingProxyAddressAndPort
 		case ": -h":
-			rc = utils.MissingHostname
+			err = utils.MissingHostname
 		case ": -profile":
-			rc = utils.MissingOrIncorrectProfile
+			err = utils.MissingOrIncorrectProfile
 		default:
-			rc = utils.IncorrectCommandLineParameters
+			err = utils.IncorrectCommandLineParameters
 		}
-		return rc
+		return err
 	}
 	if f.Local && f.URL != "" {
 		fmt.Println("provide either a 'url' or a 'local', but not both")
@@ -66,10 +65,10 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 			return utils.MissingOrIncorrectProfile
 		}
 		if f.UUID != "" {
-			rc := f.validateUUIDOverride()
-			if rc != utils.Success {
+			err := f.validateUUIDOverride()
+			if err != nil {
 				f.amtActivateCommand.Usage()
-				return rc
+				return utils.InvalidUUID
 			}
 			fmt.Println("Warning: Overriding UUID prevents device from connecting to MPS")
 		}
@@ -80,9 +79,9 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 		}
 
 		if f.UseACM {
-			rc := f.handleLocalConfig()
-			if rc != utils.Success {
-				return rc
+			err := f.handleLocalConfig()
+			if err != nil {
+				return utils.FailedReadingConfiguration
 			}
 			// Check if all fields are filled
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
@@ -97,7 +96,7 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 
 		// Only for CCM it asks for password.
 		if !f.UseACM && f.Password == "" {
-			if _, rc := f.ReadPasswordFromUser(); rc != utils.Success {
+			if _, rc := f.ReadPasswordFromUser(); rc != nil {
 				return utils.MissingOrIncorrectPassword
 			}
 		}
@@ -109,5 +108,5 @@ func (f *Flags) handleActivateCommand() utils.ReturnCode {
 			return utils.InvalidParameterCombination
 		}
 	}
-	return utils.Success
+	return nil
 }

@@ -1,60 +1,53 @@
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/timesynchronization"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	log "github.com/sirupsen/logrus"
 	"rpc/pkg/utils"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) SynchronizeTime() utils.ReturnCode {
+func (service *ProvisioningService) SynchronizeTime() error {
 	log.Info("synchronizing time")
-	ta0, rc := service.GetLowAccuracyTimeSynch()
-	if rc != utils.Success {
-		return rc
+	ta0, err := service.GetLowAccuracyTimeSynch()
+	if err != nil {
+		return err
 	}
-	rc = service.SetHighAccuracyTimeSynch(ta0)
-	if rc == utils.Success {
+	err = service.SetHighAccuracyTimeSynch(ta0)
+	if err == nil {
 		log.Info("synchronizing time completed successfully")
 	}
-	return rc
+	return err
 }
 
-func (service *ProvisioningService) GetLowAccuracyTimeSynch() (ta0 int64, rc utils.ReturnCode) {
+func (service *ProvisioningService) GetLowAccuracyTimeSynch() (ta0 int64, err error) {
 	log.Info("getting low accuracy time")
-	xmlMsg := service.amtMessages.TimeSynchronizationService.GetLowAccuracyTimeSynch()
-	var rsp timesynchronization.Response
-	rc = service.PostAndUnmarshal(xmlMsg, &rsp)
-	if rc != utils.Success {
+	response, err := service.interfacedWsmanMessage.GetLowAccuracyTimeSynch()
+	if err != nil {
 		log.Error("failed GetTimeOffset")
-		return ta0, rc
+		return ta0, err
 	}
-	ptCode := utils.ReturnCode(rsp.Body.GetLowAccuracyTimeSynch_OUTPUT.ReturnValue)
-	if ptCode != common.PT_STATUS_SUCCESS {
+	ptCode := response.Body.GetLowAccuracyTimeSynchResponse.ReturnValue
+	if ptCode != 0 {
 		log.Errorf("failed GetLowAccuracyTimeSynch with PT Code: %v", ptCode)
-		rc = utils.AmtPtStatusCodeBase + ptCode
-		return ta0, rc
+		err = utils.AmtPtStatusCodeBase
 	}
-	ta0 = rsp.Body.GetLowAccuracyTimeSynch_OUTPUT.Ta0
-	return ta0, rc
+	ta0 = response.Body.GetLowAccuracyTimeSynchResponse.Ta0
+	return ta0, nil
 }
 
-func (service *ProvisioningService) SetHighAccuracyTimeSynch(ta0 int64) utils.ReturnCode {
+func (service *ProvisioningService) SetHighAccuracyTimeSynch(ta0 int64) error {
 	log.Info("setting high accuracy time")
 	tm1 := time.Now().Unix()
-	xmlMsg := service.amtMessages.TimeSynchronizationService.SetHighAccuracyTimeSynch(ta0, tm1, tm1)
-	rsp := timesynchronization.Response{}
-	rc := service.PostAndUnmarshal(xmlMsg, &rsp)
-	if rc != utils.Success {
+	rsp, err := service.interfacedWsmanMessage.SetHighAccuracyTimeSynch(ta0, tm1, tm1)
+	if err != nil {
 		log.Error("failed SetHighAccuracyTimeSynch")
-		return rc
+		return err
 	}
-	ptCode := utils.ReturnCode(rsp.Body.SetHighAccuracyTimeSynch_OUTPUT.ReturnValue)
-	if ptCode != common.PT_STATUS_SUCCESS {
+	ptCode := rsp.Body.SetHighAccuracyTimeSynchResponse.ReturnValue
+	if ptCode != 0 {
 		log.Errorf("failed SetHighAccuracyTimeSynch with PT Code: %v", ptCode)
-		return utils.AmtPtStatusCodeBase + ptCode
+		return utils.AmtPtStatusCodeBase
 	}
-
-	return utils.Success
+	return nil
 }

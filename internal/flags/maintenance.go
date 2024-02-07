@@ -34,43 +34,42 @@ func (f *Flags) printMaintenanceUsage() string {
 	return usage
 }
 
-func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
+func (f *Flags) handleMaintenanceCommand() error {
 	//validation section
 	if len(f.commandLineArgs) == 2 {
 		f.printMaintenanceUsage()
 		return utils.IncorrectCommandLineParameters
 	}
 
-	var rc = utils.Success
-
+	var err error
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case "syncclock":
-		rc = f.handleMaintenanceSyncClock()
+		err = f.handleMaintenanceSyncClock()
 		break
 	case "synchostname":
-		rc = f.handleMaintenanceSyncHostname()
+		err = f.handleMaintenanceSyncHostname()
 		break
 	case "syncip":
-		rc = f.handleMaintenanceSyncIP()
+		err = f.handleMaintenanceSyncIP()
 		break
 	case "changepassword":
-		rc = f.handleMaintenanceSyncChangePassword()
+		err = f.handleMaintenanceSyncChangePassword()
 		break
 	case "syncdeviceinfo":
-		rc = f.handleMaintenanceSyncDeviceInfo()
+		err = f.handleMaintenanceSyncDeviceInfo()
 		break
 	default:
 		f.printMaintenanceUsage()
-		rc = utils.IncorrectCommandLineParameters
+		err = utils.IncorrectCommandLineParameters
 		break
 	}
-	if rc != utils.Success {
-		return rc
+	if err != nil {
+		return err
 	}
 
 	if f.Password == "" {
-		if _, rc := f.ReadPasswordFromUser(); rc != 0 {
+		if _, err := f.ReadPasswordFromUser(); err != nil {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
@@ -82,31 +81,31 @@ func (f *Flags) handleMaintenanceCommand() utils.ReturnCode {
 	}
 
 	if f.UUID != "" {
-		rc = f.validateUUIDOverride()
-		if rc != utils.Success {
+		err := f.validateUUIDOverride()
+		if err != nil {
 			f.printMaintenanceUsage()
-			return rc
+			return utils.InvalidUUID
 		}
 	}
 
-	return utils.Success
+	return nil
 }
 
-func (f *Flags) handleMaintenanceSyncClock() utils.ReturnCode {
+func (f *Flags) handleMaintenanceSyncClock() error {
 	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return utils.IncorrectCommandLineParameters
 	}
-	return utils.Success
+	return nil
 }
 
-func (f *Flags) handleMaintenanceSyncDeviceInfo() utils.ReturnCode {
+func (f *Flags) handleMaintenanceSyncDeviceInfo() error {
 	if err := f.amtMaintenanceSyncDeviceInfoCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		return utils.IncorrectCommandLineParameters
 	}
-	return utils.Success
+	return nil
 }
 
-func (f *Flags) handleMaintenanceSyncHostname() utils.ReturnCode {
+func (f *Flags) handleMaintenanceSyncHostname() error {
 	var err error
 	if err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtMaintenanceSyncHostnameCommand.Usage()
@@ -124,7 +123,7 @@ func (f *Flags) handleMaintenanceSyncHostname() utils.ReturnCode {
 		log.Error("OS hostname is not available")
 		return utils.OSNetworkInterfacesLookupFailed
 	}
-	return utils.Success
+	return nil
 }
 
 // wrap the flag.Func method signature with the assignment value
@@ -138,7 +137,7 @@ func validateIP(assignee *string) func(string) error {
 	}
 }
 
-func (f *Flags) handleMaintenanceSyncIP() utils.ReturnCode {
+func (f *Flags) handleMaintenanceSyncIP() error {
 	f.amtMaintenanceSyncIPCommand.Func(
 		"staticip",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
@@ -155,25 +154,24 @@ func (f *Flags) handleMaintenanceSyncIP() utils.ReturnCode {
 		f.amtMaintenanceSyncIPCommand.Usage()
 		// Parse the error message to find the problematic flag.
 		// The problematic flag is of the following format '-' followed by flag name and then a ':'
-		var rc utils.ReturnCode
 		re := regexp.MustCompile(`-.*:`)
 		switch re.FindString(err.Error()) {
 		case "-netmask:":
-			rc = utils.MissingOrIncorrectNetworkMask
+			err = utils.MissingOrIncorrectNetworkMask
 		case "-staticip:":
-			rc = utils.MissingOrIncorrectStaticIP
+			err = utils.MissingOrIncorrectStaticIP
 		case "-gateway:":
-			rc = utils.MissingOrIncorrectGateway
+			err = utils.MissingOrIncorrectGateway
 		case "-primarydns:":
-			rc = utils.MissingOrIncorrectPrimaryDNS
+			err = utils.MissingOrIncorrectPrimaryDNS
 		case "-secondarydns:":
-			rc = utils.MissingOrIncorrectSecondaryDNS
+			err = utils.MissingOrIncorrectSecondaryDNS
 		default:
-			rc = utils.IncorrectCommandLineParameters
+			err = utils.IncorrectCommandLineParameters
 		}
-		return rc
+		return err
 	} else if len(f.IpConfiguration.IpAddress) != 0 {
-		return utils.Success
+		return nil
 	}
 
 	amtLanIfc, err := f.amtCommand.GetLANInterfaceSettings(false)
@@ -213,14 +211,14 @@ func (f *Flags) handleMaintenanceSyncIP() utils.ReturnCode {
 		log.Errorf("static ip address not found")
 		return utils.OSNetworkInterfacesLookupFailed
 	}
-	return utils.Success
+	return nil
 }
 
-func (f *Flags) handleMaintenanceSyncChangePassword() utils.ReturnCode {
+func (f *Flags) handleMaintenanceSyncChangePassword() error {
 	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
 	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.amtMaintenanceChangePasswordCommand.Usage()
 		return utils.IncorrectCommandLineParameters
 	}
-	return utils.Success
+	return nil
 }
