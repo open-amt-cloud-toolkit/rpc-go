@@ -30,15 +30,13 @@ func ExecuteCommand(flags *flags.Flags) error {
 	startMessage, err := PrepareInitialMessage(flags)
 	if err != nil {
 		log.Error(err)
-		// TODO: this error mapping is rather random?
-		return utils.MissingOrIncorrectPassword
+		return err
 	}
 
 	executor, err := NewExecutor(*flags)
 	if err != nil {
 		log.Error(err)
-		// TODO: this error mapping is rather random?
-		return utils.ServerCerificateVerificationFailed
+		return err
 	}
 
 	executor.MakeItSo(startMessage)
@@ -50,10 +48,8 @@ func setCommandMethod(flags *flags.Flags) {
 	switch flags.Command {
 	case utils.CommandActivate:
 		flags.Command += " --profile " + flags.Profile
-		break
 	case utils.CommandDeactivate:
 		flags.Command += " --password " + flags.Password
-		break
 	case utils.CommandMaintenance:
 		flags.Command += " -password " + flags.Password
 		task := flags.SubCommand
@@ -64,7 +60,6 @@ func setCommandMethod(flags *flags.Flags) {
 		if task == "changepassword" && flags.StaticPassword != "" {
 			flags.Command += " " + flags.StaticPassword
 		}
-		break
 	}
 	if flags.Force {
 		flags.Command += " -f"
