@@ -247,7 +247,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	}
 
 	// Create an empty handles reference holder
-	handles := Handles{}
+	var handles Handles
 	// TODO: Check authenitcationMethod instead of profile  name
 	var ieee8021xSettings models.IEEE8021xSettings
 	// Find the correct Ieee8021xConfig from wifiCfg file
@@ -257,7 +257,7 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 		if err != nil {
 			return err
 		}
-		ieee8021xSettings, err = service.setIeee8021xConfig(ieee8021xConfig, handles)
+		ieee8021xSettings, handles, err = service.setIeee8021xConfig(ieee8021xConfig)
 		if err != nil {
 			return err
 		}
@@ -277,7 +277,8 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 	return nil
 }
 
-func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.Ieee8021xConfig, handles Handles) (ieee8021xSettings models.IEEE8021xSettings, err error) {
+func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.Ieee8021xConfig) (ieee8021xSettings models.IEEE8021xSettings, handles Handles, err error) {
+	handles = Handles{}
 	ieee8021xSettings = models.IEEE8021xSettings{
 		ElementName:            ieee8021xConfig.ProfileName,
 		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
@@ -293,7 +294,7 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 			handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
 			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
 			if err != nil {
-				return ieee8021xSettings, err
+				return ieee8021xSettings, handles, err
 			}
 		}
 	}
@@ -303,7 +304,7 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 			handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
 			service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
 			if err != nil {
-				return ieee8021xSettings, err
+				return ieee8021xSettings, handles, err
 			}
 		}
 	}
@@ -313,11 +314,11 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 			handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
 			service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
 			if err != nil {
-				return ieee8021xSettings, err
+				return ieee8021xSettings, handles, err
 			}
 		}
 	}
-	return ieee8021xSettings, nil
+	return ieee8021xSettings, handles, nil
 }
 
 func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig, err error) {
