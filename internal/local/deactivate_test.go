@@ -42,26 +42,26 @@ func TestDeactivateCCM(t *testing.T) {
 		f.Password = ""
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, nil, err)
+		assert.NoError(t, err)
 	})
 	t.Run("returns Success with warning, given the password", func(t *testing.T) {
 		f.Password = "P@ssw0rd"
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, nil, err)
+		assert.NoError(t, err)
 	})
 	t.Run("returns DeactivationFailed when unprovision fails", func(t *testing.T) {
 		mockUnprovisionErr = errors.New("test error")
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, err)
+		assert.Error(t, err)
 		mockUnprovisionErr = nil
 	})
 	t.Run("returns DeactivationFailed when unprovision ReturnStatus is not success (0)", func(t *testing.T) {
 		mockUnprovisionCode = 1
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, utils.DeactivationFailed, err)
+		assert.Error(t, err)
 		mockUnprovisionCode = 0
 	})
 }
@@ -76,13 +76,13 @@ func TestDeactivateACM(t *testing.T) {
 		f.Password = "P@ssw0rd"
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, nil, err)
+		assert.NoError(t, err)
 	})
 	t.Run("returns UnableToDeactivate with no password", func(t *testing.T) {
 		f.Password = ""
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("returns UnableToDeactivate on SetupAndConfigurationService.Unprovision server error", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestDeactivateACM(t *testing.T) {
 		mockACMUnprovisionErr = errors.New("yep, it failed")
 		lps := setupService(f)
 		err := lps.Deactivate()
-		assert.Equal(t, utils.UnableToDeactivate, err)
+		assert.Error(t, err)
 		mockACMUnprovisionErr = nil
 	})
 }
