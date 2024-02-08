@@ -1,10 +1,11 @@
 package flags
 
 import (
-	"github.com/stretchr/testify/assert"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseFlagsAmtInfo(t *testing.T) {
@@ -23,13 +24,13 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 
 	tests := map[string]struct {
 		cmdLine    string
-		wantResult utils.ReturnCode
+		wantResult error
 		wantFlags  AmtInfoFlags
 		userInput  string
 	}{
 		"expect success for basic command": {
 			cmdLine:    "./rpc amtinfo -json",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags:  defaultFlags,
 		},
 		"expect IncorrectCommandLineParameters on Parse error": {
@@ -39,14 +40,14 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		},
 		"expect only cert flag with no password on command line": {
 			cmdLine:    "./rpc amtinfo -cert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				Cert: true,
 			},
 		},
 		"expect both cert flags with no password on command line": {
 			cmdLine:    "./rpc amtinfo -cert -password testPassword",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				Cert:     true,
 				UserCert: true,
@@ -54,21 +55,21 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		},
 		"expect success for userCert with no password": {
 			cmdLine:    "./rpc amtinfo -userCert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
 		},
 		"expect Success for userCert with password": {
 			cmdLine:    "./rpc amtinfo -userCert -password testPassword",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
 		},
 		"expect Success for userCert with password input": {
 			cmdLine:    "./rpc amtinfo -userCert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},

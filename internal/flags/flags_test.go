@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"net"
 	"os"
 	"path/filepath"
@@ -18,6 +17,8 @@ import (
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -192,7 +193,7 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -210,7 +211,7 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, true, flags.JsonOutput)
 }
@@ -218,7 +219,7 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -226,7 +227,7 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -241,7 +242,7 @@ func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandVersion)
 	assert.Equal(t, false, flags.JsonOutput)
 }
@@ -274,7 +275,7 @@ func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
 	flags := NewFlags(args)
 	result := flags.ParseFlags()
-	assert.EqualValues(t, result, utils.Success)
+	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandVersion)
 	assert.Equal(t, true, flags.JsonOutput)
 }
@@ -396,7 +397,7 @@ func TestHandleLocalConfig(t *testing.T) {
 			flags.SambaService = NewMockSambaService(nil)
 			flags.configContent = "smb://localhost/xxx/" + cfgFilePath
 			rc := flags.handleLocalConfig()
-			assert.Equal(t, utils.Success, rc)
+			assert.Equal(t, nil, rc)
 			if ext == "json" || ext == "yaml" {
 				assert.Equal(t, cfg.Password, flags.LocalConfig.Password)
 				assert.Equal(t, cfg.ACMSettings, flags.LocalConfig.ACMSettings)
@@ -411,7 +412,7 @@ func TestHandleLocalConfig(t *testing.T) {
 			flags := NewFlags(args)
 			flags.configContent = cfgFilePath
 			rc := flags.handleLocalConfig()
-			assert.Equal(t, utils.Success, rc)
+			assert.Equal(t, nil, rc)
 			if ext == "json" || ext == "yaml" {
 				assert.Equal(t, cfg.Password, flags.LocalConfig.Password)
 				assert.Equal(t, cfg.ACMSettings, flags.LocalConfig.ACMSettings)
@@ -427,8 +428,8 @@ func TestHandleLocalConfig(t *testing.T) {
 		flags := NewFlags(args)
 		flags.configContent = "smb://localhost/xxx/nope.html"
 		flags.SambaService = NewMockSambaService(nil)
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 
 	t.Run("expect FailedReadingConfiguration for smb fetch file error", func(t *testing.T) {
@@ -436,15 +437,15 @@ func TestHandleLocalConfig(t *testing.T) {
 		flags := NewFlags(args)
 		flags.configContent = "smb://localhost/xxx/yep.yaml"
 		flags.SambaService = NewMockSambaService(errors.New("test error"))
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 
 	t.Run("expect FailedReadingConfiguration for local pfx ReadFile", func(t *testing.T) {
 		args := []string{"./rpc"}
 		flags := NewFlags(args)
 		flags.configContent = "/tmp/thisfilebetterneverexist.pfx"
-		rc := flags.handleLocalConfig()
-		assert.Equal(t, utils.FailedReadingConfiguration, rc)
+		err := flags.handleLocalConfig()
+		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 }

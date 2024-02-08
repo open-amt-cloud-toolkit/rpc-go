@@ -21,7 +21,7 @@ func TestHandleActivateCommand(t *testing.T) {
 	flags := NewFlags(args)
 	var AMTTimeoutDuration time.Duration = 120000000000
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, utils.CommandActivate, flags.Command)
@@ -38,7 +38,7 @@ func TestHandleActivateCommandWithTimeOut(t *testing.T) {
 	flags := NewFlags(args)
 	var AMTTimeoutDuration time.Duration = 2000000000
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, utils.CommandActivate, flags.Command)
@@ -51,7 +51,7 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, utils.CommandActivate, flags.Command)
@@ -62,7 +62,7 @@ func TestHandleActivateCommandWithFriendlyName(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-name", "friendlyName"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "profileName", flags.Profile)
 	assert.Equal(t, utils.CommandActivate, flags.Command)
@@ -86,7 +86,7 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, "envprofile", flags.Profile)
 	assert.Equal(t, utils.CommandActivate, flags.Command)
@@ -102,7 +102,7 @@ func TestActivateOverrideUUID(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-uuid", "4c2e8db8-1c7a-00ea-279c-d17395b1f584"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
-	assert.Equal(t, utils.Success, rc)
+	assert.Equal(t, nil, rc)
 	assert.Equal(t, flags.UUID, "4c2e8db8-1c7a-00ea-279c-d17395b1f584")
 	os.Clearenv()
 }
@@ -198,7 +198,7 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 
 	tests := map[string]struct {
 		cmdLine    string
-		wantResult utils.ReturnCode
+		wantResult error
 	}{
 		"should fail with both URL and local": {
 			cmdLine:    "./rpc activate -local -u wss://localhost",
@@ -226,14 +226,14 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 		},
 		"should pass if acm with example config file": {
 			cmdLine:    "./rpc activate -local -acm -config ../../config.yaml",
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should pass wif acm and ACM Settings specified": {
 			cmdLine: "./rpc activate -local -acm " +
 				" -amtPassword " + trickyPassword +
 				` -provisioningCert MIIW/gIBAzCCFroGCSqGSIb3DQEHAaCCFqsEghanMIIWozCCBgwGCSqGSIb3DQEHAaCCBf0EggX5MIIF9TCCBfEGCyqGSIb3DQEMCgECoIIE/jCCBPowHAYKKoZIhvc` +
 				" -provisioningCertPwd " + trickyPassword,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 	}
 

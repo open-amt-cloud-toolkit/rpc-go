@@ -69,8 +69,11 @@
             "program": "${workspaceFolder}/cmd/main.go",
             "args": [
                 "configure",
-                "enablewifiport",
-                "-h"
+                "mebx",
+                "-mebxpassword",
+                "P@ssw0rd",
+                "-password",
+                "P@ssw0rd"
             ],
             "console": "integratedTerminal"
         },

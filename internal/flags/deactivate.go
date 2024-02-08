@@ -5,7 +5,7 @@ import (
 	"rpc/pkg/utils"
 )
 
-func (f *Flags) handleDeactivateCommand() utils.ReturnCode {
+func (f *Flags) handleDeactivateCommand() error {
 	f.amtDeactivateCommand.BoolVar(&f.Local, "local", false, "Execute command to AMT directly without cloud interaction")
 	if len(f.commandLineArgs) == 2 {
 		f.amtDeactivateCommand.PrintDefaults()
@@ -25,10 +25,10 @@ func (f *Flags) handleDeactivateCommand() utils.ReturnCode {
 			return utils.MissingOrIncorrectURL
 		}
 		if f.Password == "" {
-			if _, rc := f.ReadPasswordFromUser(); rc != 0 {
+			if _, err := f.ReadPasswordFromUser(); err != nil {
 				return utils.MissingOrIncorrectPassword
 			}
 		}
 	}
-	return utils.Success
+	return nil
 }
