@@ -1,3 +1,45 @@
+<a name="v2.25.1"></a>
+## [v2.25.1] - 2024-02-08
+### Build
+- bump go-wsman-messages to v2.0 ([#360](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/360))
+- **deps:** bump golang.org/x/sys from 0.16.0 to 0.17.0 ([#368](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/368))
+- **deps:** bump actions/upload-artifact from 4.3.0 to 4.3.1
+- **deps:** bump aquasecurity/trivy-action from 0.16.1 to 0.17.0
+- **deps:** bump github/codeql-action from 3.23.2 to 3.24.0 ([#356](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/356))
+- **deps:** bump codecov/codecov-action from 4.0.0 to 4.0.1
+- **deps:** bump codecov/codecov-action from 3.1.6 to 4.0.0
+- **deps:** bump codecov/codecov-action from 3.1.5 to 3.1.6
+- **deps:** bump step-security/harden-runner from 2.6.1 to 2.7.0
+- **deps:** bump github/codeql-action from 3.23.1 to 3.23.2
+- **deps:** bump golang from `51a7800` to `a6a7f1f`
+- **deps:** bump codecov/codecov-action from 3.1.4 to 3.1.5
+- **deps:** bump golang from `fd78f2f` to `51a7800`
+- **deps:** bump actions/upload-artifact from 4.2.0 to 4.3.0
+
+### Ci
+- pin version of config [@commitlint](https://github.com/commitlint)/config-conventional to 18.5
+
+### Docs
+- correct tls help example command
+
+### Fix
+- update build tasks and project version
+
+<a name="v2.25.0"></a>
+## [v2.25.0] - 2024-01-23
+### Build
+- **deps:** bump actions/upload-artifact from 4.1.0 to 4.2.0
+- **deps:** bump github/codeql-action from 3.23.0 to 3.23.1
+- **deps:** bump actions/upload-artifact from 4.0.0 to 4.1.0
+- **deps:** bump golang from `4db4aac` to `fd78f2f`
+
+### Feat
+- add local self-signed tls configuration
+
+### Refactor
+- added logging for transactions for local activation
+- **internal:** removes logging at trace level
+
 <a name="v2.24.4"></a>
 ## [v2.24.4] - 2024-01-09
 ### Build
