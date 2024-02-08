@@ -25,8 +25,6 @@ func TestDeactivation(t *testing.T) {
 
 	t.Run("returns UnableToDeactivate when ControlMode is pre-provisioning (0)", func(t *testing.T) {
 		lps := setupService(f)
-		// this is default mode for the mock already
-		// mockControlMode = 0
 		err := lps.Deactivate()
 		assert.Equal(t, utils.UnableToDeactivate, err)
 	})

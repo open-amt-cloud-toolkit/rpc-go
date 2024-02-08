@@ -13,18 +13,24 @@ func (service *ProvisioningService) Deactivate() (err error) {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	if controlMode == 1 {
+	// Deactivate based on the control mode
+	switch controlMode {
+	case 1: // CCMMode
 		err = service.DeactivateCCM()
-	} else if controlMode == 2 {
+	case 2: // ACMMode
 		err = service.DeactivateACM()
+	default:
+		log.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
+		return utils.UnableToDeactivate
 	}
 
-	if err == nil {
-		log.Info("Status: Device deactivated")
-		return nil
+	if err != nil {
+		log.Error("Deactivation failed.", err)
+		return utils.UnableToDeactivate
 	}
-	log.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
-	return utils.UnableToDeactivate
+
+	log.Info("Status: Device deactivated")
+	return nil
 }
 
 func (service *ProvisioningService) DeactivateACM() (err error) {
