@@ -59,7 +59,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	}
 	tests := map[string]struct {
 		cmdLine      string
-		wantResult   utils.ReturnCode
+		wantResult   error
 		wantIPConfig IPConfiguration
 		userInput    string
 	}{
@@ -81,7 +81,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - syncclock": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should fail - syncclock bad param": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " -nope " + argUrl + " " + argCurPw,
@@ -89,11 +89,11 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - synchostname no params": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should pass - task force flag": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " -f " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should fail - synchostname bad param": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncHostname + " -nope " + argUrl + " " + argCurPw,
@@ -101,7 +101,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - syncdeviceinfo": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncDeviceInfo + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should fail - syncdeviceinfo bad param": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncDeviceInfo + " -nope " + argUrl + " " + argCurPw,
@@ -109,7 +109,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - syncip no params": {
 			cmdLine:      cmdBase + " " + utils.SubCommandSyncIP + " " + argUrl + " " + argCurPw,
-			wantResult:   utils.Success,
+			wantResult:   nil,
 			wantIPConfig: ipCfgNoParams,
 		},
 		"should pass - syncip with params": {
@@ -121,7 +121,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -primarydns " + ipCfgWithParams.PrimaryDns +
 				" -secondarydns " + ipCfgWithParams.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
-			wantResult:   utils.Success,
+			wantResult:   nil,
 			wantIPConfig: ipCfgWithParams,
 		},
 		"should pass - syncip with lookup": {
@@ -131,7 +131,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 				" -primarydns " + ipCfgWithLookup.PrimaryDns +
 				" -secondarydns " + ipCfgWithLookup.SecondaryDns +
 				" " + argUrl + " " + argCurPw,
-			wantResult:   utils.Success,
+			wantResult:   nil,
 			wantIPConfig: ipCfgWithLookup,
 		},
 		"should fail - syncip bad param": {
@@ -160,19 +160,19 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - changepassword to random value": {
 			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should pass - changepassword using static value": {
 			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should pass - changepassword static value before other flags": {
 			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -static " + newPassword + " " + argUrl + " " + argCurPw,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should pass - changepassword static value after all flags": {
 			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " " + argUrl + " " + argCurPw + " -static " + newPassword,
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should fail - changepassword bad param": {
 			cmdLine:    cmdBase + " " + utils.SubCommandChangePassword + " -nope " + argUrl + " " + argCurPw,
@@ -180,12 +180,12 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		},
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
-			wantResult: utils.Success,
+			wantResult: nil,
 			userInput:  trickyPassword,
 		},
 		"should pass - UUID Override": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw + " -uuid 4c2e8db8-1c7a-00ea-279c-d17395b1f584",
-			wantResult: utils.Success,
+			wantResult: nil,
 		},
 		"should fail - InvalidUUID": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw + " -uuid 4c2e8db8-1c7a-00ea-279c",

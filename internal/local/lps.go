@@ -1,76 +1,67 @@
 package local
 
 import (
+	"net/url"
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
+	bacon "rpc/internal/local/amt"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/cim"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/wsman"
+	log "github.com/sirupsen/logrus"
 )
 
 type OSNetworker interface {
-	RenewDHCPLease() utils.ReturnCode
+	RenewDHCPLease() error
 }
 
 type RealOSNetworker struct{}
 
 type ProvisioningService struct {
-	flags            *flags.Flags
-	serverURL        string
-	client           *wsman.Client
-	config           *config.Config
-	amtCommand       internalAMT.Interface
-	amtMessages      amt.Messages
-	cimMessages      cim.Messages
-	ipsMessages      ips.Messages
-	handlesWithCerts map[string]string
-	networker        OSNetworker
+	flags                  *flags.Flags
+	serverURL              *url.URL
+	interfacedWsmanMessage bacon.WSMANer
+	config                 *config.Config
+	amtCommand             internalAMT.Interface
+	handlesWithCerts       map[string]string
+	networker              OSNetworker
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
-	// supports unit testing
-	serverURL := "http://" + utils.LMSAddress + ":" + utils.LMSPort + "/wsman"
-	return ProvisioningService{
-		flags:            flags,
-		client:           nil,
-		serverURL:        serverURL,
-		config:           &flags.LocalConfig,
-		amtCommand:       internalAMT.NewAMTCommand(),
-		amtMessages:      amt.NewMessages(),
-		cimMessages:      cim.NewMessages(),
-		ipsMessages:      ips.NewMessages(),
-		handlesWithCerts: make(map[string]string),
-		networker:        &RealOSNetworker{},
+	serverURL := &url.URL{
+		Scheme: "http",
+		Host:   utils.LMSAddress + ":" + utils.LMSPort,
+		Path:   "/wsman",
 	}
+	return ProvisioningService{
+		flags:                  flags,
+		serverURL:              serverURL,
+		config:                 &flags.LocalConfig,
+		amtCommand:             internalAMT.NewAMTCommand(),
+		handlesWithCerts:       make(map[string]string),
+		networker:              &RealOSNetworker{},
+		interfacedWsmanMessage: bacon.NewGoWSMANMessages(flags.LMSAddress),
+	}
+
 }
 
-func ExecuteCommand(flags *flags.Flags) utils.ReturnCode {
-	rc := utils.Success
+func ExecuteCommand(flags *flags.Flags) error {
+	var err error
 	service := NewProvisioningService(flags)
 	switch flags.Command {
 	case utils.CommandActivate:
-		rc = service.Activate()
-		break
+		err = service.Activate()
 	case utils.CommandAMTInfo:
-		rc = service.DisplayAMTInfo()
-		break
+		err = service.DisplayAMTInfo()
 	case utils.CommandDeactivate:
-		rc = service.Deactivate()
-		break
+		err = service.Deactivate()
 	case utils.CommandConfigure:
-		rc = service.Configure()
-		break
+		err = service.Configure()
 	case utils.CommandVersion:
-		rc = service.DisplayVersion()
-		break
+		err = service.DisplayVersion()
 	}
-	return rc
-}
-
-func (service *ProvisioningService) setupWsmanClient(username string, password string) {
-	service.client = wsman.NewClient(service.serverURL, username, password, true, service.flags.Verbose)
+	if err != nil {
+		log.Error(err)
+	}
+	return err
 }
