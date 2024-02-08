@@ -12,7 +12,7 @@ require (
 	github.com/open-amt-cloud-toolkit/go-wsman-messages v1.14.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.17.0
 )
 
 require (
