@@ -234,6 +234,11 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
+	// rpc configure addwifisettings is not enough paramaters, need -config or a combination of command line flags
+	if len(f.commandLineArgs[3:]) == 0 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
 	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
 	if err = f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {

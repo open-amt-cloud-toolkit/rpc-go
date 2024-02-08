@@ -228,7 +228,7 @@ func TestConfigureTLS(t *testing.T) {
 			}
 			f := NewFlags(cmdLine)
 			gotResult := f.ParseFlags()
-			assert.Equal(t, utils.Success, gotResult)
+			assert.NoError(t, gotResult)
 			assert.Equal(t, utils.SubCommandConfigureTLS, f.SubCommand)
 			assert.Equal(t, m, f.ConfigTLSInfo.TLSMode)
 			assert.Equal(t, true, f.Local)
