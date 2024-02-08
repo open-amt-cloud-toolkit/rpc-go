@@ -14,7 +14,7 @@ import (
 	"rpc/pkg/utils"
 )
 
-func (n *RealOSNetworker) RenewDHCPLease() utils.ReturnCode {
+func (n *RealOSNetworker) RenewDHCPLease() error {
 	log.Debug("renewing DHCP lease")
 	cmd := exec.Command("dhclient")
 	err := cmd.Run()
@@ -22,5 +22,5 @@ func (n *RealOSNetworker) RenewDHCPLease() utils.ReturnCode {
 		log.Error("Error renewing DHCP lease:", err)
 		return utils.NetworkConfigurationFailed
 	}
-	return utils.Success
+	return nil
 }

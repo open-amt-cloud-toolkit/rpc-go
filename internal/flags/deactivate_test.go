@@ -28,7 +28,7 @@ func TestHandleDeactivateCommandNoPasswordPrompt(t *testing.T) {
 	defer userInput(t, password)()
 	flags := NewFlags(args)
 	success := flags.ParseFlags()
-	assert.EqualValues(t, success, utils.Success)
+	assert.EqualValues(t, success, nil)
 	assert.Equal(t, utils.CommandDeactivate, flags.Command)
 	assert.Equal(t, password, flags.Password)
 }
@@ -51,7 +51,7 @@ func TestHandleDeactivateCommand(t *testing.T) {
 	expected := utils.CommandDeactivate
 	flags := NewFlags(args)
 	success := flags.ParseFlags()
-	assert.EqualValues(t, success, utils.Success)
+	assert.EqualValues(t, success, nil)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, expected, flags.Command)
 }
@@ -68,7 +68,7 @@ func TestHandleDeactivateCommandWithForce(t *testing.T) {
 	expected := utils.CommandDeactivate
 	flags := NewFlags(args)
 	success := flags.ParseFlags()
-	assert.EqualValues(t, success, utils.Success)
+	assert.EqualValues(t, success, nil)
 	assert.Equal(t, "wss://localhost", flags.URL)
 	assert.Equal(t, true, flags.Force)
 	assert.Equal(t, expected, flags.Command)
@@ -78,14 +78,14 @@ func TestHandleLocalDeactivationWithPassword(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-local", "--password", "p@ssword"}
 	flags := NewFlags(args)
 	errCode := flags.ParseFlags()
-	assert.Equal(t, errCode, utils.Success)
+	assert.Equal(t, errCode, nil)
 }
 
 func TestHandleLocalDeactivationWithoutPassword(t *testing.T) {
 	args := []string{"./rpc", "deactivate", "-local"}
 	flags := NewFlags(args)
 	rc := flags.ParseFlags()
-	assert.Equal(t, rc, utils.Success)
+	assert.Equal(t, rc, nil)
 }
 
 func TestParseFlagsDeactivate(t *testing.T) {

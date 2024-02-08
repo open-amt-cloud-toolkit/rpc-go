@@ -90,6 +90,7 @@ func (lme *LMEConnection) Connect() error {
 // Send writes data to LMS TCP Socket
 func (lme *LMEConnection) Send(data []byte) error {
 	log.Debug("sending message to LME")
+	log.Trace(string(data))
 	var bin_buf bytes.Buffer
 
 	channelData := apf.ChannelData(lme.Session.SenderChannel, data)
@@ -149,7 +150,6 @@ func (lme *LMEConnection) Listen() {
 		lme.Session.Status <- true
 	}()
 	for {
-
 		result2, bytesRead, err2 := lme.Command.Receive()
 		if bytesRead == 0 || err2 != nil {
 			log.Trace("NO MORE DATA TO READ")

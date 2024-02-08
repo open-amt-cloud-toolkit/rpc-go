@@ -1,9 +1,9 @@
 package flags
 
 import (
-	"github.com/stretchr/testify/assert"
-	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleVersionCommand(t *testing.T) {
@@ -13,6 +13,6 @@ func TestHandleVersionCommand(t *testing.T) {
 	})
 
 	result := f.handleVersionCommand()
-	assert.Equal(t, utils.Success, result)
+	assert.Equal(t, nil, result)
 	assert.Equal(t, true, f.Local)
 }
