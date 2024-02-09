@@ -12,8 +12,6 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  release:
-      types: [ created ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -68,20 +66,6 @@ jobs:
       - name: build go
         if: ${{ matrix.os != 'windows-2019' }}
         run: go build -o rpc ./cmd
-      
-      - name: Upload RPC Executable (Windows)
-        uses: actions/upload-artifact@v2
-        if: contains(matrix.os, 'windows') && github.event_name == 'release' && github.event.action == 'created'
-        with:
-          name: rpc_executable-${{ matrix.os }}
-          path: ./rpc.exe
-
-      - name: Upload RPC Executable (Linux)
-        uses: actions/upload-artifact@v2
-        if: contains(matrix.os, 'ubuntu') && github.event_name == 'release' && github.event.action == 'created'
-        with:
-          name: rpc_executable-${{ matrix.os }}
-          path: ./rpc
 
       - name: GitHub Upload Release Artifacts
         uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
