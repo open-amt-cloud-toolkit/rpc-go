@@ -6,7 +6,29 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-    "@semantic-release/github",
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "rpc_linux_x64",
+            "label": "Linux x64 RPC Executable"
+          },
+          {
+            "path": "rpc_linux_x86",
+            "label": "Linux x86 RPC Executable"
+          },
+          {
+            "path": "rpc_windows_x64.exe",
+            "label": "Windows x64 RPC Executable"
+          },
+          {
+            "path": "rpc_windows_x86.exe",
+            "label": "Windows x86 RPC Executable"
+          }
+        ]
+      }
+    ],
     [
       "@semantic-release/exec",
       {
