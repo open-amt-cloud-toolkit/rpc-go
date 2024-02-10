@@ -83,6 +83,7 @@ func (service *ProvisioningService) ConfigureTLS() error {
 	err = service.EnableTLS()
 	if err != nil {
 		log.Error("Failed to configure TLS")
+		return utils.TLSConfigurationFailed
 	}
 	log.Info("configuring TLS completed successfully")
 	return nil
@@ -128,6 +129,9 @@ func (service *ProvisioningService) EnableTLS() error {
 		return utils.WSMANMessageError
 	}
 	pullRsp, err := service.interfacedWsmanMessage.PullTLSSettingData(enumerateRsp.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return utils.WSMANMessageError
+	}
 	for _, item := range pullRsp.Body.PullResponse.SettingDataItems {
 		if item.InstanceID == RemoteTLSInstanceId || item.InstanceID == LocalTLSInstanceId {
 			err = service.ConfigureTLSSettings(item)
@@ -135,31 +139,23 @@ func (service *ProvisioningService) EnableTLS() error {
 				return err
 			}
 		}
-		if err != nil {
-			return err
-		}
 	}
 	// service.Pause(service.flags.ConfigTLSInfo.DelayInSeconds)
 	// time.Sleep(time.Duration(howManySeconds) * time.Second)
-	commitResponse, err := service.interfacedWsmanMessage.CommitChanges()
+	_, err = service.interfacedWsmanMessage.CommitChanges()
 	if err != nil {
 		log.Error("commit changes failed")
 		return err
 	}
-
-	if commitResponse.Body.CommitChanges_OUTPUT.ReturnValue != 0 {
-		log.Errorf("CommitChangesResponse non-zero return code: %d", commitResponse.Body.CommitChanges_OUTPUT.ReturnValue)
-		return utils.AmtPtStatusCodeBase
-	}
-	return err
+	return nil
 }
 
 func (service *ProvisioningService) ConfigureTLSSettings(setting tls.SettingDataResponse) error {
 	data := getTLSSettings(setting, service.flags.ConfigTLSInfo.TLSMode)
-	putResponse, err := service.interfacedWsmanMessage.PUTTLSSettings(data.InstanceID, data)
-	log.Trace(putResponse)
+	_, err := service.interfacedWsmanMessage.PUTTLSSettings(data.InstanceID, data)
 	if err != nil {
 		log.Errorf("failed to configure remote TLS Settings (%s)\n", data.InstanceID)
+		return utils.WSMANMessageError
 	}
 	return nil
 }

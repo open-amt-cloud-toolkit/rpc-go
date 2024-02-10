@@ -20,6 +20,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,29 +36,71 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 // Mock the go-wsman-messages
 type MockWSMAN struct{}
 
-// CommitChanges implements amt.WSMANer.
+var mockCommitChangesErr error = nil
+var mockCommitChangesReturnValue int = 0
+
 func (m MockWSMAN) CommitChanges() (response setupandconfiguration.Response, err error) {
-	panic("unimplemented")
+	return setupandconfiguration.Response{
+		Body: setupandconfiguration.Body{
+			CommitChanges_OUTPUT: setupandconfiguration.CommitChanges_OUTPUT{
+				ReturnValue: mockCommitChangesReturnValue,
+			},
+		},
+	}, mockCommitChangesErr
 }
 
-// CreateTLSCredentialContext implements amt.WSMANer.
+var mockCreateTLSCredentialContextErr error = nil
+var mockCreateTLSCredentialContextResponse tls.Response
+
 func (m MockWSMAN) CreateTLSCredentialContext(certHandle string) (response tls.Response, err error) {
-	panic("unimplemented")
+	return mockCreateTLSCredentialContextResponse, mockCreateTLSCredentialContextErr
 }
 
-// EnumerateTLSSettingData implements amt.WSMANer.
+var mockEnumerateTLSSettingDataErr error = nil
+var mockTLSSettingDataContext string
+
 func (m MockWSMAN) EnumerateTLSSettingData() (response tls.Response, err error) {
-	panic("unimplemented")
+	return tls.Response{
+		Body: tls.Body{
+			EnumerateResponse: common.EnumerateResponse{
+				EnumerationContext: mockTLSSettingDataContext,
+			},
+		},
+	}, mockEnumerateTLSSettingDataErr
 }
 
-// GenerateKeyPair implements amt.WSMANer.
+var mockGenKeyPairErr error = nil
+var mockGenKeyPairReturnValue int
+var mockGenKeyPairSelectors []publickey.SelectorResponse
+
 func (m MockWSMAN) GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error) {
-	panic("unimplemented")
+	return publickey.Response{
+		Body: publickey.Body{
+			GenerateKeyPair_OUTPUT: publickey.GenerateKeyPair_OUTPUT{
+				ReturnValue: mockGenKeyPairReturnValue,
+				KeyPair: publickey.KeyPairResponse{
+					ReferenceParameters: publickey.ReferenceParametersResponse{
+						SelectorSet: publickey.SelectorSetResponse{
+							Selectors: mockGenKeyPairSelectors,
+						},
+					},
+				},
+			},
+		},
+	}, mockGenKeyPairErr
 }
 
-// PullTLSSettingData implements amt.WSMANer.
+var mockPullTLSSettingDataErr error = nil
+var mockPullTLSSettingDataItems []tls.SettingDataResponse
+
 func (m MockWSMAN) PullTLSSettingData(enumerationContext string) (response tls.Response, err error) {
-	panic("unimplemented")
+	return tls.Response{
+		Body: tls.Body{
+			PullResponse: tls.PullResponse{
+				SettingDataItems: mockPullTLSSettingDataItems,
+			},
+		},
+	}, mockPullTLSSettingDataErr
 }
 
 var mockGetLowAccuracyTimeSynchRsp = timesynchronization.Response{
@@ -87,14 +130,17 @@ func (m MockWSMAN) SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (re
 	return mockSetHighAccuracyTimeSynchRsp, mockSetHighAccuracyTimeSynchErr
 }
 
-// DeleteKeyPair implements amt.WSMANer.
+var mockDeleteKeyPairErr error = nil
+
 func (MockWSMAN) DeleteKeyPair(instanceID string) error {
-	panic("unimplemented")
+	return mockDeleteKeyPairErr
 }
 
-// PUTTLSSettings implements amt.WSMANer.
+var mockPutTLSSettingErr error = nil
+var mockPutTLSSettingDataResponse tls.Response
+
 func (MockWSMAN) PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error) {
-	panic("unimplemented")
+	return mockPutTLSSettingDataResponse, mockPutTLSSettingErr
 }
 
 var mockACMUnprovisionValue = 0
@@ -110,14 +156,13 @@ func (m MockWSMAN) Unprovision(int) (setupandconfiguration.Response, error) {
 	}, mockACMUnprovisionErr
 }
 
-var mockSetupAndConfigurationValue = 0
 var mockSetupAndConfigurationErr error = nil
 
 func (m MockWSMAN) SetupMEBX(password string) (setupandconfiguration.Response, error) {
 	return setupandconfiguration.Response{
 		Body: setupandconfiguration.Body{
 			SetMEBxPassword_OUTPUT: setupandconfiguration.SetMEBxPassword_OUTPUT{
-				ReturnValue: mockSetupAndConfigurationValue,
+				ReturnValue: 0,
 			},
 		},
 	}, mockSetupAndConfigurationErr
@@ -172,9 +217,10 @@ func (m MockWSMAN) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse
 }
 
 var errGetPublicPrivateKeyPairs error = nil
+var PublicPrivateKeyPairResponse []publicprivate.PublicPrivateKeyPair = nil
 
 func (m MockWSMAN) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
-	return nil, errGetPublicPrivateKeyPairs
+	return PublicPrivateKeyPairResponse, errGetPublicPrivateKeyPairs
 }
 
 var errDeletePublicPrivateKeyPair error = nil
