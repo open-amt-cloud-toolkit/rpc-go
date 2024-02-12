@@ -18,6 +18,8 @@ func (service *ProvisioningService) Configure() (err error) {
 		return service.SetMebx()
 	case utils.SubCommandConfigureTLS:
 		return service.ConfigureTLS()
+	case utils.SubCommandSyncClock:
+		return service.SynchronizeTime()
 	default:
 	}
 	return utils.IncorrectCommandLineParameters
