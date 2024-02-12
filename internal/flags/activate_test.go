@@ -12,13 +12,13 @@ import (
 
 func TestHandleActivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "activate"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	success := flags.ParseFlags()
 	assert.Equal(t, success, utils.IncorrectCommandLineParameters)
 }
 func TestHandleActivateCommand(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	var AMTTimeoutDuration time.Duration = 120000000000
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
@@ -35,7 +35,7 @@ func TestHandleActivateCommand(t *testing.T) {
 
 func TestHandleActivateCommandWithTimeOut(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-password", "Password", "-t", "2s"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	var AMTTimeoutDuration time.Duration = 2000000000
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
@@ -49,7 +49,7 @@ func TestHandleActivateCommandWithTimeOut(t *testing.T) {
 }
 func TestHandleActivateCommandWithLMS(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-lmsaddress", "1.1.1.1", "-lmsport", "99"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -60,7 +60,7 @@ func TestHandleActivateCommandWithLMS(t *testing.T) {
 }
 func TestHandleActivateCommandWithFriendlyName(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile", "profileName", "-name", "friendlyName"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -84,7 +84,7 @@ func TestHandleActivateCommandWithENV(t *testing.T) {
 	}
 
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -100,7 +100,7 @@ func TestActivateOverrideUUID(t *testing.T) {
 	}
 
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-uuid", "4c2e8db8-1c7a-00ea-279c-d17395b1f584"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, nil, rc)
 	assert.Equal(t, flags.UUID, "4c2e8db8-1c7a-00ea-279c-d17395b1f584")
@@ -113,7 +113,7 @@ func TestActivateInvalidUUID(t *testing.T) {
 	}
 
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-uuid", "12345"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.InvalidUUID, rc)
 	os.Clearenv()
@@ -125,7 +125,7 @@ func TestActivateIncorrectParameterCombinationLocalAndUUID(t *testing.T) {
 	}
 
 	args := []string{"./rpc", "activate", "-ccm", "-local", "-uuid", "12345678-1234-1234-1234-123456789012"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.InvalidParameterCombination, rc)
 	os.Clearenv()
@@ -133,14 +133,14 @@ func TestActivateIncorrectParameterCombinationLocalAndUUID(t *testing.T) {
 
 func TestHandleActivateCommandIncorrectCommandLineParameters(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-x"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 }
 
 func TestHandleActivateCommandNoProfile(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingOrIncorrectProfile, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -148,7 +148,7 @@ func TestHandleActivateCommandNoProfile(t *testing.T) {
 
 func TestHandleActivateCommandNoProxy(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-p"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingProxyAddressAndPort, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -156,7 +156,7 @@ func TestHandleActivateCommandNoProxy(t *testing.T) {
 
 func TestHandleActivateCommandNoHostname(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-h"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingHostname, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -164,7 +164,7 @@ func TestHandleActivateCommandNoHostname(t *testing.T) {
 
 func TestHandleActivateCommandNoDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-d"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingDNSSuffix, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -172,7 +172,7 @@ func TestHandleActivateCommandNoDNSSuffix(t *testing.T) {
 
 func TestHandleActivateCommandMissingProfile(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-profile"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingOrIncorrectProfile, rc)
 	assert.Equal(t, "wss://localhost", flags.URL)
@@ -180,7 +180,7 @@ func TestHandleActivateCommandMissingProfile(t *testing.T) {
 
 func TestHandleActivateCommandBothURLandLocal(t *testing.T) {
 	args := []string{"./rpc", "activate", "-u", "wss://localhost", "-local"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	success := flags.ParseFlags()
 	assert.EqualValues(t, success, utils.InvalidParameterCombination)
 }
@@ -188,7 +188,7 @@ func TestHandleActivateCommandBothURLandLocal(t *testing.T) {
 func TestHandleActivateCommandNoURL(t *testing.T) {
 	args := []string{"./rpc", "activate", "-profile", "profileName"}
 
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	rc := flags.ParseFlags()
 	assert.Equal(t, utils.MissingOrIncorrectURL, rc)
 	assert.Equal(t, "profileName", flags.Profile)
@@ -197,8 +197,9 @@ func TestHandleActivateCommandNoURL(t *testing.T) {
 func TestHandleActivateCommandLocal(t *testing.T) {
 
 	tests := map[string]struct {
-		cmdLine    string
-		wantResult error
+		cmdLine      string
+		wantResult   error
+		passwordFail bool
 	}{
 		"should fail with both URL and local": {
 			cmdLine:    "./rpc activate -local -u wss://localhost",
@@ -213,8 +214,9 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 			wantResult: utils.InvalidParameterCombination,
 		},
 		"should fail if ccm and missing password": {
-			cmdLine:    "./rpc activate -local -ccm",
-			wantResult: utils.MissingOrIncorrectPassword,
+			cmdLine:      "./rpc activate -local -ccm",
+			wantResult:   utils.MissingOrIncorrectPassword,
+			passwordFail: true,
 		},
 		"should fail if acm and local config file error": {
 			cmdLine:    "./rpc activate -local -acm -config ./nofilehere.txt",
@@ -240,7 +242,10 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
+			if tc.passwordFail {
+				flags = NewFlags(args, MockPRFail)
+			}
 			gotResult := flags.ParseFlags()
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, utils.CommandActivate, flags.Command)

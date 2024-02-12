@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseFlagsAmtInfo(t *testing.T) {
+
 	defaultFlags := AmtInfoFlags{
 		Ver:      true,
 		Bld:      true,
@@ -26,7 +27,6 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		cmdLine    string
 		wantResult error
 		wantFlags  AmtInfoFlags
-		userInput  string
 	}{
 		"expect success for basic command": {
 			cmdLine:    "./rpc amtinfo -json",
@@ -73,17 +73,13 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
-			userInput: "testPassword",
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
-			if tc.userInput != "" {
-				defer userInput(t, tc.userInput)()
-			}
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
 			gotResult := flags.ParseFlags()
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, true, flags.Local)

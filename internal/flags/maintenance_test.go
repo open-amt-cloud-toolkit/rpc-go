@@ -13,7 +13,7 @@ import (
 func TestPrintMaintenanceUsage(t *testing.T) {
 	executable := filepath.Base(os.Args[0])
 	args := []string{executable}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	output := flags.printMaintenanceUsage()
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
 	usage = usage + "Usage: " + executable + " maintenance COMMAND [OPTIONS]\n\n"
@@ -61,7 +61,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		cmdLine      string
 		wantResult   error
 		wantIPConfig IPConfiguration
-		userInput    string
+		passwordFail bool
 	}{
 		"should pass with usage - no additional arguments": {
 			cmdLine:    cmdBase,
@@ -76,8 +76,9 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			wantResult: utils.MissingOrIncorrectURL,
 		},
 		"should fail - required amt password": {
-			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
-			wantResult: utils.MissingOrIncorrectPassword,
+			cmdLine:      cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
+			wantResult:   utils.MissingOrIncorrectPassword,
+			passwordFail: true,
 		},
 		"should pass - syncclock": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw,
@@ -181,7 +182,6 @@ func TestParseFlagsMaintenance(t *testing.T) {
 		"should pass - password user input": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl,
 			wantResult: nil,
-			userInput:  trickyPassword,
 		},
 		"should pass - UUID Override": {
 			cmdLine:    cmdBase + " " + utils.SubCommandSyncClock + " " + argUrl + " " + argCurPw + " -uuid 4c2e8db8-1c7a-00ea-279c-d17395b1f584",
@@ -196,10 +196,10 @@ func TestParseFlagsMaintenance(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
-			if tc.userInput != "" {
-				defer userInput(t, tc.userInput)()
+			flags := NewFlags(args, MockPRSuccess)
+			if tc.passwordFail {
+				flags = NewFlags(args, MockPRFail)
 			}
-			flags := NewFlags(args)
 			flags.amtCommand.PTHI = MockPTHICommands{}
 			flags.netEnumerator = testNetEnumerator
 			gotResult := flags.ParseFlags()

@@ -44,7 +44,7 @@ func runRPC(args []string) error {
 
 func parseCommandLine(args []string) (*flags.Flags, error) {
 	//process flags
-	flags := flags.NewFlags(args)
+	flags := flags.NewFlags(args, utils.PR)
 	error := flags.ParseFlags()
 
 	if flags.Verbose {

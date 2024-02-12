@@ -10,7 +10,7 @@ func TestHandleVersionCommand(t *testing.T) {
 	f := NewFlags([]string{
 		"rpc",
 		"version",
-	})
+	}, MockPRSuccess)
 
 	result := f.handleVersionCommand()
 	assert.Equal(t, nil, result)
