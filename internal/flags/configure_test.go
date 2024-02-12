@@ -67,12 +67,12 @@ func TestPromptForSecrets(t *testing.T) {
 
 func TestHandleConfigureCommand(t *testing.T) {
 	t.Run("expect IncorrectCommandLineParameters with no subcommand", func(t *testing.T) {
-		f := NewFlags([]string{`rpc`, `configure`})
+		f := NewFlags([]string{`rpc`, `configure`}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
 	t.Run("expect IncorrectCommandLineParameters with unknown subcommand", func(t *testing.T) {
-		f := NewFlags([]string{`rpc`, `configure`, `what-the-heck?`})
+		f := NewFlags([]string{`rpc`, `configure`, `what-the-heck?`}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
@@ -81,22 +81,20 @@ func TestHandleConfigureCommand(t *testing.T) {
 			`rpc`, `configure`, `enablewifiport`,
 			`-password`, `cliP@ss0rd!`,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, true, f.Local)
 		assert.Equal(t, f.Password, f.LocalConfig.Password)
 	})
 	t.Run("expect Success password from prompt", func(t *testing.T) {
-		expected := "userP@ssw0rd!"
-		defer userInput(t, expected)()
 		cmdLine := []string{
 			`rpc`, `configure`, `enablewifiport`,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
-		assert.Equal(t, expected, f.Password)
+		assert.Equal(t, utils.TestPassword, f.Password)
 	})
 	t.Run("expect Success password from environment", func(t *testing.T) {
 		orig, origPresent := os.LookupEnv("AMT_PASSWORD")
@@ -106,7 +104,7 @@ func TestHandleConfigureCommand(t *testing.T) {
 		cmdLine := []string{
 			`rpc`, `configure`, `enablewifiport`,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, expected, f.Password)
@@ -128,7 +126,7 @@ func TestAddWifiSettings(t *testing.T) {
 			`-password`, `cliP@ss0rd!`,
 			`-configJson`, jsonCfgStr,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, true, f.Local)
@@ -138,25 +136,23 @@ func TestAddWifiSettings(t *testing.T) {
 		f := NewFlags([]string{
 			`rpc`, `configure`, `addwifisettings`,
 			`-configJson`, jsonCfgStr,
-		})
+		}, MockPRFail)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
 	})
 	t.Run("expect Success on password prompt", func(t *testing.T) {
-		defer userInput(t, "userP@ssw0rd!")()
 		f := NewFlags([]string{
 			`rpc`, `configure`, `addwifisettings`,
 			`-configJson`, jsonCfgStr,
-		})
+		}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 	})
 	t.Run("expect Success when password is in config file", func(t *testing.T) {
-		defer userInput(t, "userP@ssw0rd!")()
 		f := NewFlags([]string{
 			`rpc`, `configure`, `addwifisettings`,
 			`-configJson`, jsonCfgStr,
-		})
+		}, MockPRSuccess)
 		f.LocalConfig.Password = "localP@ssw0rd!"
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
@@ -166,7 +162,7 @@ func TestAddWifiSettings(t *testing.T) {
 			`rpc`, `configure`, `addwifisettings`,
 			`-password`, `cliP@ss0rd!`,
 			`-configJson`, jsonCfgStr,
-		})
+		}, MockPRSuccess)
 		f.LocalConfig.Password = "localP@ssw0rd!"
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
@@ -180,7 +176,7 @@ func TestEnableWifiPort(t *testing.T) {
 			`rpc`, `configure`, `enablewifiport`,
 			`-password`, expectedPassword,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 		assert.Equal(t, true, f.Local)
@@ -189,7 +185,7 @@ func TestEnableWifiPort(t *testing.T) {
 	t.Run("enablewifiport: expect MissingOrIncorrectPassword", func(t *testing.T) {
 		f := NewFlags([]string{
 			`rpc`, `configure`, `enablewifiport`, `-password`,
-		})
+		}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
@@ -197,21 +193,21 @@ func TestEnableWifiPort(t *testing.T) {
 		defer userInput(t, "userP@ssw0rd!")()
 		f := NewFlags([]string{
 			`rpc`, `configure`, `enablewifiport`,
-		})
+		}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, nil, gotResult)
 	})
 	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
 		f := NewFlags([]string{
 			`rpc`, `configure`, `enablewifiport`, `-password`, `testpw`, `toomany`,
-		})
+		}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
 	t.Run("enablewifiport: expect IncorrectCommandLineParameters", func(t *testing.T) {
 		f := NewFlags([]string{
 			`rpc`, `configure`, `enablewifiport`, `-bogus`, `testpw`,
-		})
+		}, MockPRSuccess)
 		gotResult := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, gotResult)
 	})
@@ -226,7 +222,8 @@ func TestConfigureTLS(t *testing.T) {
 				`-mode`, m.String(),
 				`-password`, expectedPassword,
 			}
-			f := NewFlags(cmdLine)
+			f := NewFlags(cmdLine, MockPRSuccess)
+
 			gotResult := f.ParseFlags()
 			assert.NoError(t, gotResult)
 			assert.Equal(t, utils.SubCommandConfigureTLS, f.SubCommand)
@@ -241,7 +238,7 @@ func TestConfigureTLS(t *testing.T) {
 			`rpc`, `configure`, utils.SubCommandConfigureTLS,
 			`-password`, expectedPassword,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		_ = f.ParseFlags()
 		assert.Equal(t, TLSModeServer, f.ConfigTLSInfo.TLSMode)
 	})
@@ -252,7 +249,7 @@ func TestConfigureTLS(t *testing.T) {
 			`-this_is_not_right`,
 			`-password`, `somepassword`,
 		}
-		f := NewFlags(cmdLine)
+		f := NewFlags(cmdLine, MockPRSuccess)
 		rc := f.ParseFlags()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
 	})
@@ -271,7 +268,7 @@ func TestConfigJson(t *testing.T) {
 	cmdLine := `rpc configure addwifisettings -secrets ../../secrets.yaml -password test -configJson {"Password":"","FilePath":"../../config.yaml","WifiConfigs":[{"ProfileName":"wifiWPA2","SSID":"ssid","Priority":1,"AuthenticationMethod":6,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":""},{"ProfileName":"wifi8021x","SSID":"ssid","Priority":2,"AuthenticationMethod":7,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":"ieee8021xEAP-TLS"}],"Ieee8021xConfigs":[{"ProfileName":"ieee8021xEAP-TLS","Username":"test","Password":"","AuthenticationProtocol":0,"ClientCert":"test","CACert":"test","PrivateKey":""},{"ProfileName":"ieee8021xPEAPv0","Username":"test","Password":"","AuthenticationProtocol":2,"ClientCert":"testClientCert","CACert":"testCaCert","PrivateKey":"testPrivateKey"}],"AMTPassword":"","ProvisioningCert":"","ProvisioningCertPwd":""}`
 	defer userInput(t, "userInput\nuserInput\nuserInput")()
 	args := strings.Fields(cmdLine)
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	gotResult := flags.ParseFlags()
 	assert.Equal(t, nil, gotResult)
 }
@@ -334,7 +331,7 @@ func TestHandleAddWifiSettings(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
 			gotResult := flags.handleAddWifiSettings()
 			assert.Equal(t, tc.expectedResult, gotResult)
 		})

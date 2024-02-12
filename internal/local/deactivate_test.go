@@ -10,10 +10,10 @@ import (
 )
 
 func TestDeactivation(t *testing.T) {
-	f := &flags.Flags{}
+	f := flags.NewFlags(nil, MockPRSuccess)
 	f.Command = utils.CommandDeactivate
 	f.LocalConfig.Password = "P@ssw0rd"
-	stdErr := errors.New("yep it failew")
+	stdErr := errors.New("yep it failed")
 
 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
 		lps := setupService(f)
@@ -24,7 +24,9 @@ func TestDeactivation(t *testing.T) {
 	})
 
 	t.Run("returns UnableToDeactivate when ControlMode is pre-provisioning (0)", func(t *testing.T) {
-		lps := setupService(f)
+		f2 := flags.NewFlags(nil, MockPRFail)
+		f2.Command = utils.CommandDeactivate
+		lps := setupService(f2)
 		err := lps.Deactivate()
 		assert.Equal(t, utils.UnableToDeactivate, err)
 	})
@@ -65,7 +67,7 @@ func TestDeactivateCCM(t *testing.T) {
 }
 
 func TestDeactivateACM(t *testing.T) {
-	f := &flags.Flags{}
+	f := flags.NewFlags(nil, MockPRFail)
 	f.Command = utils.CommandDeactivate
 	f.LocalConfig.Password = "P@ssw0rd"
 	mockControlMode = 2

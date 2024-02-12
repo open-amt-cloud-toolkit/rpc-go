@@ -7,7 +7,6 @@ package rps
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
@@ -165,11 +164,8 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
 			for flags.Password == "" {
-				fmt.Println("Please enter AMT Password: ")
-				// Taking input from user
-				_, err = fmt.Scanln(&flags.Password)
-				if err != nil {
-					return message, err
+				if _, err := flags.ReadPasswordFromUser(); err != nil {
+					return message, utils.MissingOrIncorrectPassword
 				}
 			}
 		}
