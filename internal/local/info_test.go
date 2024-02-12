@@ -1,6 +1,7 @@
 package local
 
 import (
+	"errors"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
@@ -9,8 +10,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var MockPRSuccess = new(MockPasswordReaderSuccess)
+var MockPRFail = new(MockPasswordReaderFail)
+
+type MockPasswordReaderSuccess struct{}
+
+func (mpr *MockPasswordReaderSuccess) ReadPassword() (string, error) {
+	return utils.TestPassword, nil
+}
+
+type MockPasswordReaderFail struct{}
+
+func (mpr *MockPasswordReaderFail) ReadPassword() (string, error) {
+	return "", errors.New("Read password failed")
+}
+
 func TestDisplayAMTInfo(t *testing.T) {
-	//f := &flags.Flags{}
 	defaultFlags := flags.AmtInfoFlags{
 		Ver:      true,
 		Bld:      true,
@@ -25,7 +40,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 	}
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		lps := setupService(f)
 		err := lps.DisplayAMTInfo()
@@ -34,7 +49,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 	})
 
 	t.Run("returns Success with json output", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 		lps := setupService(f)
@@ -44,7 +59,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 	})
 
 	t.Run("returns Success with certs", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.Cert = true
 		f.AmtInfo.UserCert = true
 		f.Password = "testPassword"
@@ -71,7 +86,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockLANInterfaceSettingsErr = errMockStandard
 		mockCertHashesErr = errMockStandard
 
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 
@@ -92,7 +107,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 	})
 
 	t.Run("resets UserCert on GetControlMode failure", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.UserCert = true
 		mockControlModeErr = errMockStandard
 		lps := setupService(f)
@@ -102,7 +117,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockControlModeErr = nil
 	})
 	t.Run("resets UserCert when control mode is preprovisioning", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 0
@@ -113,7 +128,7 @@ func TestDisplayAMTInfo(t *testing.T) {
 		mockControlMode = orig
 	})
 	t.Run("returns MissingOrIncorrectPassword on no password input from user", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRFail)
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 2

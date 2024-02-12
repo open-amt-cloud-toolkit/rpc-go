@@ -1,13 +1,31 @@
 package smb
 
 import (
-	"github.com/stretchr/testify/assert"
-	"os"
+	"errors"
 	"os/user"
+	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
+var MockPRSuccess = new(MockPasswordReaderSuccess)
+var MockPRFail = new(MockPasswordReaderFail)
+
+type MockPasswordReaderSuccess struct{}
+
+func (mpr *MockPasswordReaderSuccess) ReadPassword() (string, error) {
+	return utils.TestPassword, nil
+}
+
+type MockPasswordReaderFail struct{}
+
+func (mpr *MockPasswordReaderFail) ReadPassword() (string, error) {
+	return "", errors.New("Read password failed")
+}
+
 func TestParseURL(t *testing.T) {
+	service := NewSambaService(MockPRSuccess)
 	curUser, err := user.Current()
 	assert.Nil(t, err)
 
@@ -85,37 +103,15 @@ func TestParseURL(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p, err := ParseUrl(tc.expectProps.Url)
+			p, err := service.ParseUrl(tc.expectProps.Url)
 			assert.Equal(t, tc.expectErr, err != nil)
 			assert.Equal(t, tc.expectProps, p)
 		})
 	}
 
 	t.Run("expect success for password input", func(t *testing.T) {
-		testPassword := "test-password"
-		defer userInput(t, testPassword)()
-		p, err := ParseUrl("smb://test-user:*@some.test.server:1212/sharename/and/a/file/path.txt")
+		p, err := service.ParseUrl("smb://test-user:*@some.test.server:1212/sharename/and/a/file/path.txt")
 		assert.Nil(t, err)
-		assert.Equal(t, testPassword, p.Password)
+		assert.Equal(t, utils.TestPassword, p.Password)
 	})
-}
-
-func userInput(t *testing.T, input string) func() {
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = w.Write([]byte(input))
-	if err != nil {
-		t.Error(err)
-	}
-	err = w.Close()
-	if err != nil {
-		t.Error(err)
-	}
-	stdin := os.Stdin
-	os.Stdin = r
-	return func() {
-		os.Stdin = stdin
-	}
 }

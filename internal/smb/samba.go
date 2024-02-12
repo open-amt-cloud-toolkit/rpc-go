@@ -3,17 +3,20 @@ package smb
 import (
 	"errors"
 	"fmt"
-	"github.com/hirochachacha/go-smb2"
-	log "github.com/sirupsen/logrus"
 	"net"
 	netURL "net/url"
 	"os"
 	"os/user"
+	"rpc/pkg/utils"
 	"strings"
+
+	"github.com/hirochachacha/go-smb2"
+	log "github.com/sirupsen/logrus"
 )
 
 type ServiceInterface interface {
 	FetchFileContents(url string) ([]byte, error)
+	ParseUrl(url string) (Properties, error)
 }
 
 type Properties struct {
@@ -27,15 +30,19 @@ type Properties struct {
 	FilePath  string
 }
 
-type Service struct{}
+type Service struct {
+	pr utils.PasswordReader
+}
 
-func NewSambaService() ServiceInterface {
-	return &Service{}
+func NewSambaService(pr utils.PasswordReader) ServiceInterface {
+	return &Service{
+		pr: pr,
+	}
 }
 
 func (s *Service) FetchFileContents(url string) ([]byte, error) {
 	var contents []byte
-	p, err := ParseUrl(url)
+	p, err := s.ParseUrl(url)
 	if err != nil {
 		return contents, err
 	}
@@ -88,7 +95,7 @@ func (s *Service) FetchFileContents(url string) ([]byte, error) {
 // ParseUrl - parses according to https://www.iana.org/assignments/uri-schemes/prov/smb
 // except for the query string
 // smb://[[<domain>;]<username>[:<password>]@]<server>[:<port>][/[<share>[/[<path>]]][?[<param>=<value>[;<param2>=<value2>[...]]]]]
-func ParseUrl(url string) (Properties, error) {
+func (s *Service) ParseUrl(url string) (Properties, error) {
 	p := Properties{}
 	p.Url = url
 	u, err := netURL.Parse(url)
@@ -149,7 +156,7 @@ func ParseUrl(url string) (Properties, error) {
 	p.Password, _ = u.User.Password()
 	if p.Password == "*" {
 		fmt.Println("Please enter smb password: ")
-		_, err := fmt.Scanln(&p.Password)
+		p.Password, err = s.pr.ReadPassword()
 		if err != nil {
 			return p, err
 		}

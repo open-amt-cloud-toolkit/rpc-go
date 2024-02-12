@@ -45,7 +45,7 @@ func init() {
 	// Create test server with the echo handler.
 	testServer = httptest.NewServer(http.HandlerFunc(echo))
 	// Convert http to ws
-	testFlags = flags.NewFlags([]string{})
+	testFlags = flags.NewFlags([]string{}, MockPRSuccess)
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 	testFlags.URL = testUrl
 }

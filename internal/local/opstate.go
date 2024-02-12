@@ -1,9 +1,10 @@
 package local
 
 import (
-	log "github.com/sirupsen/logrus"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) EnableAMT() error {

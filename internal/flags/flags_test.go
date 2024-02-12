@@ -29,6 +29,21 @@ var mode = 0
 var result = 0
 var controlModeErr error = nil
 
+var MockPRSuccess = new(MockPasswordReaderSuccess)
+var MockPRFail = new(MockPasswordReaderFail)
+
+type MockPasswordReaderSuccess struct{}
+
+func (mpr *MockPasswordReaderSuccess) ReadPassword() (string, error) {
+	return utils.TestPassword, nil
+}
+
+type MockPasswordReaderFail struct{}
+
+func (mpr *MockPasswordReaderFail) ReadPassword() (string, error) {
+	return "", errors.New("Read password failed")
+}
+
 type MockPTHICommands struct{}
 
 func (c MockPTHICommands) OpenWatchdog() error {
@@ -161,14 +176,14 @@ func userInput(t *testing.T, input string) func() {
 
 func TestNewFlags(t *testing.T) {
 	args := []string{"./rpc"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	assert.NotNil(t, flags)
 }
 func TestPrintUsage(t *testing.T) {
 	executable := filepath.Base(os.Args[0])
 	args := []string{executable}
 
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	output := flags.printUsage()
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
 	usage = usage + "Usage: " + executable + " COMMAND [OPTIONS]\n\n"
@@ -191,7 +206,7 @@ func TestPrintUsage(t *testing.T) {
 
 func TestParseFlagsAMTInfo(t *testing.T) {
 	args := []string{"./rpc", "amtinfo"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
@@ -200,7 +215,7 @@ func TestParseFlagsAMTInfo(t *testing.T) {
 
 func TestParseFlagsAMTInfoBadParam(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-help"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, utils.IncorrectCommandLineParameters, result)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
@@ -209,7 +224,7 @@ func TestParseFlagsAMTInfoBadParam(t *testing.T) {
 
 func TestParseFlagsAMTInfoJSON(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-json"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
@@ -217,7 +232,7 @@ func TestParseFlagsAMTInfoJSON(t *testing.T) {
 }
 func TestParseFlagsAMTInfoCert(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-cert"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
@@ -225,7 +240,7 @@ func TestParseFlagsAMTInfoCert(t *testing.T) {
 }
 func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 	args := []string{"./rpc", "amtinfo", "-dns"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandAMTInfo)
@@ -233,14 +248,14 @@ func TestParseFlagsAMTInfoOSDNSSuffix(t *testing.T) {
 }
 func TestParseFlagsActivate(t *testing.T) {
 	args := []string{"./rpc", "activate"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, flags.Command, utils.CommandActivate)
 }
 func TestParseFlagsVersion(t *testing.T) {
 	args := []string{"./rpc", "version"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandVersion)
@@ -248,7 +263,7 @@ func TestParseFlagsVersion(t *testing.T) {
 }
 func TestParseFlagsConfigure(t *testing.T) {
 	args := []string{"./rpc", "configure"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, utils.IncorrectCommandLineParameters, result)
 	assert.Equal(t, flags.Command, utils.CommandConfigure)
@@ -257,7 +272,7 @@ func TestParseFlagsConfigure(t *testing.T) {
 
 func TestParseFlagsConfigureEmpty(t *testing.T) {
 	args := []string{"./rpc", "configure"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "configure", flags.Command)
@@ -265,7 +280,7 @@ func TestParseFlagsConfigureEmpty(t *testing.T) {
 
 func TestParseFlagsConfigureNoFile(t *testing.T) {
 	args := []string{"./rpc", "configure", "-config"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "configure", flags.Command)
@@ -273,7 +288,7 @@ func TestParseFlagsConfigureNoFile(t *testing.T) {
 
 func TestParseFlagsVersionJSON(t *testing.T) {
 	args := []string{"./rpc", "version", "-json"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, nil)
 	assert.Equal(t, flags.Command, utils.CommandVersion)
@@ -282,7 +297,7 @@ func TestParseFlagsVersionJSON(t *testing.T) {
 
 func TestParseFlagsNone(t *testing.T) {
 	args := []string{"./rpc"}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "", flags.Command)
@@ -290,7 +305,7 @@ func TestParseFlagsNone(t *testing.T) {
 
 func TestParseFlagsEmptyCommand(t *testing.T) {
 	args := []string{"./rpc", ""}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.ParseFlags()
 	assert.EqualValues(t, result, utils.IncorrectCommandLineParameters)
 	assert.Equal(t, "", flags.Command)
@@ -298,7 +313,7 @@ func TestParseFlagsEmptyCommand(t *testing.T) {
 
 func TestLookupEnvOrString_Default(t *testing.T) {
 	args := []string{"./rpc", ""}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.lookupEnvOrString("URL", "")
 	assert.Equal(t, "", result)
 }
@@ -307,14 +322,14 @@ func TestLookupEnvOrString_Env(t *testing.T) {
 	if err := os.Setenv("URL", "wss://localhost"); err != nil {
 		t.Error(err)
 	}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.lookupEnvOrString("URL", "")
 	assert.Equal(t, "wss://localhost", result)
 }
 
 func TestLookupEnvOrBool_Default(t *testing.T) {
 	args := []string{"./rpc", ""}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, false, result)
 }
@@ -324,7 +339,7 @@ func TestLookupEnvOrBool_Env(t *testing.T) {
 	if err := os.Setenv("SKIP_CERT_CHECK", "true"); err != nil {
 		t.Error(err)
 	}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, true, result)
 }
@@ -334,7 +349,7 @@ func TestLookupEnvOrBool_EnvError(t *testing.T) {
 	if err := os.Setenv("SKIP_CERT_CHECK", "notparsable"); err != nil {
 		t.Error(err)
 	}
-	flags := NewFlags(args)
+	flags := NewFlags(args, MockPRSuccess)
 	result := flags.lookupEnvOrBool("SKIP_CERT_CHECK", false)
 	assert.Equal(t, false, result)
 }
@@ -351,11 +366,17 @@ func NewMockSambaService(err error) smb.ServiceInterface {
 
 func (s *MockSambaService) FetchFileContents(url string) ([]byte, error) {
 	var contents []byte
-	p, err := smb.ParseUrl(url)
+	var service = smb.NewSambaService(MockPRSuccess)
+	p, err := service.ParseUrl(url)
 	if err != nil {
 		return contents, err
 	}
 	return os.ReadFile(p.FilePath)
+}
+
+func (s *MockSambaService) ParseUrl(url string) (smb.Properties, error) {
+	prop := new(smb.Properties)
+	return *prop, nil
 }
 
 func writeTestCfgFiles(t *testing.T, cfg *config.Config, ext string) (cfgFilePath string) {
@@ -393,7 +414,7 @@ func TestHandleLocalConfig(t *testing.T) {
 		cfgFilePath := writeTestCfgFiles(t, &cfg, ext)
 		t.Run(fmt.Sprintf("expect smb happy path with %s", ext), func(t *testing.T) {
 			args := []string{"./rpc"}
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
 			flags.SambaService = NewMockSambaService(nil)
 			flags.configContent = "smb://localhost/xxx/" + cfgFilePath
 			rc := flags.handleLocalConfig()
@@ -409,7 +430,7 @@ func TestHandleLocalConfig(t *testing.T) {
 
 		t.Run(fmt.Sprintf("expect local happy path with %s", ext), func(t *testing.T) {
 			args := []string{"./rpc"}
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
 			flags.configContent = cfgFilePath
 			rc := flags.handleLocalConfig()
 			assert.Equal(t, nil, rc)
@@ -425,7 +446,7 @@ func TestHandleLocalConfig(t *testing.T) {
 
 	t.Run("expect FailedReadingConfiguration for smb unsupported extension", func(t *testing.T) {
 		args := []string{"./rpc"}
-		flags := NewFlags(args)
+		flags := NewFlags(args, MockPRSuccess)
 		flags.configContent = "smb://localhost/xxx/nope.html"
 		flags.SambaService = NewMockSambaService(nil)
 		err := flags.handleLocalConfig()
@@ -434,7 +455,7 @@ func TestHandleLocalConfig(t *testing.T) {
 
 	t.Run("expect FailedReadingConfiguration for smb fetch file error", func(t *testing.T) {
 		args := []string{"./rpc"}
-		flags := NewFlags(args)
+		flags := NewFlags(args, MockPRSuccess)
 		flags.configContent = "smb://localhost/xxx/yep.yaml"
 		flags.SambaService = NewMockSambaService(errors.New("test error"))
 		err := flags.handleLocalConfig()
@@ -443,7 +464,7 @@ func TestHandleLocalConfig(t *testing.T) {
 
 	t.Run("expect FailedReadingConfiguration for local pfx ReadFile", func(t *testing.T) {
 		args := []string{"./rpc"}
-		flags := NewFlags(args)
+		flags := NewFlags(args, MockPRSuccess)
 		flags.configContent = "/tmp/thisfilebetterneverexist.pfx"
 		err := flags.handleLocalConfig()
 		assert.Equal(t, utils.FailedReadingConfiguration, err)

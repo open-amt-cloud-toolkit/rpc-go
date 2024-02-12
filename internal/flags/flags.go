@@ -70,6 +70,7 @@ type Flags struct {
 	TenantID                            string
 	UseCCM                              bool
 	UseACM                              bool
+	EchoPass                            bool
 	configContent                       string
 	UUID                                string
 	LocalConfig                         config.Config
@@ -96,10 +97,12 @@ type Flags struct {
 	SambaService                        smb.ServiceInterface
 	MEBxPassword                        string
 	ConfigTLSInfo                       ConfigTLSInfo
+	passwordReader                      utils.PasswordReader
 }
 
-func NewFlags(args []string) *Flags {
+func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags := &Flags{}
+	flags.passwordReader = pr
 	flags.commandLineArgs = args
 	flags.amtInfoCommand = flag.NewFlagSet(utils.CommandAMTInfo, flag.ContinueOnError)
 	flags.amtInfoCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
@@ -126,7 +129,7 @@ func NewFlags(args []string) *Flags {
 	flags.netEnumerator.InterfaceAddrs = (*net.Interface).Addrs
 	flags.setupCommonFlags()
 
-	flags.SambaService = smb.NewSambaService()
+	flags.SambaService = smb.NewSambaService(utils.PR)
 
 	return flags
 }
@@ -199,6 +202,7 @@ func (f *Flags) setupCommonFlags() {
 		fs.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 		fs.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 		fs.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+		fs.BoolVar(&f.EchoPass, "echo-password", false, "echos AMT Password to the terminal during input")
 		fs.DurationVar(&f.AMTTimeoutDuration, "t", 2*time.Minute, "AMT timeout - time to wait until AMT is ready (ex. '2m' or '30s')")
 		if fs.Name() != utils.CommandActivate { // activate does not use the -f flag
 			fs.BoolVar(&f.Force, "f", false, "Force even if device is not registered with a server")
@@ -249,7 +253,12 @@ func (f *Flags) PromptUserInput(prompt string, value *string) error {
 func (f *Flags) ReadPasswordFromUser() (bool, error) {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
-	_, err := fmt.Scanln(&password)
+	var err error
+	if f.EchoPass {
+		_, err = fmt.Scanln(&password)
+	} else {
+		password, err = f.passwordReader.ReadPassword()
+	}
 	if password == "" || err != nil {
 		return false, utils.MissingOrIncorrectPassword
 	}
