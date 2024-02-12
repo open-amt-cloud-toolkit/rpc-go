@@ -59,4 +59,19 @@ func TestConfigure(t *testing.T) {
 		err := lps.Configure()
 		assert.NoError(t, err)
 	})
+	t.Run("expect error for Syncclock", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandSyncClock
+		lps := setupService(f)
+		mockGetLowAccuracyTimeSynchErr = errTestError
+		err := lps.Configure()
+		assert.Error(t, err)
+		mockGetLowAccuracyTimeSynchErr = nil
+	})
+	t.Run("expect success for Syncclock", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandSyncClock
+		lps := setupService(f)
+		mockControlMode = 2
+		err := lps.Configure()
+		assert.NoError(t, err)
+	})
 }

@@ -82,6 +82,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -mode Server -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandSetMEBx + "            Configures MEBx Password. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetMEBx + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
+	usage += "  " + utils.SubCommandSyncClock + "       Sync the host OS clock to AMT. AMT password is required\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSyncClock + " -password YourAMTPassword\n"
 	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -105,6 +107,8 @@ func (f *Flags) handleConfigureCommand() error {
 		err = f.handleConfigureTLS()
 	case utils.SubCommandSetMEBx:
 		err = f.handleMEBxPassword()
+	case utils.SubCommandSyncClock:
+		err = f.handleSyncClock()
 	default:
 		f.printConfigurationUsage()
 		err = utils.IncorrectCommandLineParameters
@@ -131,6 +135,15 @@ func (f *Flags) handleConfigureCommand() error {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
+	return nil
+}
+
+func (f *Flags) handleSyncClock() error {
+	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+
 	return nil
 }
 
