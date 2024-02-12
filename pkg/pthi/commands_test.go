@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"rpc/pkg/apf"
 	"testing"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	"github.com/stretchr/testify/assert"
 )
 
