@@ -7,17 +7,17 @@ package lm
 import (
 	"bytes"
 	"encoding/binary"
-	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
 	"time"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	log "github.com/sirupsen/logrus"
 )
 
 // LMConnection is struct for managing connection to LMS
 type LMEConnection struct {
 	Command    pthi.Command
-	Session    *apf.LMESession
+	Session    *apf.Session
 	ourChannel int
 	retries    int
 }
@@ -27,7 +27,7 @@ func NewLMEConnection(data chan []byte, errors chan error, status chan bool) *LM
 		ourChannel: 1,
 	}
 	lme.Command = pthi.NewCommand()
-	lme.Session = &apf.LMESession{
+	lme.Session = &apf.Session{
 		DataBuffer:  data,
 		ErrorBuffer: errors,
 		Tempdata:    []byte{},

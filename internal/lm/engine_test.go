@@ -6,10 +6,10 @@ package lm
 
 import (
 	"errors"
-	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
 	"testing"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +97,7 @@ func TestLMEConnection_Initialize(t *testing.T) {
 			initError = tt.initErr
 			lme := &LMEConnection{
 				Command:    pthiVar,
-				Session:    &apf.LMESession{},
+				Session:    &apf.Session{},
 				ourChannel: 1,
 			}
 			if err := lme.Initialize(); (err != nil) != tt.wantErr {
@@ -113,7 +113,7 @@ func Test_Send(t *testing.T) {
 
 	lme := &LMEConnection{
 		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Session:    &apf.Session{},
 		ourChannel: 1,
 	}
 	data := []byte("hello")
@@ -125,7 +125,7 @@ func Test_Connect(t *testing.T) {
 	sendBytesWritten = 54
 	lme := &LMEConnection{
 		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Session:    &apf.Session{},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -137,7 +137,7 @@ func Test_Connect_With_Error(t *testing.T) {
 	sendBytesWritten = 54
 	lme := &LMEConnection{
 		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Session:    &apf.Session{},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -150,7 +150,7 @@ func Test_Listen(t *testing.T) {
 
 	lme := &LMEConnection{
 		Command: pthiVar,
-		Session: &apf.LMESession{
+		Session: &apf.Session{
 			DataBuffer:  lmDataChannel,
 			ErrorBuffer: lmErrorChannel,
 			Status:      make(chan bool),
@@ -166,7 +166,7 @@ func Test_Close(t *testing.T) {
 	resetMock()
 	lme := &LMEConnection{
 		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Session:    &apf.Session{},
 		ourChannel: 1,
 	}
 	err := lme.Close()
@@ -179,7 +179,7 @@ func Test_CloseWithChannel(t *testing.T) {
 
 	lme := &LMEConnection{
 		Command: pthiVar,
-		Session: &apf.LMESession{
+		Session: &apf.Session{
 			DataBuffer:  lmDataChannel,
 			ErrorBuffer: lmErrorChannel,
 			Status:      make(chan bool),
