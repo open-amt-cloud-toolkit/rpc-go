@@ -71,7 +71,10 @@ func NewPayload() Payload {
 func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout time.Duration) (MessagePayload, error) {
 	payload := MessagePayload{}
 	var err error
-	wired, _ := p.AMT.GetLANInterfaceSettings(false)
+	wired, err := p.AMT.GetLANInterfaceSettings(false)
+	if err != nil {
+		return payload, err
+	}
 	if wired.LinkStatus != "up" {
 		log.Warn("link status is down, unable to activate AMT in Admin Control Mode (ACM)")
 	}
