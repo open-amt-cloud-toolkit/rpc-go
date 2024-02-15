@@ -50,7 +50,6 @@ type WSMANer interface {
 	// Wired
 	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
 	PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId int) (ethernetport.Response, error)
-	// ^ this might not be a thing look at how rps makes put calls for wifi
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
 	EnumerateTLSSettingData() (response tls.Response, err error)
