@@ -4,6 +4,7 @@ type (
 	Config struct {
 		Password         string            `yaml:"password"`
 		WifiConfigs      []WifiConfig      `yaml:"wifiConfigs"`
+		WiredConfigs     []WiredConfig     `yaml:"wifiConfigs"`
 		Ieee8021xConfigs []Ieee8021xConfig `yaml:"ieee8021xConfigs"`
 		ACMSettings      ACMSettings       `yaml:"acmactivate"`
 	}
@@ -15,6 +16,16 @@ type (
 		EncryptionMethod     int    `yaml:"encryptionMethod"`
 		PskPassphrase        string `yaml:"pskPassphrase"`
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
+	}
+	WiredConfig struct {
+		ProfileName string `yaml:"profileName"`
+		// SSID                 string `yaml:"ssid"`
+		// Priority             int    `yaml:"priority"`
+		AuthenticationMethod int `yaml:"authenticationMethod"`
+		// EncryptionMethod     int    `yaml:"encryptionMethod"`
+		// PskPassphrase        string `yaml:"pskPassphrase"`
+		// Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
+		PXETimeout int `yaml:"pxeTimeout"` // ?
 	}
 	SecretConfig struct {
 		Secrets []Secret `yaml:"secrets"`
