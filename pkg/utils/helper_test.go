@@ -25,8 +25,24 @@ func TestInterpretControlMode2(t *testing.T) {
 }
 
 func TestInterpretControlMode3(t *testing.T) {
-	algorithm := InterpretControlMode(3)
-	assert.Equal(t, "unknown state", algorithm)
+	result := InterpretControlMode(3)
+	assert.Equal(t, "unknown state", result)
+}
+func TestInterpretProvisioningState0(t *testing.T) {
+	result := InterpretProvisioningState(0)
+	assert.Equal(t, "pre-provisioning state", result)
+}
+func TestInterpretProvisioningState1(t *testing.T) {
+	result := InterpretProvisioningState(1)
+	assert.Equal(t, "in-provisioning state", result)
+}
+func TestInterpretProvisioningState2(t *testing.T) {
+	result := InterpretProvisioningState(2)
+	assert.Equal(t, "post-provisioning state", result)
+}
+func TestInterpretProvisioningStateUnknown(t *testing.T) {
+	result := InterpretProvisioningState(3)
+	assert.Equal(t, "unknown state", result)
 }
 
 func TestInterpretHashAlgorithm0(t *testing.T) {

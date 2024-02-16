@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
@@ -25,18 +24,28 @@ func (service *ProvisioningService) Activate() error {
 		return utils.AMTConnectionFailed
 	}
 	if controlMode != 0 {
-		log.Error("Device is already activated")
+		logrus.Error("Device is already activated")
 		return utils.UnableToActivate
 	}
 
 	service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	amtVersion, err := service.amtCommand.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
+	if err != nil {
+		return utils.AMTConnectionFailed
+	}
+	amtMajorVersion := GetAMTMajorVersion(amtVersion)
+	if amtMajorVersion > 14 {
+		logrus.Info("AMT version 15 or greater detected, using secure host based configuration flow")
+		service.flags.UseTLSActivation = true
+	}
 
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return utils.AMTConnectionFailed
 	}
+
 	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel)
 
 	if service.flags.UseACM {
@@ -99,15 +108,53 @@ func (service *ProvisioningService) ActivateACM() error {
 }
 
 func (service *ProvisioningService) ActivateCCM() error {
+	if service.flags.UseTLSActivation {
+		err := service.ActivateCCMOverTLS()
+		if err != nil {
+			return err
+		}
+	} else {
+		err := service.ActivateCCMOverNonTLS()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (service *ProvisioningService) ActivateCCMOverNonTLS() error {
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
 		return utils.ActivationFailed
 	}
 	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
 	if err != nil {
+		if service.flags.UseTLSActivation {
+			response, _ := service.amtCommand.StopTLSActivation()
+			if response.Header.Status == 0 {
+				logrus.Info("Secure Configuration stopped")
+			}
+		}
 		return utils.ActivationFailed
 	}
-	log.Info("Status: Device activated in Client Control Mode")
+	logrus.Info("Status: Device activated in Client Control Mode")
+	return nil
+}
+
+func (service *ProvisioningService) ActivateCCMOverTLS() error {
+	response, cert, err := service.amtCommand.StartTLSActivation()
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Debug("Secure Configuration: command: ", response.Header.Status)
+	service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
+	service.flags.RPCTLSActivationCertificate = cert
+	logrus.Info("Secure Configuration started")
+	mode, err := service.amtCommand.GetProvisioningState()
+	if err != nil {
+		logrus.Error(err)
+	}
+	logrus.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
 	return nil
 }
 
@@ -205,7 +252,7 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error {
 	result, err := service.amtCommand.GetCertificateHashes()
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 	}
 	for _, v := range result {
 		if v.Hash == fingerPrint {
@@ -224,7 +271,7 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 
 		_, err := service.interfacedWsmanMessage.AddNextCertInChain(cert, isLeaf, isRoot)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			// TODO: check if this is the correct error to return
 			return errors.New("failed to add certificate to AMT")
 		}
@@ -236,7 +283,7 @@ func (service *ProvisioningService) generateNonce() ([]byte, error) {
 	nonce := make([]byte, 20)
 	// fills nonce with 20 random bytes
 	if _, err := rand.Read(nonce); err != nil {
-		log.Error("Error generating nonce:", err)
+		logrus.Error("Error generating nonce:", err)
 		return nil, err
 	}
 	return nonce, nil
@@ -278,7 +325,7 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 	arr := append(fwNonce, nonce...)
 	signature, err := service.signString(arr, privateKey)
 	if err != nil {
-		log.Error("Error signing string:", err)
+		logrus.Error("Error signing string:", err)
 		return "", err
 	}
 	return signature, nil

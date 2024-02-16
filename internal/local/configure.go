@@ -4,7 +4,6 @@ import (
 	"rpc/pkg/utils"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) Configure() (err error) {
@@ -28,9 +27,9 @@ func (service *ProvisioningService) Configure() (err error) {
 func (service *ProvisioningService) EnableWifiPort() (err error) {
 	err = service.interfacedWsmanMessage.EnableWiFi()
 	if err != nil {
-		log.Error("Failed to enable wifi port and local profile synchronization.")
+		logrus.Error("Failed to enable wifi port and local profile synchronization.")
 		return
 	}
-	log.Info("Successfully enabled wifi port and local profile synchronization.")
+	logrus.Info("Successfully enabled wifi port and local profile synchronization.")
 	return
 }

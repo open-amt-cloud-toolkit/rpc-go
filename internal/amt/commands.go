@@ -5,6 +5,8 @@
 package amt
 
 import (
+	"crypto/sha256"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"rpc/pkg/pthi"
@@ -68,6 +70,16 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type StartTLSActivationResponse struct {
+	Header        pthi.ResponseMessageHeader
+	HashAlgorithm uint8
+	AMTCertHash   [64]uint8
+}
+
+type StopTLSActivationResponse struct {
+	Header pthi.ResponseMessageHeader
+}
+
 type ChangeEnabledResponse uint8
 
 func (r ChangeEnabledResponse) IsTransitionAllowed() bool {
@@ -88,6 +100,7 @@ type Interface interface {
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
+	GetProvisioningState() (int, error)
 	GetOSDNSSuffix() (string, error)
 	GetDNSSuffix() (string, error)
 	GetCertificateHashes() ([]CertHashEntry, error)
@@ -95,6 +108,8 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
 	GetLocalSystemAccount() (LocalSystemAccount, error)
 	Unprovision() (mode int, err error)
+	StartTLSActivation() (StartTLSActivationResponse, *x509.Certificate, error)
+	StopTLSActivation() (StopTLSActivationResponse, error)
 }
 
 func ANSI2String(ansi pthi.AMTANSIString) string {
@@ -248,6 +263,19 @@ func (amt AMTCommand) GetControlMode() (int, error) {
 	}
 
 	return result, nil
+}
+func (amt AMTCommand) GetProvisioningState() (int, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return -1, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetProvisioningState()
+	if err != nil {
+		return -1, err
+	}
+
+	return int(result.ProvisioningState), nil
 }
 
 // Unprovision ...
@@ -415,4 +443,52 @@ func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	}
 
 	return lsa, nil
+}
+
+func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, *x509.Certificate, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return StartTLSActivationResponse{}, nil, err
+	}
+	defer amt.PTHI.Close()
+	serverHashAlgorithm := pthi.CERT_HASH_ALGORITHM_SHA256
+	cert, err := utils.GenerateCertificate()
+	if err != nil {
+		return StartTLSActivationResponse{}, nil, err
+	}
+	certHash := sha256.Sum256(cert.Raw)
+	bytes := make([]byte, 64)
+	copy(bytes[:], certHash[:])
+	hostVPNEnable := uint32(0) // False
+	networkDnsSuffixList := [320]uint8{}
+	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]byte(bytes), hostVPNEnable, uint32(len(networkDnsSuffixList)), networkDnsSuffixList)
+	if err != nil {
+		return StartTLSActivationResponse{}, nil, err
+	}
+
+	response := StartTLSActivationResponse{
+		Header:        result.Header,
+		HashAlgorithm: result.HashAlgorithm,
+		AMTCertHash:   result.AMTCertHash,
+	}
+	return response, cert, nil
+}
+
+func (amt AMTCommand) StopTLSActivation() (StopTLSActivationResponse, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		emptyResponse := StopTLSActivationResponse{}
+		return emptyResponse, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.StopConfiguration()
+	if err != nil {
+		emptyResponse := StopTLSActivationResponse{}
+		return emptyResponse, err
+	}
+
+	response := StopTLSActivationResponse{
+		Header: result,
+	}
+	return response, err
 }

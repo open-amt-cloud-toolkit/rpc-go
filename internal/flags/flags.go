@@ -6,6 +6,7 @@ package flags
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -98,6 +99,9 @@ type Flags struct {
 	MEBxPassword                        string
 	ConfigTLSInfo                       ConfigTLSInfo
 	passwordReader                      utils.PasswordReader
+	UseTLSActivation                    bool
+	AMTTLSActivationCertificateHash     []byte
+	RPCTLSActivationCertificate         *x509.Certificate
 }
 
 func NewFlags(args []string, pr utils.PasswordReader) *Flags {

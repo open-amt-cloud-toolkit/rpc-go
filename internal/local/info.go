@@ -12,7 +12,6 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 type PrivateKeyPairReference struct {
@@ -32,10 +31,10 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.UserCert && service.flags.Password == "" {
 		result, err := cmd.GetControlMode()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			service.flags.AmtInfo.UserCert = false
 		} else if result == 0 {
-			log.Warn("Device is in pre-provisioning mode. User certificates are not available")
+			logrus.Warn("Device is in pre-provisioning mode. User certificates are not available")
 			service.flags.AmtInfo.UserCert = false
 		} else {
 			if _, err := service.flags.ReadPasswordFromUser(); err != nil {
@@ -48,7 +47,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Ver {
 		result, err := cmd.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["amt"] = result
 		if !service.flags.JsonOutput {
@@ -58,7 +57,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Bld {
 		result, err := cmd.GetVersionDataFromME("Build Number", service.flags.AMTTimeoutDuration)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["buildNumber"] = result
 
@@ -69,7 +68,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Sku {
 		result, err := cmd.GetVersionDataFromME("Sku", service.flags.AMTTimeoutDuration)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["sku"] = result
 
@@ -87,7 +86,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.UUID {
 		result, err := cmd.GetUUID()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["uuid"] = result
 
@@ -98,18 +97,27 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Mode {
 		result, err := cmd.GetControlMode()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["controlMode"] = utils.InterpretControlMode(result)
-
 		if !service.flags.JsonOutput {
 			println("Control Mode		: " + string(utils.InterpretControlMode(result)))
+		}
+		if result == 0 {
+			result, err = cmd.GetProvisioningState()
+			if err != nil {
+				logrus.Error(err)
+			}
+			dataStruct["provisioningState"] = utils.InterpretProvisioningState(result)
+			if !service.flags.JsonOutput {
+				println("Provisioning State	: " + string(utils.InterpretProvisioningState(result)))
+			}
 		}
 	}
 	if service.flags.AmtInfo.OpState {
 		result, err := cmd.GetChangeEnabled()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		if result.IsNewInterfaceVersion() {
 			opStateValue := "disabled"
@@ -125,7 +133,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.DNS {
 		result, err := cmd.GetDNSSuffix()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["dnsSuffix"] = result
 
@@ -134,7 +142,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 		result, err = cmd.GetOSDNSSuffix()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["dnsSuffixOS"] = result
 
@@ -145,7 +153,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Hostname {
 		result, err := os.Hostname()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["hostnameOS"] = result
 		if !service.flags.JsonOutput {
@@ -156,7 +164,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Ras {
 		result, err := cmd.GetRemoteAccessConnectionStatus()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["ras"] = result
 
@@ -170,7 +178,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Lan {
 		wired, err := cmd.GetLANInterfaceSettings(false)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["wiredAdapter"] = wired
 
@@ -185,7 +193,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 
 		wireless, err := cmd.GetLANInterfaceSettings(true)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		dataStruct["wirelessAdapter"] = wireless
 
@@ -201,7 +209,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	if service.flags.AmtInfo.Cert {
 		result, err := cmd.GetCertificateHashes()
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		sysCertMap := map[string]amt.CertHashEntry{}
 		for _, v := range result {
