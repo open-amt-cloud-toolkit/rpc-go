@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"rpc/internal/amt"
 	"rpc/pkg/utils"
 	"strings"
 
@@ -46,19 +48,47 @@ func (service *ProvisioningService) Activate() error {
 		return utils.AMTConnectionFailed
 	}
 
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel)
-
 	if service.flags.UseACM {
-		err = service.ActivateACM()
+		err = service.ActivateACM(lsa)
 	} else if service.flags.UseCCM {
-		err = service.ActivateCCM()
+		err = service.ActivateCCM(lsa)
 	}
 
 	return err
 }
 
-func (service *ProvisioningService) ActivateACM() error {
+func (service *ProvisioningService) ActivateACM(lsa amt.LocalSystemAccount) error {
+	if service.flags.UseTLSActivation {
+		err := service.ActivateACMOverTLS(lsa)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := service.ActivateACMOverNonTLS(lsa)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (service *ProvisioningService) ActivateCCM(lsa amt.LocalSystemAccount) error {
+	if service.flags.UseTLSActivation {
+		err := service.ActivateCCMOverTLS(lsa)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := service.ActivateCCMOverNonTLS(lsa)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (service *ProvisioningService) ActivateACMOverNonTLS(lsa amt.LocalSystemAccount) error {
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{})
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
 	if err != nil {
@@ -107,22 +137,14 @@ func (service *ProvisioningService) ActivateACM() error {
 	return nil
 }
 
-func (service *ProvisioningService) ActivateCCM() error {
-	if service.flags.UseTLSActivation {
-		err := service.ActivateCCMOverTLS()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := service.ActivateCCMOverNonTLS()
-		if err != nil {
-			return err
-		}
-	}
+func (service *ProvisioningService) ActivateACMOverTLS(lsa amt.LocalSystemAccount) error {
+	// TODO: fill this shit in
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	return nil
 }
 
-func (service *ProvisioningService) ActivateCCMOverNonTLS() error {
+func (service *ProvisioningService) ActivateCCMOverNonTLS(lsa amt.LocalSystemAccount) error {
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{})
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
 		return utils.ActivationFailed
@@ -141,20 +163,27 @@ func (service *ProvisioningService) ActivateCCMOverNonTLS() error {
 	return nil
 }
 
-func (service *ProvisioningService) ActivateCCMOverTLS() error {
-	response, cert, err := service.amtCommand.StartTLSActivation()
+func (service *ProvisioningService) ActivateCCMOverTLS(lsa amt.LocalSystemAccount) error {
+	response, composite, err := service.amtCommand.StartTLSActivation()
 	if err != nil {
 		logrus.Error(err)
 	}
 	logrus.Debug("Secure Configuration: command: ", response.Header.Status)
 	service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
-	service.flags.RPCTLSActivationCertificate = cert
+	service.flags.RPCTLSActivationCertificate = composite
 	logrus.Info("Secure Configuration started")
 	mode, err := service.amtCommand.GetProvisioningState()
 	if err != nil {
 		logrus.Error(err)
 	}
 	logrus.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
+	_, err = service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
+	if err != nil {
+		return utils.ActivationFailed
+	}
+	_, err = service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
+	_, err = service.interfacedWsmanMessage.CommitChanges()
 	return nil
 }
 

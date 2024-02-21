@@ -3,7 +3,7 @@ module rpc
 go 1.20
 
 // uncomment if developing with go-wsman-messages locally
-// replace github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 => ../go-wsman-messages
+replace github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 => ../go-wsman-messages
 
 require (
 	github.com/google/uuid v1.6.0

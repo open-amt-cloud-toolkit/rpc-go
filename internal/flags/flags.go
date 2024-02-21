@@ -6,7 +6,6 @@ package flags
 
 import (
 	"bytes"
-	"crypto/x509"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/internal/amt"
+	"rpc/internal/certs"
 	"rpc/internal/config"
 	"rpc/internal/smb"
 	"rpc/pkg/utils"
@@ -101,7 +101,7 @@ type Flags struct {
 	passwordReader                      utils.PasswordReader
 	UseTLSActivation                    bool
 	AMTTLSActivationCertificateHash     []byte
-	RPCTLSActivationCertificate         *x509.Certificate
+	RPCTLSActivationCertificate         certs.Composite
 }
 
 func NewFlags(args []string, pr utils.PasswordReader) *Flags {

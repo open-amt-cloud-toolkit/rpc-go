@@ -1,13 +1,14 @@
 package local
 
 import (
+	"crypto/tls"
 	"rpc/pkg/utils"
 
 	"github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) Configure() (err error) {
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate})
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()

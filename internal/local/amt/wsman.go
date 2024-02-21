@@ -1,15 +1,17 @@
 package amt
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/authorization"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/timesynchronization"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/tls"
+	wsmantls "github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/tls"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/concrete"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
@@ -20,39 +22,59 @@ import (
 )
 
 type WSMANer interface {
-	SetupWsmanClient(username string, password string, logAMTMessages bool)
-	Unprovision(int) (setupandconfiguration.Response, error)
+	SetupWsmanClient(username string, password string, logAMTMessages bool, certificates []tls.Certificate)
+	
+	// General Settings
 	GetGeneralSettings() (general.Response, error)
-	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
+
+	// Host Based Setup Service
 	GetHostBasedSetupService() (hostbasedsetup.Response, error)
 	AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error)
+	// CCM Activation
+	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
+
+	// ACM Activation -- Deprecated.  Removed with AMT 19
 	HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error)
-	SetupMEBX(string) (response setupandconfiguration.Response, err error)
+	
+	// Public Key
 	GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error)
 	GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error)
 	DeletePublicPrivateKeyPair(instanceId string) error
 	DeletePublicCert(instanceId string) error
-	GetCredentialRelationships() ([]credential.CredentialContext, error)
+
 	GetConcreteDependencies() ([]concrete.ConcreteDependency, error)
+
+	// Public Key Management Service
 	AddTrustedRootCert(caCert string) (string, error)
 	AddClientCert(clientCert string) (string, error)
 	AddPrivateKey(privateKey string) (string, error)
 	DeleteKeyPair(instanceID string) error
+	GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error)
+
+	// Sync Clock
 	GetLowAccuracyTimeSynch() (response timesynchronization.Response, err error)
 	SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (response timesynchronization.Response, err error)
-	GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error)
+	
 	// WiFi
 	GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error)
 	DeleteWiFiSetting(instanceId string) error
 	EnableWiFi() error
 	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
-	// TLS
-	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
-	EnumerateTLSSettingData() (response tls.Response, err error)
-	PullTLSSettingData(enumerationContext string) (response tls.Response, err error)
-	PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error)
 
+	// TLS Credential Context and Setting Data
+	GetCredentialRelationships() ([]credential.CredentialContext, error)
+	CreateTLSCredentialContext(certHandle string) (response wsmantls.Response, err error)
+	EnumerateTLSSettingData() (response wsmantls.Response, err error)
+	PullTLSSettingData(enumerationContext string) (response wsmantls.Response, err error)
+	PUTTLSSettings(instanceID string, tlsSettingData wsmantls.SettingDataRequest) (response wsmantls.Response, err error)
+
+	// SetupAndConfiguration
+	Unprovision(int) (setupandconfiguration.Response, error)
+	SetupMEBX(string) (response setupandconfiguration.Response, err error)
 	CommitChanges() (response setupandconfiguration.Response, err error)
+	
+	// Authorization Service
+	SetAdminPassword(username, password string) (response authorization.Response, err error)
 }
 
 type GoWSMANMessages struct {
@@ -66,15 +88,15 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 	}
 }
 
-func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, logAMTMessages bool) {
+func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, logAMTMessages bool, certificates []tls.Certificate) {
 
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
 		Password:       password,
 		UseDigest:      true,
-		UseTLS:         false,
 		LogAMTMessages: logAMTMessages,
+		Certificates:   certificates,
 	}
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 }
@@ -123,7 +145,7 @@ func (g *GoWSMANMessages) GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, k
 	return g.wsmanMessages.AMT.PublicKeyManagementService.GenerateKeyPair(keyAlgorithm, keyLength)
 }
 
-func (g *GoWSMANMessages) CreateTLSCredentialContext(certHandle string) (response tls.Response, err error) {
+func (g *GoWSMANMessages) CreateTLSCredentialContext(certHandle string) (response wsmantls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSCredentialContext.Create(certHandle)
 }
 
@@ -261,7 +283,7 @@ func (g *GoWSMANMessages) EnableWiFi() error {
 func (g *GoWSMANMessages) AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (response wifiportconfiguration.Response, err error) {
 	return g.wsmanMessages.AMT.WiFiPortConfigurationService.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, wifiEndpoint, clientCredential, caCredential)
 }
-func (g *GoWSMANMessages) PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error) {
+func (g *GoWSMANMessages) PUTTLSSettings(instanceID string, tlsSettingData wsmantls.SettingDataRequest) (response wsmantls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSSettingData.Put(instanceID, tlsSettingData)
 }
 func (g *GoWSMANMessages) GetLowAccuracyTimeSynch() (response timesynchronization.Response, err error) {
@@ -270,13 +292,17 @@ func (g *GoWSMANMessages) GetLowAccuracyTimeSynch() (response timesynchronizatio
 func (g *GoWSMANMessages) SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (response timesynchronization.Response, err error) {
 	return g.wsmanMessages.AMT.TimeSynchronizationService.SetHighAccuracyTimeSynch(ta0, tm1, tm1)
 }
-func (g *GoWSMANMessages) EnumerateTLSSettingData() (response tls.Response, err error) {
+func (g *GoWSMANMessages) EnumerateTLSSettingData() (response wsmantls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSSettingData.Enumerate()
 }
-func (g *GoWSMANMessages) PullTLSSettingData(enumerationContext string) (response tls.Response, err error) {
+func (g *GoWSMANMessages) PullTLSSettingData(enumerationContext string) (response wsmantls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSSettingData.Pull(enumerationContext)
 }
 
 func (g *GoWSMANMessages) CommitChanges() (response setupandconfiguration.Response, err error) {
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.CommitChanges()
+}
+
+func (g *GoWSMANMessages) SetAdminPassword(username, password string) (response authorization.Response, err error) {
+	return g.wsmanMessages.AMT.AuthorizationService.SetAdminACLEntryEx(username, password)
 }

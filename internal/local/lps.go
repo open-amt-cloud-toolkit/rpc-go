@@ -5,7 +5,7 @@ import (
 	internalAMT "rpc/internal/amt"
 	"rpc/internal/config"
 	"rpc/internal/flags"
-	bacon "rpc/internal/local/amt"
+	"rpc/internal/local/amt"
 	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -20,7 +20,7 @@ type RealOSNetworker struct{}
 type ProvisioningService struct {
 	flags                  *flags.Flags
 	serverURL              *url.URL
-	interfacedWsmanMessage bacon.WSMANer
+	interfacedWsmanMessage amt.WSMANer
 	config                 *config.Config
 	amtCommand             internalAMT.Interface
 	handlesWithCerts       map[string]string
@@ -28,9 +28,15 @@ type ProvisioningService struct {
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
+	scheme := "http"
+	port := utils.LMSPort
+	if flags.UseTLSActivation {
+		scheme = "https"
+		port = utils.LMSTLSPort
+	}
 	serverURL := &url.URL{
-		Scheme: "http",
-		Host:   utils.LMSAddress + ":" + utils.LMSPort,
+		Scheme: scheme,
+		Host:   utils.LMSAddress + ":" + port,
 		Path:   "/wsman",
 	}
 	return ProvisioningService{
@@ -40,7 +46,7 @@ func NewProvisioningService(flags *flags.Flags) ProvisioningService {
 		amtCommand:             internalAMT.NewAMTCommand(),
 		handlesWithCerts:       make(map[string]string),
 		networker:              &RealOSNetworker{},
-		interfacedWsmanMessage: bacon.NewGoWSMANMessages(flags.LMSAddress),
+		interfacedWsmanMessage: amt.NewGoWSMANMessages(flags.LMSAddress),
 	}
 
 }

@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"rpc/internal/certs"
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
 	"strconv"
@@ -108,7 +109,7 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
 	GetLocalSystemAccount() (LocalSystemAccount, error)
 	Unprovision() (mode int, err error)
-	StartTLSActivation() (StartTLSActivationResponse, *x509.Certificate, error)
+	StartTLSActivation() (StartTLSActivationResponse, certs.Composite, error)
 	StopTLSActivation() (StopTLSActivationResponse, error)
 }
 
@@ -445,25 +446,25 @@ func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	return lsa, nil
 }
 
-func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, *x509.Certificate, error) {
+func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, x509.Certificate, error) {
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return StartTLSActivationResponse{}, nil, err
+		return StartTLSActivationResponse{}, x509.Certificate{}, err
 	}
 	defer amt.PTHI.Close()
 	serverHashAlgorithm := pthi.CERT_HASH_ALGORITHM_SHA256
-	cert, err := utils.GenerateCertificate()
+	composite, err := certs.GenerateHostBasedCertificate()
 	if err != nil {
-		return StartTLSActivationResponse{}, nil, err
+		return StartTLSActivationResponse{}, x509.Certificate{}, err
 	}
-	certHash := sha256.Sum256(cert.Raw)
+	certHash := sha256.Sum256(composite.Cert.Raw)
 	bytes := make([]byte, 64)
 	copy(bytes[:], certHash[:])
 	hostVPNEnable := uint32(0) // False
 	networkDnsSuffixList := [320]uint8{}
 	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]byte(bytes), hostVPNEnable, uint32(len(networkDnsSuffixList)), networkDnsSuffixList)
 	if err != nil {
-		return StartTLSActivationResponse{}, nil, err
+		return StartTLSActivationResponse{}, x509.Certificate{}, err
 	}
 
 	response := StartTLSActivationResponse{
@@ -471,7 +472,7 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, *x509.Ce
 		HashAlgorithm: result.HashAlgorithm,
 		AMTCertHash:   result.AMTCertHash,
 	}
-	return response, cert, nil
+	return response, *composite.Cert, nil
 }
 
 func (amt AMTCommand) StopTLSActivation() (StopTLSActivationResponse, error) {
