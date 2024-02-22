@@ -74,6 +74,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
 	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
 	usage += "Supported Configuration Commands:\n"
+	usage += "  " + utils.SubCommandAddEthernetSettings + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config ethernetconfig.yaml\n"
 	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
@@ -99,6 +101,8 @@ func (f *Flags) handleConfigureCommand() error {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
+	case utils.SubCommandAddEthernetSettings:
+		err = f.handleAddEthernetSettings()
 	case utils.SubCommandAddWifiSettings:
 		err = f.handleAddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
@@ -215,6 +219,44 @@ func (f *Flags) handleConfigureTLS() error {
 		fmt.Printf("unhandled additional args: %v\n", fs.Args())
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
+	}
+	return nil
+}
+
+func (f *Flags) handleAddEthernetSettings() error { // CRAIG
+	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "dhcp usage")             // Craig
+	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.StaticIp, "staticip", false, "staticip usage") // Craig
+	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "staticip usage")     // Craig
+	f.flagSetAddEthernetSettings.Func(
+		"ipaddress",
+		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
+		validateIP(&f.IpConfiguration.IpAddress))
+	f.flagSetAddEthernetSettings.Func(
+		"netmask",
+		"Network mask to be assigned to AMT - if not specified, the Network mask of the active OS newtork interface is used",
+		validateIP(&f.IpConfiguration.Netmask))
+	f.flagSetAddEthernetSettings.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
+	f.flagSetAddEthernetSettings.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
+	f.flagSetAddEthernetSettings.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+
+	if !f.IpConfiguration.DHCP && !f.IpConfiguration.StaticIp {
+		log.Error("must specify -dhcp or -staticip, but not both")
+		return utils.InvalidParameterCombination
+	}
+
+	if f.IpConfiguration.StaticIp && !f.IpConfiguration.IpSync {
+		if f.IpConfiguration.IpAddress == "" {
+			return utils.MissingOrIncorrectStaticIP
+		}
+		if f.IpConfiguration.Netmask == "" {
+			return utils.MissingOrIncorrectNetworkMask
+		}
+		if f.IpConfiguration.Gateway == "" {
+			return utils.MissingOrIncorrectGateway
+		}
+		if f.IpConfiguration.PrimaryDns == "" {
+			return utils.MissingOrIncorrectPrimaryDNS
+		}
 	}
 	return nil
 }

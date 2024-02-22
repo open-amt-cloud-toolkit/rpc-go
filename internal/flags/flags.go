@@ -33,6 +33,9 @@ type NetEnumerator struct {
 }
 
 type IPConfiguration struct {
+	DHCP         bool   `json:"dhcp"`
+	StaticIp     bool   `json:"staticip"`
+	IpSync       bool   `json:"ipsync"`
 	IpAddress    string `json:"ipAddress"`
 	Netmask      string `json:"netmask"`
 	Gateway      string `json:"gateway"`
@@ -83,6 +86,7 @@ type Flags struct {
 	amtMaintenanceChangePasswordCommand *flag.FlagSet
 	amtMaintenanceSyncDeviceInfoCommand *flag.FlagSet
 	versionCommand                      *flag.FlagSet
+	flagSetAddEthernetSettings          *flag.FlagSet
 	flagSetAddWifiSettings              *flag.FlagSet
 	flagSetEnableWifiPort               *flag.FlagSet
 	flagSetMEBx                         *flag.FlagSet
@@ -119,6 +123,7 @@ func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
+	flags.flagSetAddEthernetSettings = flag.NewFlagSet(utils.SubCommandAddEthernetSettings, flag.ContinueOnError)
 	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
 	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
