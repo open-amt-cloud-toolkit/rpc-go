@@ -1,6 +1,7 @@
 package local
 
 import (
+	"os"
 	"rpc/internal/certs"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
@@ -16,7 +17,118 @@ const RemoteTLSInstanceId = `Intel(r) AMT 802.3 TLS Settings`
 const LocalTLSInstanceId = `Intel(r) AMT LMS TLS Settings`
 
 func (service *ProvisioningService) ConfigureTLS() error {
-	log.Info("configuring TLS")
+	var err error
+	if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
+		err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
+		if err != nil {
+			log.Error("url validation failed: ", err)
+			return utils.TLSConfigurationFailed
+		}
+		err = service.ConfigureTLSWithEA()
+	} else {
+		err = service.ConfigureTLSWithSelfSignedCert()
+	}
+	if err != nil {
+		return err
+	}
+	err = service.SynchronizeTime()
+	if err != nil {
+		return err
+	}
+	err = service.EnableTLS()
+	if err != nil {
+		log.Error("Failed to configure TLS")
+		return utils.TLSConfigurationFailed
+	}
+	log.Info("configuring TLS completed successfully")
+	return nil
+}
+
+func (service *ProvisioningService) ConfigureTLSWithEA() error {
+	log.Info("configuring TLS with Microsoft EA")
+	var handles Handles
+	var err error
+	defer func() {
+		if err != nil {
+			service.RollbackAddedItems(&handles)
+		}
+	}()
+
+	credentials := AuthRequest{
+		Username: service.flags.ConfigTLSInfo.EAUsername,
+		Password: service.flags.ConfigTLSInfo.EAPassword,
+	}
+	guid, err := service.amtCommand.GetUUID()
+
+	// Call GetAuthToken
+	token, err := service.GetAuthToken("/api/authenticate/"+guid, credentials)
+	if err != nil {
+		log.Errorf("error getting auth token: %v", err)
+		return utils.TLSConfigurationFailed
+	}
+	devName, err := os.Hostname()
+	if err != nil {
+		log.Errorf("error getting auth token: %v", err)
+		return err
+	}
+	reqProfile := EAProfile{NodeID: guid, Domain: "", ReqID: "", AuthProtocol: 0, OSName: "win11", DevName: devName, Icon: 1, Ver: ""}
+
+	//Request Profile from Microsoft EA
+	_, err = service.EAConfigureRequest("/api/configure/profile/"+guid, token, reqProfile)
+	if err != nil {
+		log.Errorf("error while requesting EA: %v", err)
+		return err
+	}
+
+	// Generate KeyPair
+	handles.keyPairHandle, err = service.GenerateKeyPair()
+	if err != nil {
+		return err
+	}
+	handles.privateKeyHandle = handles.keyPairHandle
+
+	// Get DERkey
+	derKey, err := service.GetDERKey(handles)
+	if derKey == "" {
+		log.Errorf("failed matching new amtKeyPairHandle: %s", handles.keyPairHandle)
+		return utils.TLSConfigurationFailed
+	}
+
+	//Request Profile from Microsoft EA
+	reqProfile.DERKey = derKey
+	reqProfile.KeyInstanceId = handles.keyPairHandle
+	KeyPairResponse, err := service.EAConfigureRequest("/api/configure/keypair/"+guid, token, reqProfile)
+	if err != nil {
+		log.Errorf("error generating 802.1x keypair: %v", err)
+		return utils.TLSConfigurationFailed
+	}
+
+	response, err := service.interfacedWsmanMessage.GeneratePKCS10RequestEx(KeyPairResponse.Response.KeyInstanceId, KeyPairResponse.Response.CSR, 1)
+	if err != nil {
+		return utils.TLSConfigurationFailed
+	}
+
+	reqProfile.SignedCSR = response.Body.GeneratePKCS10RequestEx_OUTPUT.SignedCertificateRequest
+	eaResponse, err := service.EAConfigureRequest("/api/configure/csr/"+guid, token, reqProfile)
+	if err != nil {
+		log.Errorf("error signing the certificate: %v", err)
+		return utils.TLSConfigurationFailed
+	}
+
+	handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(eaResponse.Response.Certificate)
+	if err != nil {
+		return utils.TLSConfigurationFailed
+	}
+
+	err = service.CreateTLSCredentialContext(handles.clientCertHandle)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (service *ProvisioningService) ConfigureTLSWithSelfSignedCert() error {
+	log.Info("configuring TLS with self signed certificate")
 	var handles Handles
 	var err error
 	defer func() {
@@ -40,18 +152,7 @@ func (service *ProvisioningService) ConfigureTLS() error {
 	}
 	handles.privateKeyHandle = handles.keyPairHandle
 
-	var keyPairs []publicprivate.PublicPrivateKeyPair
-	keyPairs, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
-	if err != nil {
-		return err
-	}
-	var derKey string
-	for _, keyPair := range keyPairs {
-		if keyPair.InstanceID == handles.keyPairHandle {
-			derKey = keyPair.DERKey
-			break
-		}
-	}
+	derKey, err := service.GetDERKey(handles)
 	if derKey == "" {
 		log.Errorf("failed matching new amtKeyPairHandle: %s", handles.keyPairHandle)
 		return utils.TLSConfigurationFailed
@@ -74,19 +175,22 @@ func (service *ProvisioningService) ConfigureTLS() error {
 	if err != nil {
 		return err
 	}
-
-	err = service.SynchronizeTime()
-	if err != nil {
-		return err
-	}
-
-	err = service.EnableTLS()
-	if err != nil {
-		log.Error("Failed to configure TLS")
-		return utils.TLSConfigurationFailed
-	}
-	log.Info("configuring TLS completed successfully")
 	return nil
+}
+
+func (service *ProvisioningService) GetDERKey(handles Handles) (derKey string, err error) {
+	var keyPairs []publicprivate.PublicPrivateKeyPair
+	keyPairs, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
+	if err != nil {
+		return "", err
+	}
+	for _, keyPair := range keyPairs {
+		if keyPair.InstanceID == handles.keyPairHandle {
+			derKey = keyPair.DERKey
+			break
+		}
+	}
+	return derKey, nil
 }
 
 func (service *ProvisioningService) GenerateKeyPair() (handle string, err error) {

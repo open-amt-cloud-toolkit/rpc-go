@@ -13,7 +13,6 @@ import (
 	"rpc/pkg/utils"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
@@ -37,7 +36,7 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
 
 	if service.flags.UseACM {
 		err = service.ActivateACM()

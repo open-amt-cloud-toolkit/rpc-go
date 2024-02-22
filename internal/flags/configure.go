@@ -67,6 +67,9 @@ func ParseTLSMode(s string) (TLSMode, error) {
 type ConfigTLSInfo struct {
 	TLSMode        TLSMode
 	DelayInSeconds int
+	EAAddress      string
+	EAUsername     string
+	EAPassword     string
 }
 
 func (f *Flags) printConfigurationUsage() string {
@@ -203,7 +206,12 @@ func (f *Flags) handleConfigureTLS() error {
 		f.ConfigTLSInfo.TLSMode, e = ParseTLSMode(flagValue)
 		return e
 	})
+
 	fs.IntVar(&f.ConfigTLSInfo.DelayInSeconds, "delay", 3, "Delay time in seconds after putting remote TLS settings")
+	fs.StringVar(&f.ConfigTLSInfo.EAAddress, "eaAddress", "", "Enterprise Assistant address")
+	fs.StringVar(&f.ConfigTLSInfo.EAUsername, "eaUsername", "", "Enterprise Assistant username")
+	fs.StringVar(&f.ConfigTLSInfo.EAPassword, "eaPassword", "", "Enterprise Assistant password")
+
 	if len(f.commandLineArgs) < (3 + 0) {
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters

@@ -1,9 +1,13 @@
 package local
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+	"strings"
 	"testing"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
@@ -52,7 +56,103 @@ var publicPrivateKeyPair = []publicprivate.PublicPrivateKeyPair{
 	},
 }
 
-func TestConfigureTLS(t *testing.T) {
+func TestConfigureTLSWithEA(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupMocks         func(*MockWSMAN)
+		mockauthResponse   AuthResponse
+		mockconfigResponse EAProfile
+		mockauthError      bool
+		mockconfigError    bool
+		expectError        bool
+	}{
+		{
+			name: "Successful TLS configuration",
+			setupMocks: func(mock *MockWSMAN) {
+				mockGenKeyPairErr = nil
+				mockGenKeyPairReturnValue = 0
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
+				errAddClientCert = nil
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
+				mockCreateTLSCredentialContextErr = nil
+			},
+			mockauthResponse: AuthResponse{Token: "someToken"},
+			mockconfigResponse: EAProfile{
+				NodeID:       "someID",
+				Domain:       "someDomain",
+				ReqID:        "someReqID",
+				AuthProtocol: 0,
+
+				OSName:  "win11",
+				DevName: "someDevName",
+				Icon:    1,
+				Ver:     "someVer",
+				Response: Response{
+					CSR:           "someCSR",
+					KeyInstanceId: "someKeyInstanceID",
+					AuthProtocol:  0,
+					Certificate:   "someCertificate",
+					Domain:        "someDomain",
+					Username:      "someUsername",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "Failed to get auth token",
+			setupMocks:    func(mock *MockWSMAN) {},
+			mockauthError: true,
+			expectError:   true,
+		},
+		{
+			name:            "Failed to make request to EA",
+			setupMocks:      func(mock *MockWSMAN) {},
+			mockauthError:   false,
+			mockconfigError: true,
+			expectError:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, _, mockWsman := setupProvisioningService()
+			tt.setupMocks(mockWsman)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/api/authenticate/") {
+					if tt.expectError {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						json.NewEncoder(w).Encode(tt.mockauthResponse)
+					}
+				} else if strings.HasPrefix(r.URL.Path, "/api/configure/") {
+					if tt.expectError {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						json.NewEncoder(w).Encode(tt.mockconfigResponse)
+					}
+				} else {
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+
+			service.flags.ConfigTLSInfo.EAAddress = server.URL
+			service.flags.ConfigTLSInfo.EAUsername = "user"
+			service.flags.ConfigTLSInfo.EAPassword = "pass"
+
+			err := service.ConfigureTLSWithEA()
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			// Clean up
+			server.Close()
+		})
+	}
+}
+
+func TestConfigureTLSWithSelfSignedCert(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupMocks    func(*MockWSMAN)
@@ -74,23 +174,11 @@ func TestConfigureTLS(t *testing.T) {
 			expectedError: assert.AnError,
 		},
 		{
-			name: "Failure in GetPublicPrivateKeyPairs",
+			name: "Failure to GetDERKey",
 			setupMocks: func(mock *MockWSMAN) {
 				mockGenKeyPairErr = nil
-				mockGenKeyPairReturnValue = 0
-				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
-				errGetPublicPrivateKeyPairs = assert.AnError
-			},
-			expectedError: assert.AnError,
-		},
-		{
-			name: "Key Pair Not Found",
-			setupMocks: func(mock *MockWSMAN) {
-				mockGenKeyPairErr = nil
-				mockGenKeyPairReturnValue = 0
-				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
-				errGetPublicPrivateKeyPairs = nil
-				PublicPrivateKeyPairResponse = nil
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle1"}}
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
 			},
 			expectedError: utils.TLSConfigurationFailed,
 		},
@@ -117,26 +205,13 @@ func TestConfigureTLS(t *testing.T) {
 			},
 			expectedError: utils.WSMANMessageError,
 		},
-		{
-			name: "Failure in SynchronizeTime",
-			setupMocks: func(mock *MockWSMAN) {
-				mockGenKeyPairErr = nil
-				mockGenKeyPairReturnValue = 0
-				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
-				errAddClientCert = nil
-				PublicPrivateKeyPairResponse = publicPrivateKeyPair
-				mockCreateTLSCredentialContextErr = nil
-				mockGetLowAccuracyTimeSynchErr = assert.AnError
-			},
-			expectedError: assert.AnError,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			service, _, mockWsman := setupProvisioningService()
 			tt.setupMocks(mockWsman)
-			err := service.ConfigureTLS()
+			err := service.ConfigureTLSWithSelfSignedCert()
 			if tt.expectedError != nil {
 				assert.ErrorIs(t, err, tt.expectedError)
 			} else {
@@ -145,7 +220,6 @@ func TestConfigureTLS(t *testing.T) {
 		})
 	}
 }
-
 func TestGenerateKeyPair(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -202,7 +276,58 @@ func TestGenerateKeyPair(t *testing.T) {
 		})
 	}
 }
+func TestGetDERKey(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupMocks     func(*MockWSMAN)
+		handles        Handles
+		expectedDERKey string
+		expectError    bool
+	}{
+		{
+			name: "success - matching key pair found",
+			setupMocks: func(mock *MockWSMAN) {
+				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
+			},
+			handles:        Handles{keyPairHandle: "keyPair1"},
+			expectedDERKey: "DERKey1",
+			expectError:    false,
+		},
+		{
+			name: "failure - no matching key pair",
+			setupMocks: func(mock *MockWSMAN) {
+				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
+			},
+			handles:        Handles{keyPairHandle: "keyPair2"},
+			expectedDERKey: "",
+			expectError:    false,
+		},
+		{
+			name: "failure - error fetching key pairs",
+			setupMocks: func(mock *MockWSMAN) {
+				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{}
+				errGetPublicPrivateKeyPairs = assert.AnError
+			},
+			handles:        Handles{keyPairHandle: "keyPair1"},
+			expectedDERKey: "",
+			expectError:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, _, mockWsman := setupProvisioningService()
+			tt.setupMocks(mockWsman)
+			derKey, err := service.GetDERKey(tt.handles)
 
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedDERKey, derKey)
+			}
+		})
+	}
+}
 func TestCreateTLSCredentialContext(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -245,7 +370,6 @@ func TestCreateTLSCredentialContext(t *testing.T) {
 		})
 	}
 }
-
 func TestEnableTLS(t *testing.T) {
 
 	tests := []struct {

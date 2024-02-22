@@ -75,3 +75,59 @@ func TestConfigure(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestValidateURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		wantErr bool
+	}{
+		{
+			name:    "Valid http URL",
+			url:     "http://example.com",
+			wantErr: false,
+		},
+		{
+			name:    "Valid https URL",
+			url:     "https://example.com",
+			wantErr: false,
+		},
+		{
+			name:    "Missing scheme",
+			url:     "://example.com",
+			wantErr: true,
+		},
+		{
+			name:    "Missing host",
+			url:     "http://",
+			wantErr: true,
+		},
+		{
+			name:    "Invalid URL",
+			url:     "ht!tp://[::1]/",
+			wantErr: true,
+		},
+		{
+			name:    "Relative URL without scheme and host",
+			url:     "/path/to/resource",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &flags.Flags{}
+			mockAMT := new(MockAMT)
+			mockWsman := new(MockWSMAN)
+			service := NewProvisioningService(f)
+			service.amtCommand = mockAMT
+			service.interfacedWsmanMessage = mockWsman
+			err := service.ValidateURL(tt.url)
+			if tt.wantErr {
+				assert.Error(t, err, "ValidateURL() should return an error")
+			} else {
+				assert.NoError(t, err, "ValidateURL() should not return an error")
+			}
+		})
+	}
+}
