@@ -1,62 +1,25 @@
 package local
 
-import "testing"
+import (
+	"net/url"
+	"rpc/internal/config"
+	"rpc/internal/flags"
+	"testing"
+)
 
-// import (
-// 	"errors"
-// 	"rpc/internal/config"
-// 	"rpc/internal/flags"
-// 	"rpc/pkg/utils"
-// 	"testing"
+var service = ProvisioningService{
+	flags:                  &flags.Flags{},
+	serverURL:              &url.URL{},
+	interfacedWsmanMessage: nil,
+	config:                 &config.Config{},
+	amtCommand:             nil,
+	handlesWithCerts:       map[string]string{},
+	networker:              nil,
+}
 
-// 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
-// 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
+func TestAddWiredSettings(t *testing.T) {
 
-// 	"github.com/stretchr/testify/assert"
-// )
-
-// var wifiCfgWPA = config.WifiConfig{
-// 	ProfileName:          "wifiWPA",
-// 	SSID:                 "ssid",
-// 	Priority:             1,
-// 	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_PSK),
-// 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
-// 	PskPassphrase:        "wifiWPAPassPhrase",
-// 	Ieee8021xProfileName: "",
-// }
-
-// var wifiCfgWPA2 = config.WifiConfig{
-// 	ProfileName:          "wifiWPA2",
-// 	SSID:                 "ssid",
-// 	Priority:             2,
-// 	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA2_PSK),
-// 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
-// 	PskPassphrase:        "wifiWPAPassPhrase",
-// 	Ieee8021xProfileName: "",
-// }
-
-// var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
-// 	ProfileName:          "wifiWPA28021x",
-// 	SSID:                 "ssid",
-// 	Priority:             2,
-// 	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_IEEE8021x),
-// 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
-// 	PskPassphrase:        "",
-// 	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
-// }
-
-//	var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
-//		ProfileName:            "ieee8021xCfgEAPTLS",
-//		Username:               "username",
-//		Password:               "",
-//		AuthenticationProtocol: int(ieee8021x.AuthenticationProtocolEAPTLS),
-//		ClientCert:             "clientCert",
-//		CACert:                 "caCert",
-//		PrivateKey:             "privateKey",
-//	}
-//
-// var errTestError = errors.New("test error")
-func TestAddWiredSettings(t *testing.T) {}
+}
 
 // func TestAddWifiSettings(t *testing.T) {
 // 	f := &flags.Flags{}

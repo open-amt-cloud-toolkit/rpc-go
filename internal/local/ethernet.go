@@ -1,225 +1,66 @@
 package local
 
 import (
-	"encoding/xml"
-	"fmt"
-	"regexp"
-	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/ieee8021x"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
-	log "github.com/sirupsen/logrus"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 )
 
-// type Handles struct {
-// 	privateKeyHandle string
-// 	keyPairHandle    string
-// 	clientCertHandle string
-// 	rootCertHandle   string
-// }
-
 func (service *ProvisioningService) AddEthernetSettings() (err error) {
-	service.handlesWithCerts = make(map[string]string)
-	service.PruneEthernetConfigs() // Might not be needed
-	return service.ProcessEthernetConfigs()
-}
-
-func (service *ProvisioningService) PruneEthernetConfigs() (err error) {
-	// get these handles BEFORE deleting the wifi profiles
-	certHandles, keyPairHandles, err := service.GetEthernetIeee8021xCerts()
-	if err != nil {
-		return err
-	}
-	wifiEndpointSettings, err := service.interfacedWsmanMessage.GetEthernetSettings()
+	settingsRequest, err := service.createEthernetSettingsRequest()
 	if err != nil {
 		return err
 	}
 
-	for _, wifiSetting := range wifiEndpointSettings {
-		// while testing, saw some cases where the PullResponse returned items with no InstanceID?
-		if wifiSetting.InstanceID == "" {
-			// Skip wifiSettings with no InstanceID
-			continue
-		}
-		log.Infof("deleting wifiSetting: %s", wifiSetting.InstanceID)
-		err := service.interfacedWsmanMessage.DeleteWiredSetting(wifiSetting.InstanceID)
-		if err != nil {
-			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
-			err = utils.DeleteWifiConfigFailed
-			continue
-		}
-
-		log.Infof("successfully deleted wifiSetting: %s", wifiSetting.InstanceID)
-	}
-
-	err = service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
-
-	return err
-}
-
-func (service *ProvisioningService) PruneWiredIeee8021xCerts(certHandles []string, keyPairHandles []string) (err error) {
-	for _, handle := range certHandles {
-		err := service.interfacedWsmanMessage.DeletePublicCert(handle)
-		if err != nil {
-			log.Infof("unable to delete: %s %s", handle, err)
-			err = utils.DeleteWifiConfigFailed
-		}
-	}
-	for _, handle := range keyPairHandles {
-		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handle)
-		if err != nil {
-			log.Infof("unable to delete: %s %s", handle, err)
-			err = utils.DeleteWifiConfigFailed
-		}
-	}
-	return err
-}
-
-func (service *ProvisioningService) GetEthernetIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
-	publicCerts, err := service.interfacedWsmanMessage.GetPublicKeyCerts()
+	// CRAIG - ask matt if wsman messages should be updated to not need instance id param
+	settingsResponse, err := service.interfacedWsmanMessage.PutEthernetSettings(settingsRequest, 0)
 	if err != nil {
-		return []string{}, []string{}, err
-	}
-	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
-	if err != nil {
-		return []string{}, []string{}, err
-	}
-	certHandleMap := make(map[string]bool)
-	for i := range credentials {
-		inParams := &credentials[i].ElementInContext.ReferenceParameters
-		providesPrams := &credentials[i].ElementProvidingContext.ReferenceParameters
-		if providesPrams.ResourceURI == `http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings` {
-			id := inParams.GetSelectorValue("InstanceID")
-			certHandleMap[id] = true
-			for j := range publicCerts {
-				if publicCerts[j].InstanceID == id {
-					service.handlesWithCerts[id] = publicCerts[j].X509Certificate
-				}
-			}
-		}
-	}
-	for k := range certHandleMap {
-		if k != "" {
-			certHandles = append(certHandles, k)
-		}
-	}
-	if len(certHandles) == 0 {
-		return certHandles, keyPairHandles, err
+		return err
 	}
 
-	keyPairHandleMap := make(map[string]bool)
-	dependencies, _ := service.interfacedWsmanMessage.GetConcreteDependencies()
-	for i := range dependencies {
-		antecedent := &dependencies[i].Antecedent.ReferenceParameters
-		if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
-			continue
-		}
-		dependent := &dependencies[i].Dependent.ReferenceParameters
-		if dependent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair` {
-			continue
-		}
-		for _, certHandle := range certHandles {
-			if !antecedent.HasSelector("InstanceID", certHandle) {
-				continue
-			}
-			id := dependent.GetSelectorValue("InstanceID")
-			keyPairHandleMap[id] = true
-		}
-	}
-	for k := range keyPairHandleMap {
-		if k != "" {
-			keyPairHandles = append(keyPairHandles, k)
-		}
+	if err = service.verifyEthernetSettingsResponse(settingsRequest, settingsResponse.Body.GetAndPutResponse); err != nil {
+		return err
 	}
 
-	return certHandles, keyPairHandles, err
+	return nil
 }
 
-func (service *ProvisioningService) ProcessEthernetConfigs() error {
-	lc := service.flags.LocalConfig
-	var successes []string
-	var failures []string
-	for _, cfg := range lc.EthernetConfigs {
-		log.Info("configuring ethernet profile: ", cfg.ProfileName)
-		err := service.ProcessEthernetConfig(&cfg)
-		if err != nil {
-			log.Error("failed configuring: ", cfg.ProfileName)
-			failures = append(failures, cfg.ProfileName)
-		} else {
-			log.Info("successfully configured: ", cfg.ProfileName)
-			successes = append(successes, cfg.ProfileName)
-		}
+func (service *ProvisioningService) createEthernetSettingsRequest() (request ethernetport.SettingsRequest, err error) {
+	settingsRequest := ethernetport.SettingsRequest{}
+
+	// CRAIG - error check to make sure this stuff exists
+
+	if service.flags.IpConfiguration.DHCP {
+		settingsRequest.DHCPEnabled = true
+		settingsRequest.IpSyncEnabled = true
+		settingsRequest.SharedDynamicIP = false
+	} else {
+		settingsRequest.DHCPEnabled = false
+		settingsRequest.IpSyncEnabled = service.flags.IpConfiguration.IpSync
+		settingsRequest.SharedDynamicIP = service.flags.IpConfiguration.IpSync
 	}
-	if len(failures) > 0 {
-		if len(successes) > 0 {
-			return utils.EthernetConfigurationWithWarnings
-		} else {
+
+	if !service.flags.IpConfiguration.DHCP && !service.flags.IpConfiguration.IpSync {
+		settingsRequest.IPAddress = service.flags.IpConfiguration.IpAddress
+		settingsRequest.SubnetMask = service.flags.IpConfiguration.Netmask
+		settingsRequest.DefaultGateway = service.flags.IpConfiguration.Gateway
+		settingsRequest.PrimaryDNS = service.flags.IpConfiguration.PrimaryDns
+		settingsRequest.SecondaryDNS = service.flags.IpConfiguration.SecondaryDns
+	}
+
+	return settingsRequest, nil
+}
+
+func (service *ProvisioningService) verifyEthernetSettingsResponse(request ethernetport.SettingsRequest, response ethernetport.SettingsResponse) (err error) {
+	if request.DHCPEnabled {
+		if !response.DHCPEnabled || response.IpSyncEnabled || response.SharedStaticIp {
+			return utils.EthernetConfigurationFailed
+		}
+	} else {
+		if response.DHCPEnabled || response.IpSyncEnabled != request.IpSyncEnabled || response.SharedStaticIp != response.IpSyncEnabled {
 			return utils.EthernetConfigurationFailed
 		}
 	}
-	return nil
-}
-
-func (service *ProvisioningService) ProcessEthernetConfig(ethernetCfg *config.EthernetConfig) (err error) {
-
-	// profile names can only be alphanumeric (not even dashes)
-	var reAlphaNum = regexp.MustCompile("[^a-zA-Z0-9]+")
-	if reAlphaNum.MatchString(ethernetCfg.ProfileName) {
-		log.Errorf("invalid wifi profile name: %s (only alphanumeric allowed)", ethernetCfg.ProfileName)
-		return utils.MissingOrIncorrectWifiProfileName
-	}
-
-	// Set wifiEndpointSettings properties from wifiCfg file
-
-	ethernetEndpointSettings := ieee8021x.IEEE8021xSettingsRequest{
-		H:             "",
-		XMLName:       xml.Name{},
-		ElementName:   ethernetCfg.ProfileName,
-		InstanceID:    fmt.Sprintf("Intel(r) AMT:Ethernet Endpoint Settings %s", ethernetCfg.ProfileName),
-		Enabled:       0,
-		AvailableInS0: true,
-		PxeTimeout:    0,
-	}
-
-	// Create an empty handles reference holder
-	var handles Handles
-	// TODO: Check authenitcationMethod instead of profile  name
-	var ieee8021xSettings models.IEEE8021xSettings
-	// Find the correct Ieee8021xConfig from wifiCfg file
-	if ethernetCfg.Ieee8021xProfileName != "" {
-		// If we find a matching Ieee8021xConfig, populate the IEEE8021xSettings and add any required private keys and certificates
-		ieee8021xConfig, err := service.checkForIeee8021xConfigWithEthernet(ethernetCfg)
-		if err != nil {
-			return err
-		}
-		ieee8021xSettings, handles, err = service.setIeee8021xConfig(ieee8021xConfig)
-		if err != nil {
-			return err
-		}
-	} else {
-
-		// not using IEEE8021x, so set the wireless passphrase
-		wifiEndpointSettings.PSKPassPhrase = ethernetCfg.PskPassphrase
-	}
-
-	_, err = service.interfacedWsmanMessage.AddWiFiSettings(wifiEndpointSettings, ieee8021xSettings, "WiFi Endpoint 0", handles.clientCertHandle, handles.rootCertHandle)
-	if err != nil {
-		// The AddWiFiSettings call failed, return error response from go-wsman-messages
-		service.RollbackAddedItems(&handles)
-		return utils.WiFiConfigurationFailed //should we return err?
-	}
 
 	return nil
-}
-
-func (service *ProvisioningService) checkForIeee8021xConfigWithEthernet(ethernetCfg *config.EthernetConfig) (ieee8021xConfig *config.Ieee8021xConfig, err error) {
-	for _, curCfg := range service.flags.LocalConfig.Ieee8021xConfigs {
-		if curCfg.ProfileName == ethernetCfg.Ieee8021xProfileName {
-			ieee8021xConfig = &curCfg
-			return ieee8021xConfig, nil
-		}
-	}
-	log.Error("no matching 802.1x configuration found")
-	return nil, utils.Ieee8021xConfigurationFailed
 }
