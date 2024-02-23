@@ -18,7 +18,8 @@ var service = ProvisioningService{
 }
 
 func TestAddWiredSettings(t *testing.T) {
-
+	happyService := service
+	happyService.flags.
 }
 
 // func TestAddWifiSettings(t *testing.T) {
