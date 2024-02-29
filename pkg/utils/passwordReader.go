@@ -5,6 +5,9 @@
 package utils
 
 import (
+	"bufio"
+	"os"
+
 	"golang.org/x/term"
 )
 
@@ -19,6 +22,15 @@ type PasswordReader interface {
 type RealPasswordReader struct{}
 
 func (pr *RealPasswordReader) ReadPassword() (string, error) {
-	pass, err := term.ReadPassword(0)
-	return string(pass), err
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		pass, err := term.ReadPassword(int(os.Stdin.Fd()))
+		return string(pass), err
+	} else {
+		reader := bufio.NewReader(os.Stdin)
+		pass, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		return pass, nil
+	}
 }

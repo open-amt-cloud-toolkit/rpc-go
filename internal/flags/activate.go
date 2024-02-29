@@ -96,7 +96,7 @@ func (f *Flags) handleActivateCommand() error {
 
 		// Only for CCM it asks for password.
 		if !f.UseACM && f.Password == "" {
-			if _, rc := f.ReadPasswordFromUser(); rc != nil {
+			if rc := f.ReadPasswordFromUser(); rc != nil {
 				return utils.MissingOrIncorrectPassword
 			}
 		}
