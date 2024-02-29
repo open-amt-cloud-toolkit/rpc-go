@@ -40,6 +40,9 @@ func (service *ProvisioningService) Activate() error {
 
 	if service.flags.UseACM {
 		err = service.ActivateACM()
+		if err == nil {
+			log.Info("Status: Device activated in Admin Control Mode")
+		}
 	} else if service.flags.UseCCM {
 		err = service.ActivateCCM()
 	}
@@ -92,7 +95,14 @@ func (service *ProvisioningService) ActivateACM() error {
 
 	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.ACMSettings.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
 	if err != nil {
-		return utils.ActivationFailed
+		controlMode, err := service.amtCommand.GetControlMode()
+		if err != nil {
+			return utils.AMTConnectionFailed
+		}
+		if controlMode != 2 {
+			return utils.ActivationFailed
+		}
+		return nil
 	}
 	return nil
 }
