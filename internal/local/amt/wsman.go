@@ -57,6 +57,7 @@ type WSMANer interface {
 	PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error)
 
 	CommitChanges() (response setupandconfiguration.Response, err error)
+	GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error)
 }
 
 type GoWSMANMessages struct {
@@ -297,4 +298,8 @@ func (g *GoWSMANMessages) PullTLSSettingData(enumerationContext string) (respons
 
 func (g *GoWSMANMessages) CommitChanges() (response setupandconfiguration.Response, err error) {
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.CommitChanges()
+}
+
+func (g *GoWSMANMessages) GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error) {
+	return g.wsmanMessages.AMT.PublicKeyManagementService.GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest, signingAlgorithm)
 }
