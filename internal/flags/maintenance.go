@@ -63,7 +63,7 @@ func (f *Flags) handleMaintenanceCommand() error {
 	}
 
 	if f.Password == "" {
-		if _, err := f.ReadPasswordFromUser(); err != nil {
+		if err := f.ReadPasswordFromUser(); err != nil {
 			return utils.MissingOrIncorrectPassword
 		}
 	}

@@ -38,7 +38,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			log.Warn("Device is in pre-provisioning mode. User certificates are not available")
 			service.flags.AmtInfo.UserCert = false
 		} else {
-			if _, err := service.flags.ReadPasswordFromUser(); err != nil {
+			if err := service.flags.ReadPasswordFromUser(); err != nil {
 				fmt.Println("Invalid Entry")
 				return err
 			}

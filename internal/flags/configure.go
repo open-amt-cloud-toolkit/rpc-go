@@ -125,7 +125,7 @@ func (f *Flags) handleConfigureCommand() error {
 		if f.LocalConfig.Password != "" {
 			f.Password = f.LocalConfig.Password
 		} else {
-			if _, err = f.ReadPasswordFromUser(); err != nil {
+			if err = f.ReadPasswordFromUser(); err != nil {
 				return utils.MissingOrIncorrectPassword
 			}
 			f.LocalConfig.Password = f.Password
