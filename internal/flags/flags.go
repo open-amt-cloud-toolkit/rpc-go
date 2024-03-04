@@ -249,8 +249,7 @@ func (f *Flags) PromptUserInput(prompt string, value *string) error {
 	return nil
 }
 
-// TODO: rework this so we can never return false
-func (f *Flags) ReadPasswordFromUser() (bool, error) {
+func (f *Flags) ReadPasswordFromUser() error {
 	fmt.Println("Please enter AMT Password: ")
 	var password string
 	var err error
@@ -260,10 +259,10 @@ func (f *Flags) ReadPasswordFromUser() (bool, error) {
 		password, err = f.passwordReader.ReadPassword()
 	}
 	if password == "" || err != nil {
-		return false, utils.MissingOrIncorrectPassword
+		return utils.MissingOrIncorrectPassword
 	}
 	f.Password = password
-	return true, nil
+	return nil
 }
 
 func (f *Flags) handleLocalConfig() error {
