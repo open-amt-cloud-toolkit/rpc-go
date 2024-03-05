@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
@@ -443,6 +444,18 @@ var errAddWiFiSettings error = nil
 
 func (m MockWSMAN) AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error) {
 	return wifiportconfiguration.Response{}, errAddWiFiSettings
+}
+
+var errGetEthernetSettings error = nil
+
+func (m MockWSMAN) GetEthernetSettings() ([]ethernetport.SettingsResponse, error) {
+	return []ethernetport.SettingsResponse{}, errGetEthernetSettings
+}
+
+var errPutEthernetSettings error = nil
+
+func (m MockWSMAN) PutEthernetSettings(ethernetport.SettingsRequest, int) (ethernetport.Response, error) {
+	return ethernetport.Response{}, errPutEthernetSettings
 }
 
 // Mock the AMT Hardware
