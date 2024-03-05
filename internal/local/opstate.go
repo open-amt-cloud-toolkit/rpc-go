@@ -28,7 +28,7 @@ func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) error 
 		return nil
 	}
 	if rsp.IsAMTEnabled() {
-		log.Debug("AMT is alreay enabled")
+		log.Debug("AMT is already enabled")
 		return nil
 	}
 	err = service.EnableAMT()
