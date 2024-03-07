@@ -151,21 +151,31 @@ func (f *Flags) handleSyncClock() error {
 }
 
 func (f *Flags) handleMEBxPassword() error {
-	var err error
-	if len(f.commandLineArgs) == 3 {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
-	}
 	f.flagSetMEBx.BoolVar(&f.Verbose, "v", false, "Verbose output")
 	f.flagSetMEBx.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetMEBx.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetMEBx.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.flagSetMEBx.StringVar(&f.MEBxPassword, "mebxpassword", f.lookupEnvOrString("MEBX_PASSWORD", ""), "MEBX password")
 
-	if err = f.flagSetMEBx.Parse(f.commandLineArgs[3:]); err != nil {
-		f.printConfigurationUsage()
-		return utils.IncorrectCommandLineParameters
+	if len(f.commandLineArgs) > 3 {
+		if err := f.flagSetMEBx.Parse(f.commandLineArgs[3:]); err != nil {
+			f.printConfigurationUsage()
+			return utils.IncorrectCommandLineParameters
+		}
 	}
+
+	if f.Password == "" {
+		if rc := f.ReadPasswordFromUser(); rc != nil {
+			return rc
+		}
+	}
+
+	if f.MEBxPassword == "" {
+		if rc := f.ReadNewPasswordTo(&f.MEBxPassword, "New MEBx Password"); rc != nil {
+			return rc
+		}
+	}
+
 	return nil
 }
 

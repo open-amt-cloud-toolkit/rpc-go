@@ -71,9 +71,9 @@ var MissingOrIncorrectSecondaryDNS = CustomError{Code: 32, Message: "MissingOrIn
 var InvalidParameterCombination = CustomError{Code: 33, Message: "InvalidParameterCombination"}
 var FailedReadingConfiguration = CustomError{Code: 34, Message: "FailedReadingConfiguration"}
 var MissingOrInvalidConfiguration = CustomError{Code: 35, Message: "MissingOrInvalidConfiguration"}
-
 var InvalidUserInput = CustomError{Code: 36, Message: "InvalidUserInput"}
 var InvalidUUID = CustomError{Code: 37, Message: "InvalidUUID"}
+var PasswordsDoNotMatch = CustomError{Code: 38, Message: "PasswordsDoNotMatch"}
 
 // (70-99) Connection Errors
 var RPSAuthenticationFailed = CustomError{Code: 70, Message: "RPSAuthenticationFailed"}
