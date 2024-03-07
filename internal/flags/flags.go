@@ -249,6 +249,26 @@ func (f *Flags) PromptUserInput(prompt string, value *string) error {
 	return nil
 }
 
+func (f *Flags) ReadNewPasswordTo(saveLocation *string, promptPhrase string) error {
+	var password, confirmPassword string
+	var err error
+
+	fmt.Printf("Please enter %s: \n", promptPhrase)
+	password, err = f.passwordReader.ReadPassword()
+	if password == "" || err != nil {
+		return utils.MissingOrIncorrectPassword
+	}
+
+	fmt.Printf("Please confirm %s: \n", promptPhrase)
+	confirmPassword, err = f.passwordReader.ReadPassword()
+	if password != confirmPassword || err != nil {
+		return utils.PasswordsDoNotMatch
+	}
+
+	*saveLocation = password
+	return nil
+}
+
 func (f *Flags) ReadPasswordFromUser() error {
 	fmt.Println("Please enter AMT Password: ")
 	var password string

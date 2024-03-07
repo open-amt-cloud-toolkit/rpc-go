@@ -78,11 +78,20 @@ func (f *Flags) handleActivateCommand() error {
 			return utils.InvalidParameterCombination
 		}
 
+		if f.LocalConfig.ACMSettings.AMTPassword == "" && f.Password == "" {
+			if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
+				return rc
+			}
+			f.LocalConfig.ACMSettings.AMTPassword = f.Password
+			f.LocalConfig.Password = f.Password
+		}
+
 		if f.UseACM {
 			err := f.handleLocalConfig()
 			if err != nil {
 				return utils.FailedReadingConfiguration
 			}
+
 			// Check if all fields are filled
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
 			for i := 0; i < v.NumField(); i++ {
@@ -93,14 +102,6 @@ func (f *Flags) handleActivateCommand() error {
 			}
 
 		}
-
-		// Only for CCM it asks for password.
-		if !f.UseACM && f.Password == "" {
-			if rc := f.ReadPasswordFromUser(); rc != nil {
-				return utils.MissingOrIncorrectPassword
-			}
-		}
-		f.LocalConfig.Password = f.Password
 
 		if f.UUID != "" {
 			fmt.Println("-uuid cannot be use in local activation")
