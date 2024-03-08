@@ -470,3 +470,11 @@ func TestHandleLocalConfig(t *testing.T) {
 		assert.Equal(t, utils.FailedReadingConfiguration, err)
 	})
 }
+
+func TestReadNewPasswordTo(t *testing.T) {
+	args := []string{"./rpc"}
+	flags := NewFlags(args, MockPRSuccess)
+	var password string
+	flags.ReadNewPasswordTo(&password, "TEST")
+	assert.Equal(t, utils.TestPassword, password)
+}

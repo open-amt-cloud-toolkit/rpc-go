@@ -178,39 +178,74 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 		return ProvisioningCertObj{}, "", errors.New("no private keys found")
 	}
 	var provisioningCertificateObj ProvisioningCertObj
-	var interObj []CertificateObject
-	var leaf CertificateObject
-	var root CertificateObject
+	var certificateList []*CertificateObject
 	var fingerprint string
 
-	for i, cert := range pfxobj.certs {
+	for _, cert := range pfxobj.certs {
 		pemBlock := &pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: cert.Raw,
 		}
+
 		pem := cleanPEM(string(pem.EncodeToMemory(pemBlock)))
 		certificateObject := CertificateObject{pem: pem, subject: cert.Subject.String(), issuer: cert.Issuer.String()}
 
-		if i == 0 {
-			leaf = certificateObject
-		} else if cert.Subject.String() == cert.Issuer.String() {
-			root = certificateObject
+		// Get the fingerpint from the Root certificate
+		if cert.Subject.String() == cert.Issuer.String() {
 			der := cert.Raw
 			hash := sha256.Sum256(der)
 			fingerprint = hex.EncodeToString(hash[:])
-		} else {
-			interObj = append(interObj, certificateObject)
 		}
+
+		// Put all the certificateObjects into a single un-ordered list
+		certificateList = append(certificateList, &certificateObject)
 	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, leaf.pem)
-	for _, inter := range interObj {
-		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, inter.pem)
+
+	// Order the certificates from leaf to root
+	orderedCertificateList := orderCertificates(certificateList)
+
+	// Add them to the certChain in order
+	for _, cert := range orderedCertificateList {
+		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, cert.pem)
 	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, root.pem)
+
+	// Add the priviate key
 	provisioningCertificateObj.privateKey = pfxobj.keys[0]
 
 	return provisioningCertificateObj, fingerprint, nil
 }
+
+// orderCertificates orders the certificate list from leaf to root
+func orderCertificates(certificates []*CertificateObject) []*CertificateObject {
+
+	// create a map that we'll use to get the next certificate in chain
+	certificateMap := make(map[string]*CertificateObject)
+	for _, cert := range certificates {
+		certificateMap[cert.subject] = cert
+	}
+
+	// this slice will hold our ordered certificates
+	orderedCertificates := []*CertificateObject{}
+
+	// Set current to the leaf certificate since it is always first in our list
+	current := certificateMap[certificates[0].subject]
+
+	// Loop through certificate list until we get to root certificate
+	for current != nil && current.issuer != current.subject {
+		// Append current certificate to the ordered list
+		orderedCertificates = append(orderedCertificates, current)
+		// Move to the issuer of the current certificate
+		current = certificateMap[current.issuer]
+	}
+
+	// Append the root certificate
+	if current != nil {
+		orderedCertificates = append(orderedCertificates, current)
+	}
+
+	return orderedCertificates
+}
+
 func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error {
 	result, err := service.amtCommand.GetCertificateHashes()
 	if err != nil {
