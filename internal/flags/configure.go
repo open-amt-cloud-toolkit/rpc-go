@@ -241,23 +241,29 @@ func (f *Flags) handleConfigureTLS() error {
 	return nil
 }
 
-func (f *Flags) handleAddEthernetSettings() error { // CRAIG
-	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "dhcp usage")             // Craig
-	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.StaticIp, "staticip", false, "staticip usage") // Craig
-	f.flagSetAddEthernetSettings.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "staticip usage")     // Craig
-	f.flagSetAddEthernetSettings.Func(
+func (f *Flags) handleAddEthernetSettings() error {
+	fs := f.NewConfigureFlagSet(utils.SubCommandAddEthernetSettings)
+	fs.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "dhcp usage")
+	fs.BoolVar(&f.IpConfiguration.StaticIp, "staticip", false, "staticip usage")
+	fs.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "staticip usage")
+	fs.Func(
 		"ipaddress",
 		"IP address to be assigned to AMT - if not specified, the IP Address of the active OS newtork interface is used",
 		validateIP(&f.IpConfiguration.IpAddress))
-	f.flagSetAddEthernetSettings.Func(
+	fs.Func(
 		"netmask",
 		"Network mask to be assigned to AMT - if not specified, the Network mask of the active OS newtork interface is used",
 		validateIP(&f.IpConfiguration.Netmask))
-	f.flagSetAddEthernetSettings.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
-	f.flagSetAddEthernetSettings.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
-	f.flagSetAddEthernetSettings.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+	fs.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
+	fs.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
+	fs.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
 
-	if !f.IpConfiguration.DHCP && !f.IpConfiguration.StaticIp {
+	if err := fs.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+
+	if f.IpConfiguration.DHCP == f.IpConfiguration.StaticIp {
 		log.Error("must specify -dhcp or -staticip, but not both")
 		return utils.InvalidParameterCombination
 	}

@@ -31,7 +31,7 @@ const (
 	CommandVersion     = "version"
 	CommandConfigure   = "configure"
 
-	SubCommandAddEthernetSettings = "addethernetsettings"
+	SubCommandAddEthernetSettings = "addwiredsettings"
 	SubCommandAddWifiSettings     = "addwifisettings"
 	SubCommandEnableWifiPort      = "enablewifiport"
 	SubCommandSetMEBx             = "mebx"

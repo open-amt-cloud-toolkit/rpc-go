@@ -452,10 +452,15 @@ func (m MockWSMAN) GetEthernetSettings() ([]ethernetport.SettingsResponse, error
 	return []ethernetport.SettingsResponse{}, errGetEthernetSettings
 }
 
+var putEthernetResponse ethernetport.Response = ethernetport.Response{}
 var errPutEthernetSettings error = nil
 
 func (m MockWSMAN) PutEthernetSettings(ethernetport.SettingsRequest, int) (ethernetport.Response, error) {
-	return ethernetport.Response{}, errPutEthernetSettings
+	if errPutEthernetSettings != nil {
+		return ethernetport.Response{}, errPutEthernetSettings
+	}
+
+	return putEthernetResponse, nil
 }
 
 // Mock the AMT Hardware

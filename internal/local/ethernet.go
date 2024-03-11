@@ -7,6 +7,11 @@ import (
 )
 
 func (service *ProvisioningService) AddEthernetSettings() (err error) {
+	err = service.verifyInput()
+	if err != nil {
+		return err
+	}
+
 	settingsRequest, err := service.createEthernetSettingsRequest()
 	if err != nil {
 		return err
@@ -25,17 +30,48 @@ func (service *ProvisioningService) AddEthernetSettings() (err error) {
 	return nil
 }
 
+func (service *ProvisioningService) verifyInput() error {
+	if service.flags.IpConfiguration.DHCP == service.flags.IpConfiguration.StaticIp || (service.flags.IpConfiguration.DHCP && !service.flags.IpConfiguration.IpSync) {
+		return utils.InvalidParameterCombination
+	}
+
+	if service.flags.IpConfiguration.DHCP {
+		if service.flags.IpConfiguration.IpAddress != "" ||
+			service.flags.IpConfiguration.Netmask != "" ||
+			service.flags.IpConfiguration.Gateway != "" ||
+			service.flags.IpConfiguration.PrimaryDns != "" ||
+			service.flags.IpConfiguration.SecondaryDns != "" {
+			return utils.InvalidParameterCombination
+		}
+	}
+
+	if service.flags.IpConfiguration.StaticIp && !service.flags.IpConfiguration.IpSync {
+		if service.flags.IpConfiguration.IpAddress == "" {
+			return utils.MissingOrIncorrectStaticIP
+		}
+		if service.flags.IpConfiguration.Netmask == "" {
+			return utils.MissingOrIncorrectNetworkMask
+		}
+		if service.flags.IpConfiguration.Gateway == "" {
+			return utils.MissingOrIncorrectGateway
+		}
+		if service.flags.IpConfiguration.PrimaryDns == "" {
+			return utils.MissingOrIncorrectPrimaryDNS
+		}
+	}
+
+	return nil
+}
+
 func (service *ProvisioningService) createEthernetSettingsRequest() (request ethernetport.SettingsRequest, err error) {
 	settingsRequest := ethernetport.SettingsRequest{}
-
-	// CRAIG - error check to make sure this stuff exists
 
 	if service.flags.IpConfiguration.DHCP {
 		settingsRequest.DHCPEnabled = true
 		settingsRequest.IpSyncEnabled = true
 		settingsRequest.SharedDynamicIP = false
 	} else {
-		settingsRequest.DHCPEnabled = false
+		settingsRequest.SharedStaticIp = true
 		settingsRequest.IpSyncEnabled = service.flags.IpConfiguration.IpSync
 		settingsRequest.SharedDynamicIP = service.flags.IpConfiguration.IpSync
 	}
@@ -52,14 +88,19 @@ func (service *ProvisioningService) createEthernetSettingsRequest() (request eth
 }
 
 func (service *ProvisioningService) verifyEthernetSettingsResponse(request ethernetport.SettingsRequest, response ethernetport.SettingsResponse) (err error) {
-	if request.DHCPEnabled {
-		if !response.DHCPEnabled || response.IpSyncEnabled || response.SharedStaticIp {
-			return utils.EthernetConfigurationFailed
-		}
-	} else {
-		if response.DHCPEnabled || response.IpSyncEnabled != request.IpSyncEnabled || response.SharedStaticIp != response.IpSyncEnabled {
-			return utils.EthernetConfigurationFailed
-		}
+
+	if request.DHCPEnabled != response.DHCPEnabled ||
+		request.SharedStaticIp != response.SharedStaticIp ||
+		request.IpSyncEnabled != response.IpSyncEnabled {
+		return utils.EthernetConfigurationFailed
+	}
+
+	if request.IPAddress != response.IPAddress ||
+		request.SubnetMask != response.SubnetMask ||
+		request.DefaultGateway != response.DefaultGateway ||
+		request.PrimaryDNS != response.PrimaryDNS ||
+		request.SecondaryDNS != response.SecondaryDNS {
+		return utils.EthernetConfigurationFailed
 	}
 
 	return nil
