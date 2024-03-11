@@ -167,7 +167,7 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
 			for flags.Password == "" {
-				if _, err := flags.ReadPasswordFromUser(); err != nil {
+				if err := flags.ReadPasswordFromUser(); err != nil {
 					return message, utils.MissingOrIncorrectPassword
 				}
 			}

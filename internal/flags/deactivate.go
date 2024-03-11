@@ -25,7 +25,7 @@ func (f *Flags) handleDeactivateCommand() error {
 			return utils.MissingOrIncorrectURL
 		}
 		if f.Password == "" {
-			if _, err := f.ReadPasswordFromUser(); err != nil {
+			if err := f.ReadPasswordFromUser(); err != nil {
 				return utils.MissingOrIncorrectPassword
 			}
 		}
