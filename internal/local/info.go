@@ -51,60 +51,49 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			log.Error(err)
 		}
 		dataStruct["amt"] = result
-		if !service.flags.JsonOutput {
-			println("Version			: " + result)
-		}
+		service.PrintOutput("Version			: " + result)
 	}
 	if service.flags.AmtInfo.Bld {
 		result, err := cmd.GetVersionDataFromME("Build Number", service.flags.AMTTimeoutDuration)
 		if err != nil {
 			log.Error(err)
 		}
-		dataStruct["buildNumber"] = result
 
-		if !service.flags.JsonOutput {
-			println("Build Number		: " + result)
-		}
+		dataStruct["buildNumber"] = result
+		service.PrintOutput("Build Number		: " + result)
 	}
 	if service.flags.AmtInfo.Sku {
 		result, err := cmd.GetVersionDataFromME("Sku", service.flags.AMTTimeoutDuration)
 		if err != nil {
 			log.Error(err)
 		}
-		dataStruct["sku"] = result
 
-		if !service.flags.JsonOutput {
-			println("SKU			: " + result)
-		}
+		dataStruct["sku"] = result
+		service.PrintOutput("SKU			: " + result)
 	}
 	if service.flags.AmtInfo.Ver && service.flags.AmtInfo.Sku {
 		result := DecodeAMT(dataStruct["amt"].(string), dataStruct["sku"].(string))
+
 		dataStruct["features"] = strings.TrimSpace(result)
-		if !service.flags.JsonOutput {
-			println("Features		: " + result)
-		}
+		service.PrintOutput("Features		: " + result)
 	}
 	if service.flags.AmtInfo.UUID {
 		result, err := cmd.GetUUID()
 		if err != nil {
 			log.Error(err)
 		}
-		dataStruct["uuid"] = result
 
-		if !service.flags.JsonOutput {
-			println("UUID			: " + result)
-		}
+		dataStruct["uuid"] = result
+		service.PrintOutput("UUID			: " + result)
 	}
 	if service.flags.AmtInfo.Mode {
 		result, err := cmd.GetControlMode()
 		if err != nil {
 			log.Error(err)
 		}
-		dataStruct["controlMode"] = utils.InterpretControlMode(result)
 
-		if !service.flags.JsonOutput {
-			println("Control Mode		: " + string(utils.InterpretControlMode(result)))
-		}
+		dataStruct["controlMode"] = utils.InterpretControlMode(result)
+		service.PrintOutput("Control Mode		: " + string(utils.InterpretControlMode(result)))
 	}
 	if service.flags.AmtInfo.OpState {
 		result, err := cmd.GetChangeEnabled()
@@ -116,10 +105,9 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			if result.IsAMTEnabled() {
 				opStateValue = "enabled"
 			}
+
 			dataStruct["operationalState"] = opStateValue
-			if !service.flags.JsonOutput {
-				println("Operational State	: " + opStateValue)
-			}
+			service.PrintOutput("Operational State	: " + opStateValue)
 		}
 	}
 	if service.flags.AmtInfo.DNS {
@@ -128,19 +116,15 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			log.Error(err)
 		}
 		dataStruct["dnsSuffix"] = result
+		service.PrintOutput("DNS Suffix		: " + string(result))
 
-		if !service.flags.JsonOutput {
-			println("DNS Suffix		: " + string(result))
-		}
 		result, err = cmd.GetOSDNSSuffix()
 		if err != nil {
 			log.Error(err)
 		}
-		dataStruct["dnsSuffixOS"] = result
 
-		if !service.flags.JsonOutput {
-			fmt.Println("DNS Suffix (OS)		: " + result)
-		}
+		dataStruct["dnsSuffixOS"] = result
+		service.PrintOutput("DNS Suffix (OS)		: " + result)
 	}
 	if service.flags.AmtInfo.Hostname {
 		result, err := os.Hostname()
@@ -148,9 +132,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			log.Error(err)
 		}
 		dataStruct["hostnameOS"] = result
-		if !service.flags.JsonOutput {
-			println("Hostname (OS)		: " + string(result))
-		}
+		service.PrintOutput("Hostname (OS)		: " + string(result))
 	}
 
 	if service.flags.AmtInfo.Ras {
@@ -160,12 +142,11 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 		dataStruct["ras"] = result
 
-		if !service.flags.JsonOutput {
-			println("RAS Network      	: " + result.NetworkStatus)
-			println("RAS Remote Status	: " + result.RemoteStatus)
-			println("RAS Trigger      	: " + result.RemoteTrigger)
-			println("RAS MPS Hostname 	: " + result.MPSHostname)
-		}
+		service.PrintOutput("RAS Network      	: " + result.NetworkStatus)
+		service.PrintOutput("RAS Remote Status	: " + result.RemoteStatus)
+		service.PrintOutput("RAS Trigger      	: " + result.RemoteTrigger)
+		service.PrintOutput("RAS MPS Hostname 	: " + result.MPSHostname)
+
 	}
 	if service.flags.AmtInfo.Lan {
 		wired, err := cmd.GetLANInterfaceSettings(false)
@@ -174,13 +155,13 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 		dataStruct["wiredAdapter"] = wired
 
-		if !service.flags.JsonOutput && wired.MACAddress != "00:00:00:00:00:00" {
-			println("---Wired Adapter---")
-			println("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
-			println("DHCP Mode    		: " + wired.DHCPMode)
-			println("Link Status  		: " + wired.LinkStatus)
-			println("IP Address   		: " + wired.IPAddress)
-			println("MAC Address  		: " + wired.MACAddress)
+		if wired.MACAddress != "00:00:00:00:00:00" {
+			service.PrintOutput("---Wired Adapter---")
+			service.PrintOutput("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
+			service.PrintOutput("DHCP Mode    		: " + wired.DHCPMode)
+			service.PrintOutput("Link Status  		: " + wired.LinkStatus)
+			service.PrintOutput("IP Address   		: " + wired.IPAddress)
+			service.PrintOutput("MAC Address  		: " + wired.MACAddress)
 		}
 
 		wireless, err := cmd.GetLANInterfaceSettings(true)
@@ -189,14 +170,13 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 		dataStruct["wirelessAdapter"] = wireless
 
-		if !service.flags.JsonOutput {
-			println("---Wireless Adapter---")
-			println("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
-			println("DHCP Mode    		: " + wireless.DHCPMode)
-			println("Link Status  		: " + wireless.LinkStatus)
-			println("IP Address   		: " + wireless.IPAddress)
-			println("MAC Address  		: " + wireless.MACAddress)
-		}
+		service.PrintOutput("---Wireless Adapter---")
+		service.PrintOutput("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
+		service.PrintOutput("DHCP Mode    		: " + wireless.DHCPMode)
+		service.PrintOutput("Link Status  		: " + wireless.LinkStatus)
+		service.PrintOutput("IP Address   		: " + wireless.IPAddress)
+		service.PrintOutput("MAC Address  		: " + wireless.MACAddress)
+
 	}
 	if service.flags.AmtInfo.Cert {
 		result, err := cmd.GetCertificateHashes()
@@ -270,11 +250,15 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		if err != nil {
 			output = err.Error()
 		}
-		println(output)
+		fmt.Println(output)
 	}
 	return nil
 }
-
+func (service *ProvisioningService) PrintOutput(message string) {
+	if !service.flags.JsonOutput {
+		fmt.Println(message)
+	}
+}
 func DecodeAMT(version, SKU string) string {
 	amtParts := strings.Split(version, ".")
 	if len(amtParts) <= 1 {
