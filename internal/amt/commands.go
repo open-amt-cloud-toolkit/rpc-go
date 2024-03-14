@@ -6,7 +6,6 @@ package amt
 
 import (
 	"crypto/sha256"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"rpc/internal/certs"
@@ -446,16 +445,16 @@ func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	return lsa, nil
 }
 
-func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, x509.Certificate, error) {
+func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, certs.Composite, error) {
 	err := amt.PTHI.Open(false)
 	if err != nil {
-		return StartTLSActivationResponse{}, x509.Certificate{}, err
+		return StartTLSActivationResponse{}, certs.Composite{}, err
 	}
 	defer amt.PTHI.Close()
 	serverHashAlgorithm := pthi.CERT_HASH_ALGORITHM_SHA256
 	composite, err := certs.GenerateHostBasedCertificate()
 	if err != nil {
-		return StartTLSActivationResponse{}, x509.Certificate{}, err
+		return StartTLSActivationResponse{}, composite, err
 	}
 	certHash := sha256.Sum256(composite.Cert.Raw)
 	bytes := make([]byte, 64)
@@ -464,7 +463,7 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, x509.Cer
 	networkDnsSuffixList := [320]uint8{}
 	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]byte(bytes), hostVPNEnable, uint32(len(networkDnsSuffixList)), networkDnsSuffixList)
 	if err != nil {
-		return StartTLSActivationResponse{}, x509.Certificate{}, err
+		return StartTLSActivationResponse{}, composite, err
 	}
 
 	response := StartTLSActivationResponse{
@@ -472,7 +471,7 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, x509.Cer
 		HashAlgorithm: result.HashAlgorithm,
 		AMTCertHash:   result.AMTCertHash,
 	}
-	return response, *composite.Cert, nil
+	return response, composite, nil
 }
 
 func (amt AMTCommand) StopTLSActivation() (StopTLSActivationResponse, error) {
