@@ -1,6 +1,11 @@
 //go:build linux
 // +build linux
 
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package amt
 
 import (
