@@ -19,12 +19,12 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
       - name: Build the Docker image
 
         run: docker build . --file Dockerfile --tag vprodemo.azurecr.io/rpc-go:${{ github.sha }} --tag vprodemo.azurecr.io/rpc-go:latest
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@84384bd6e777ef152729993b8145ea352e9dd3ef # master
+        uses: aquasecurity/trivy-action@062f2592684a31eb3aa050cc61e7ca1451cecd3d # master
         with:
           image-ref: 'vprodemo.azurecr.io/rpc-go:${{ github.sha }}'
           format: 'sarif'
@@ -34,7 +34,7 @@ jobs:
           vuln-type: 'os,library'
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@379614612a29c9e28f31f39a59013eb8012a51f0 # v3.24.3
+        uses: github/codeql-action/upload-sarif@3ab4101902695724f9365a384f86c1074d94e18c # v3.24.7
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'

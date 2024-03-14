@@ -23,7 +23,7 @@ import (
 
 type WSMANer interface {
 	SetupWsmanClient(username string, password string, logAMTMessages bool, certificates []tls.Certificate)
-	
+
 	// General Settings
 	GetGeneralSettings() (general.Response, error)
 
@@ -35,7 +35,7 @@ type WSMANer interface {
 
 	// ACM Activation -- Deprecated.  Removed with AMT 19
 	HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error)
-	
+
 	// Public Key
 	GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error)
 	GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error)
@@ -54,7 +54,7 @@ type WSMANer interface {
 	// Sync Clock
 	GetLowAccuracyTimeSynch() (response timesynchronization.Response, err error)
 	SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (response timesynchronization.Response, err error)
-	
+
 	// WiFi
 	GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error)
 	DeleteWiFiSetting(instanceId string) error
@@ -72,9 +72,10 @@ type WSMANer interface {
 	Unprovision(int) (setupandconfiguration.Response, error)
 	SetupMEBX(string) (response setupandconfiguration.Response, err error)
 	CommitChanges() (response setupandconfiguration.Response, err error)
-	
+
 	// Authorization Service
 	SetAdminPassword(username, password string) (response authorization.Response, err error)
+	GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error)
 }
 
 type GoWSMANMessages struct {
@@ -298,11 +299,12 @@ func (g *GoWSMANMessages) EnumerateTLSSettingData() (response wsmantls.Response,
 func (g *GoWSMANMessages) PullTLSSettingData(enumerationContext string) (response wsmantls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSSettingData.Pull(enumerationContext)
 }
-
 func (g *GoWSMANMessages) CommitChanges() (response setupandconfiguration.Response, err error) {
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.CommitChanges()
 }
-
 func (g *GoWSMANMessages) SetAdminPassword(username, password string) (response authorization.Response, err error) {
 	return g.wsmanMessages.AMT.AuthorizationService.SetAdminACLEntryEx(username, password)
+}
+func (g *GoWSMANMessages) GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error) {
+	return g.wsmanMessages.AMT.PublicKeyManagementService.GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest, signingAlgorithm)
 }

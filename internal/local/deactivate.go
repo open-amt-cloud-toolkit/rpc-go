@@ -35,8 +35,8 @@ func (service *ProvisioningService) Deactivate() (err error) {
 
 func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.Password == "" {
-		result, rc := service.flags.ReadPasswordFromUser()
-		if !result || rc != nil {
+		err := service.flags.ReadPasswordFromUser()
+		if err != nil {
 			return utils.MissingOrIncorrectPassword
 		}
 	}

@@ -60,7 +60,9 @@ func parseCommandLine(args []string) (*flags.Flags, error) {
 	}
 
 	if flags.JsonOutput {
-		log.SetFormatter(&log.JSONFormatter{})
+		log.SetFormatter(&log.JSONFormatter{
+			DisableHTMLEscape: true,
+		})
 	} else {
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,

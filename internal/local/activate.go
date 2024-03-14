@@ -15,7 +15,7 @@ import (
 	"rpc/pkg/utils"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
@@ -26,7 +26,7 @@ func (service *ProvisioningService) Activate() error {
 		return utils.AMTConnectionFailed
 	}
 	if controlMode != 0 {
-		logrus.Error("Device is already activated")
+		log.Error("Device is already activated")
 		return utils.UnableToActivate
 	}
 
@@ -37,19 +37,23 @@ func (service *ProvisioningService) Activate() error {
 	}
 	amtMajorVersion := GetAMTMajorVersion(amtVersion)
 	if amtMajorVersion > 14 {
-		logrus.Info("AMT version 15 or greater detected, using secure host based configuration flow")
+		log.Info("AMT version 15 or greater detected, using secure host based configuration flow")
 		service.flags.UseTLSActivation = true
 	}
 
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{})
 
 	if service.flags.UseACM {
 		err = service.ActivateACM(lsa)
+		if err == nil {
+			log.Info("Status: Device activated in Admin Control Mode")
+		}
 	} else if service.flags.UseCCM {
 		err = service.ActivateCCM(lsa)
 	}
@@ -88,7 +92,7 @@ func (service *ProvisioningService) ActivateCCM(lsa amt.LocalSystemAccount) erro
 }
 
 func (service *ProvisioningService) ActivateACMOverNonTLS(lsa amt.LocalSystemAccount) error {
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{})
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{})
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
 	if err != nil {
@@ -132,19 +136,26 @@ func (service *ProvisioningService) ActivateACMOverNonTLS(lsa amt.LocalSystemAcc
 
 	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.ACMSettings.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
 	if err != nil {
-		return utils.ActivationFailed
+		controlMode, err := service.amtCommand.GetControlMode()
+		if err != nil {
+			return utils.AMTConnectionFailed
+		}
+		if controlMode != 2 {
+			return utils.ActivationFailed
+		}
+		return nil
 	}
 	return nil
 }
 
 func (service *ProvisioningService) ActivateACMOverTLS(lsa amt.LocalSystemAccount) error {
 	// TODO: fill this shit in
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	return nil
 }
 
 func (service *ProvisioningService) ActivateCCMOverNonTLS(lsa amt.LocalSystemAccount) error {
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{})
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{})
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
 		return utils.ActivationFailed
@@ -154,30 +165,30 @@ func (service *ProvisioningService) ActivateCCMOverNonTLS(lsa amt.LocalSystemAcc
 		if service.flags.UseTLSActivation {
 			response, _ := service.amtCommand.StopTLSActivation()
 			if response.Header.Status == 0 {
-				logrus.Info("Secure Configuration stopped")
+				log.Info("Secure Configuration stopped")
 			}
 		}
 		return utils.ActivationFailed
 	}
-	logrus.Info("Status: Device activated in Client Control Mode")
+	log.Info("Status: Device activated in Client Control Mode")
 	return nil
 }
 
 func (service *ProvisioningService) ActivateCCMOverTLS(lsa amt.LocalSystemAccount) error {
 	response, composite, err := service.amtCommand.StartTLSActivation()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
-	logrus.Debug("Secure Configuration: command: ", response.Header.Status)
+	log.Debug("Secure Configuration: command: ", response.Header.Status)
 	service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
 	service.flags.RPCTLSActivationCertificate = composite
-	logrus.Info("Secure Configuration started")
+	log.Info("Secure Configuration started")
 	mode, err := service.amtCommand.GetProvisioningState()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
-	logrus.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
+	log.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	_, err = service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
 	if err != nil {
 		return utils.ActivationFailed
@@ -245,43 +256,78 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 		return ProvisioningCertObj{}, "", errors.New("no private keys found")
 	}
 	var provisioningCertificateObj ProvisioningCertObj
-	var interObj []CertificateObject
-	var leaf CertificateObject
-	var root CertificateObject
+	var certificateList []*CertificateObject
 	var fingerprint string
 
-	for i, cert := range pfxobj.certs {
+	for _, cert := range pfxobj.certs {
 		pemBlock := &pem.Block{
 			Type:  "CERTIFICATE",
 			Bytes: cert.Raw,
 		}
+
 		pem := cleanPEM(string(pem.EncodeToMemory(pemBlock)))
 		certificateObject := CertificateObject{pem: pem, subject: cert.Subject.String(), issuer: cert.Issuer.String()}
 
-		if i == 0 {
-			leaf = certificateObject
-		} else if cert.Subject.String() == cert.Issuer.String() {
-			root = certificateObject
+		// Get the fingerpint from the Root certificate
+		if cert.Subject.String() == cert.Issuer.String() {
 			der := cert.Raw
 			hash := sha256.Sum256(der)
 			fingerprint = hex.EncodeToString(hash[:])
-		} else {
-			interObj = append(interObj, certificateObject)
 		}
+
+		// Put all the certificateObjects into a single un-ordered list
+		certificateList = append(certificateList, &certificateObject)
 	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, leaf.pem)
-	for _, inter := range interObj {
-		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, inter.pem)
+
+	// Order the certificates from leaf to root
+	orderedCertificateList := orderCertificates(certificateList)
+
+	// Add them to the certChain in order
+	for _, cert := range orderedCertificateList {
+		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, cert.pem)
 	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, root.pem)
+
+	// Add the priviate key
 	provisioningCertificateObj.privateKey = pfxobj.keys[0]
 
 	return provisioningCertificateObj, fingerprint, nil
 }
+
+// orderCertificates orders the certificate list from leaf to root
+func orderCertificates(certificates []*CertificateObject) []*CertificateObject {
+
+	// create a map that we'll use to get the next certificate in chain
+	certificateMap := make(map[string]*CertificateObject)
+	for _, cert := range certificates {
+		certificateMap[cert.subject] = cert
+	}
+
+	// this slice will hold our ordered certificates
+	orderedCertificates := []*CertificateObject{}
+
+	// Set current to the leaf certificate since it is always first in our list
+	current := certificateMap[certificates[0].subject]
+
+	// Loop through certificate list until we get to root certificate
+	for current != nil && current.issuer != current.subject {
+		// Append current certificate to the ordered list
+		orderedCertificates = append(orderedCertificates, current)
+		// Move to the issuer of the current certificate
+		current = certificateMap[current.issuer]
+	}
+
+	// Append the root certificate
+	if current != nil {
+		orderedCertificates = append(orderedCertificates, current)
+	}
+
+	return orderedCertificates
+}
+
 func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error {
 	result, err := service.amtCommand.GetCertificateHashes()
 	if err != nil {
-		logrus.Error(err)
+		log.Error(err)
 	}
 	for _, v := range result {
 		if v.Hash == fingerPrint {
@@ -300,7 +346,7 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 
 		_, err := service.interfacedWsmanMessage.AddNextCertInChain(cert, isLeaf, isRoot)
 		if err != nil {
-			logrus.Error(err)
+			log.Error(err)
 			// TODO: check if this is the correct error to return
 			return errors.New("failed to add certificate to AMT")
 		}
@@ -312,7 +358,7 @@ func (service *ProvisioningService) generateNonce() ([]byte, error) {
 	nonce := make([]byte, 20)
 	// fills nonce with 20 random bytes
 	if _, err := rand.Read(nonce); err != nil {
-		logrus.Error("Error generating nonce:", err)
+		log.Error("Error generating nonce:", err)
 		return nil, err
 	}
 	return nonce, nil
@@ -354,7 +400,7 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 	arr := append(fwNonce, nonce...)
 	signature, err := service.signString(arr, privateKey)
 	if err != nil {
-		logrus.Error("Error signing string:", err)
+		log.Error("Error signing string:", err)
 		return "", err
 	}
 	return signature, nil

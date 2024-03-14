@@ -36,6 +36,13 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 // Mock the go-wsman-messages
 type MockWSMAN struct{}
 
+var PKCS10RequestError error = nil
+var PKCS10Response publickey.Response
+
+func (MockWSMAN) GeneratePKCS10RequestEx(keyPair string, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error) {
+	return PKCS10Response, PKCS10RequestError
+}
+
 var mockCommitChangesErr error = nil
 var mockCommitChangesReturnValue int = 0
 
