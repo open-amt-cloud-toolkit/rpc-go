@@ -629,3 +629,48 @@ func TestInvalidAuthenticationProtocols(t *testing.T) {
 			})
 	}
 }
+
+func TestHandleAddEthernetSettings(t *testing.T) {
+	cases := []struct {
+		description    string
+		cmdLine        string
+		expectedResult error
+	}{
+		{description: "fail - dchp without ipsync",
+			cmdLine:        "rpc configure wiredsettings -dhcp -password Passw0rd!",
+			expectedResult: utils.InvalidParameterCombination,
+		},
+		{description: "fail - no flags",
+			cmdLine:        "rpc configure wiredsettings -password Passw0rd!",
+			expectedResult: utils.InvalidParameterCombination,
+		},
+		{description: "fail - static missing subnetmask",
+			cmdLine:        "rpc configure wiredsettings -static -ipaddress 192.168.1.7 -password Passw0rd!",
+			expectedResult: utils.MissingOrIncorrectNetworkMask,
+		},
+		{description: "dhcp and ipsync",
+			cmdLine:        "rpc configure wiredsettings -dhcp -ipsync -password Passw0rd!",
+			expectedResult: nil,
+		},
+		{description: "static and ipsync",
+			cmdLine:        "rpc configure wiredsettings -static -ipsync -password Passw0rd!",
+			expectedResult: nil,
+		},
+		{description: "static and params",
+			cmdLine:        "rpc configure wiredsettings -static -ipaddress 192.168.1.7 -subnetmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -password Passw0rd!",
+			expectedResult: nil,
+		},
+		{description: "config",
+			cmdLine:        "rpc configure wiredsettings -config ../../config.yaml -password Passw0rd!",
+			expectedResult: nil,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			args := strings.Fields(tc.cmdLine)
+			flags := NewFlags(args, MockPRSuccess)
+			gotResult := flags.handleAddEthernetSettings()
+			assert.Equal(t, tc.expectedResult, gotResult)
+		})
+	}
+}
