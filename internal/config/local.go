@@ -3,6 +3,7 @@ package config
 type (
 	Config struct {
 		Password         string            `yaml:"password"`
+		EthernetConfigs  EthernetConfig    `yaml:"wiredConfig"`
 		WifiConfigs      []WifiConfig      `yaml:"wifiConfigs"`
 		Ieee8021xConfigs []Ieee8021xConfig `yaml:"ieee8021xConfigs"`
 		ACMSettings      ACMSettings       `yaml:"acmactivate"`
@@ -15,6 +16,16 @@ type (
 		EncryptionMethod     int    `yaml:"encryptionMethod"`
 		PskPassphrase        string `yaml:"pskPassphrase"`
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
+	}
+	EthernetConfig struct {
+		DHCPEnabled  bool   `yaml:"dhcp"`
+		Static       bool   `yaml:"static"`
+		IpSync       bool   `yaml:"ipsync"`
+		IpAddress    string `yaml:"ipaddress"`
+		Subnetmask   string `yaml:"subnetmask"`
+		Gateway      string `yaml:"gateway"`
+		PrimaryDNS   string `yaml:"primarydns"`
+		SecondaryDNS string `yaml:"secondarydns"`
 	}
 	SecretConfig struct {
 		Secrets []Secret `yaml:"secrets"`
