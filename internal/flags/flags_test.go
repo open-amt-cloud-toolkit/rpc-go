@@ -92,7 +92,15 @@ func (c MockPTHICommands) GetRemoteAccessConnectionStatus() (RAStatus pthi.GetRe
 func (c MockPTHICommands) GetLocalSystemAccount() (localAccount pthi.GetLocalSystemAccountResponse, err error) {
 	return pthi.GetLocalSystemAccountResponse{}, nil
 }
-
+func (c MockPTHICommands) GetProvisioningState() (pthi.ProvisioningStateResponse, error) {
+	return pthi.ProvisioningStateResponse{}, nil
+}
+func (c MockPTHICommands) StartConfigurationHBased(serverHashAlgorithm pthi.CERT_HASH_ALGORITHM, serverCertHash [pthi.SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]uint8) (response pthi.StartConfigurationHBasedResponse, err error) {
+	return pthi.StartConfigurationHBasedResponse{}, nil
+}
+func (c MockPTHICommands) StopConfiguration() (pthi.ResponseMessageHeader, error) {
+	return pthi.ResponseMessageHeader{}, nil
+}
 func (c MockPTHICommands) GetLANInterfaceSettings(useWireless bool) (LANInterface pthi.GetLANInterfaceSettingsResponse, err error) {
 	if useWireless {
 		return pthi.GetLANInterfaceSettingsResponse{}, nil

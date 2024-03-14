@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"rpc/pkg/heci"
 )
 
@@ -31,6 +32,9 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
 	GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error)
 	Unprovision() (mode int, err error)
+	StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]uint8) (response StartConfigurationHBasedResponse, err error)
+	StopConfiguration() (ResponseMessageHeader, error)
+	GetProvisioningState() (ProvisioningStateResponse, error)
 }
 
 func NewCommand() Command {
@@ -410,6 +414,69 @@ func (pthi Command) GetLocalSystemAccount() (localAccount GetLocalSystemAccountR
 
 	binary.Read(buf2, binary.LittleEndian, &response.Account.Username)
 	binary.Read(buf2, binary.LittleEndian, &response.Account.Password)
+
+	return response, nil
+}
+
+func (pthi Command) StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]uint8) (response StartConfigurationHBasedResponse, err error) {
+	commandSize := (uint32)(85)
+	if serverHashAlgorithm == CERT_HASH_ALGORITHM_SHA512 || serverHashAlgorithm == CERT_HASH_ALGORITHM_SHA224 {
+		emptyResponse := StartConfigurationHBasedResponse{}
+		return emptyResponse, errors.New(fmt.Sprintf("%d is not supported by StartConfigurationHBased command", serverHashAlgorithm))
+	}
+	command := StartConfigurationHBasedRequest{
+		Header:               CreateRequestHeader(START_CONFIGURATION_HBASED_REQUEST, 73),
+		ServerHashAlgorithm:  serverHashAlgorithm,
+		ServerCertHash:       serverCertHash,
+		HostVPNEnable:        hostVPNEnable,
+		SuffixListLen:        suffixListLen,
+		NetworkDnsSuffixList: networkDnsSuffixList,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+	if err != nil {
+		emptyResponse := StartConfigurationHBasedResponse{}
+		return emptyResponse, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response = StartConfigurationHBasedResponse{
+		Header: readHeaderResponse(buf2),
+	}
+	binary.Read(buf2, binary.LittleEndian, &response.HashAlgorithm)
+	binary.Read(buf2, binary.LittleEndian, &response.AMTCertHash)
+
+	return response, nil
+}
+
+func (pthi Command) StopConfiguration() (response ResponseMessageHeader, err error) {
+	command := CreateRequestHeader(STOP_CONFIGURATION_REQUEST, 0)
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	if err != nil {
+		emptyResponse := ResponseMessageHeader{}
+		return emptyResponse, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response = readHeaderResponse(buf2)
+	return response, nil
+}
+
+func (pthi Command) GetProvisioningState() (response ProvisioningStateResponse, err error) {
+	command := CreateRequestHeader(PROVISIONING_STATE_REQUEST, 0)
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	if err != nil {
+		emptyResponse := ProvisioningStateResponse{}
+		return emptyResponse, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response = ProvisioningStateResponse{
+		Header: readHeaderResponse(buf2),
+	}
+	binary.Read(buf2, binary.LittleEndian, &response.ProvisioningState)
 
 	return response, nil
 }

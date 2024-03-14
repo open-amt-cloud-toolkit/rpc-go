@@ -1,16 +1,16 @@
 package local
 
 import (
+	"crypto/tls"
 	"errors"
 	"net/url"
 	"rpc/pkg/utils"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) Configure() (err error) {
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate})
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
@@ -30,10 +30,10 @@ func (service *ProvisioningService) Configure() (err error) {
 func (service *ProvisioningService) EnableWifiPort() (err error) {
 	err = service.interfacedWsmanMessage.EnableWiFi()
 	if err != nil {
-		log.Error("Failed to enable wifi port and local profile synchronization.")
+		logrus.Error("Failed to enable wifi port and local profile synchronization.")
 		return
 	}
-	log.Info("Successfully enabled wifi port and local profile synchronization.")
+	logrus.Info("Successfully enabled wifi port and local profile synchronization.")
 	return
 }
 
