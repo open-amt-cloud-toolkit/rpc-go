@@ -31,15 +31,16 @@ const (
 	CommandVersion     = "version"
 	CommandConfigure   = "configure"
 
-	SubCommandAddWifiSettings = "addwifisettings"
-	SubCommandEnableWifiPort  = "enablewifiport"
-	SubCommandSetMEBx         = "mebx"
-	SubCommandConfigureTLS    = "tls"
-	SubCommandChangePassword  = "changepassword"
-	SubCommandSyncDeviceInfo  = "syncdeviceinfo"
-	SubCommandSyncClock       = "syncclock"
-	SubCommandSyncHostname    = "synchostname"
-	SubCommandSyncIP          = "syncip"
+	SubCommandAddEthernetSettings = "wiredsettings"
+	SubCommandAddWifiSettings     = "addwifisettings"
+	SubCommandEnableWifiPort      = "enablewifiport"
+	SubCommandSetMEBx             = "mebx"
+	SubCommandConfigureTLS        = "tls"
+	SubCommandChangePassword      = "changepassword"
+	SubCommandSyncDeviceInfo      = "syncdeviceinfo"
+	SubCommandSyncClock           = "syncclock"
+	SubCommandSyncHostname        = "synchostname"
+	SubCommandSyncIP              = "syncip"
 
 	// Return Codes
 	Success ReturnCode = 0

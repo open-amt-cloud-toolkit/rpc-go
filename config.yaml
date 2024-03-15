@@ -2,6 +2,9 @@ acmactivate:
   amtPassword: 'test'
   provisioningCert: 'your provisioning certificate'
   provisioningCertPwd: 'test'
+wiredConfig:
+  dhcp: true
+  ipsync: true
 wifiConfigs:
   - profileName: 'exampleWifiWPA2' # friendly name, alphanumeric only
     ssid: 'exampleSSID'
