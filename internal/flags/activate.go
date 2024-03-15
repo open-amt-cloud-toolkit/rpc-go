@@ -83,6 +83,11 @@ func (f *Flags) handleActivateCommand() error {
 			return utils.InvalidParameterCombination
 		}
 
+		err := f.handleLocalConfig()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+
 		if f.LocalConfig.ACMSettings.AMTPassword == "" && f.Password == "" {
 			if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
 				return rc
@@ -92,12 +97,6 @@ func (f *Flags) handleActivateCommand() error {
 		}
 
 		if f.UseACM {
-			err := f.handleLocalConfig()
-			if err != nil {
-				return utils.FailedReadingConfiguration
-			}
-
-			// Check if all fields are filled
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
 			for i := 0; i < v.NumField(); i++ {
 				if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
@@ -105,7 +104,6 @@ func (f *Flags) handleActivateCommand() error {
 					return utils.IncorrectCommandLineParameters
 				}
 			}
-
 		}
 
 		if f.UUID != "" {
