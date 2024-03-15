@@ -82,6 +82,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
 	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
 	usage += "Supported Configuration Commands:\n"
+	usage += "  " + utils.SubCommandAddEthernetSettings + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config ethernetconfig.yaml\n"
 	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
@@ -107,6 +109,8 @@ func (f *Flags) handleConfigureCommand() error {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
+	case utils.SubCommandAddEthernetSettings:
+		err = f.handleAddEthernetSettings()
 	case utils.SubCommandAddWifiSettings:
 		err = f.handleAddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
@@ -239,6 +243,103 @@ func (f *Flags) handleConfigureTLS() error {
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
 	}
+	return nil
+}
+
+func (f *Flags) handleAddEthernetSettings() error {
+	var configJson string
+	fs := f.NewConfigureFlagSet(utils.SubCommandAddEthernetSettings)
+	fs.StringVar(&f.configContent, "config", "", "Specify a config file or smb: file share URL")
+	fs.StringVar(&configJson, "configJson", "", "Configuration as a JSON string")
+	fs.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "Configures wired settings to use dhcp")
+	fs.BoolVar(&f.IpConfiguration.Static, "static", false, "Configures wired settings to use static ip address")
+	fs.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "Sync the IP configuration of the host OS to AMT Network Settings")
+	fs.Func(
+		"ipaddress",
+		"IP address to be assigned to AMT",
+		validateIP(&f.IpConfiguration.IpAddress))
+	fs.Func(
+		"subnetmask",
+		"Subnetwork mask to be assigned to AMT",
+		validateIP(&f.IpConfiguration.Netmask))
+	fs.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
+	fs.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
+	fs.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+
+	if err := fs.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+
+	if f.configContent != "" || configJson != "" {
+		err := f.handleLocalConfig()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+		if configJson != "" {
+			err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
+			if err != nil {
+				log.Error(err)
+				return utils.IncorrectCommandLineParameters
+			}
+		}
+
+		if f.IpConfiguration.DHCP ||
+			f.IpConfiguration.Static ||
+			f.IpConfiguration.IpSync ||
+			f.IpConfiguration.IpAddress != "" ||
+			f.IpConfiguration.Netmask != "" ||
+			f.IpConfiguration.Gateway != "" ||
+			f.IpConfiguration.PrimaryDns != "" ||
+			f.IpConfiguration.SecondaryDns != "" {
+			return utils.IncorrectCommandLineParameters
+		}
+
+		f.IpConfiguration.DHCP = f.LocalConfig.EthernetConfigs.DHCPEnabled
+		f.IpConfiguration.Static = f.LocalConfig.EthernetConfigs.Static
+		f.IpConfiguration.IpSync = f.LocalConfig.EthernetConfigs.IpSync
+		f.IpConfiguration.IpAddress = f.LocalConfig.EthernetConfigs.IpAddress
+		f.IpConfiguration.Netmask = f.LocalConfig.EthernetConfigs.Subnetmask
+		f.IpConfiguration.Gateway = f.LocalConfig.EthernetConfigs.Gateway
+		f.IpConfiguration.PrimaryDns = f.LocalConfig.EthernetConfigs.PrimaryDNS
+		f.IpConfiguration.SecondaryDns = f.LocalConfig.EthernetConfigs.SecondaryDNS
+
+	}
+
+	if f.IpConfiguration.DHCP == f.IpConfiguration.Static {
+		log.Error("must specify -dhcp or -static, but not both")
+		return utils.InvalidParameterCombination
+	}
+
+	if f.IpConfiguration.DHCP && !f.IpConfiguration.IpSync {
+		return utils.InvalidParameterCombination
+	}
+
+	if f.IpConfiguration.IpSync {
+		if f.IpConfiguration.IpAddress != "" ||
+			f.IpConfiguration.Netmask != "" ||
+			f.IpConfiguration.Gateway != "" ||
+			f.IpConfiguration.PrimaryDns != "" ||
+			f.IpConfiguration.SecondaryDns != "" {
+			return utils.InvalidParameterCombination
+		}
+	}
+
+	if f.IpConfiguration.Static && !f.IpConfiguration.IpSync {
+		if f.IpConfiguration.IpAddress == "" {
+			return utils.MissingOrIncorrectStaticIP
+		}
+		if f.IpConfiguration.Netmask == "" {
+			return utils.MissingOrIncorrectNetworkMask
+		}
+		if f.IpConfiguration.Gateway == "" {
+			return utils.MissingOrIncorrectGateway
+		}
+		if f.IpConfiguration.PrimaryDns == "" {
+			return utils.MissingOrIncorrectPrimaryDNS
+		}
+	}
+
 	return nil
 }
 

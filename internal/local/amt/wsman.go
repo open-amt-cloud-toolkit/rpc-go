@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
@@ -51,6 +52,9 @@ type WSMANer interface {
 	DeleteWiFiSetting(instanceId string) error
 	EnableWiFi() error
 	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
+	// Wired
+	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
+	PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error)
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
 	EnumerateTLSSettingData() (response tls.Response, err error)
@@ -158,6 +162,20 @@ func (g *GoWSMANMessages) GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse
 		return nil, err
 	}
 	return response.Body.PullResponse.EndpointSettingsItems, nil
+}
+func (g *GoWSMANMessages) GetEthernetSettings() ([]ethernetport.SettingsResponse, error) {
+	response, err := g.wsmanMessages.AMT.EthernetPortSettings.Enumerate()
+	if err != nil {
+		return nil, err
+	}
+	response, err = g.wsmanMessages.AMT.EthernetPortSettings.Pull(response.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return nil, err
+	}
+	return response.Body.PullResponse.EthernetPortItems, nil
+}
+func (g *GoWSMANMessages) PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error) {
+	return g.wsmanMessages.AMT.EthernetPortSettings.Put(ethernetPortSettings, instanceId)
 }
 func (g *GoWSMANMessages) DeletePublicPrivateKeyPair(instanceId string) error {
 	_, err := g.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)

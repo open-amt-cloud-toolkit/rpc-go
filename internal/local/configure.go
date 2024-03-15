@@ -17,6 +17,8 @@ import (
 func (service *ProvisioningService) Configure() (err error) {
 	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
 	switch service.flags.SubCommand {
+	case utils.SubCommandAddEthernetSettings:
+		return service.AddEthernetSettings()
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
