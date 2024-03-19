@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
+	"strings"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
@@ -94,6 +95,8 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetMEBx + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandSyncClock + "       Sync the host OS clock to AMT. AMT password is required\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSyncClock + " -password YourAMTPassword\n"
+	usage += "  " + utils.SubCommandSetAMTFeatures + "       Enables or Disables KVM, SOL, IDER. Sets user consent option (kvm, all, or none).\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetAMTFeatures + " -userConsent all -kvm -sol -ider\n"
 	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -121,6 +124,8 @@ func (f *Flags) handleConfigureCommand() error {
 		err = f.handleMEBxPassword()
 	case utils.SubCommandSyncClock:
 		err = f.handleSyncClock()
+	case utils.SubCommandSetAMTFeatures:
+		err = f.handleSetAMTFeatures()
 	default:
 		f.printConfigurationUsage()
 		err = utils.IncorrectCommandLineParameters
@@ -154,6 +159,41 @@ func (f *Flags) handleSyncClock() error {
 	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
+	}
+
+	return nil
+}
+
+func (f *Flags) handleSetAMTFeatures() error {
+	var err error
+	if len(f.commandLineArgs) == 3 {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	f.flagSetAMTFeatures.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetAMTFeatures.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetAMTFeatures.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetAMTFeatures.StringVar(&f.UserConsent, "userConsent", "", "Sets userconsent (ACM only): kvm, all, none")
+	f.flagSetAMTFeatures.BoolVar(&f.KVM, "kvm", false, "Enables or Disables KVM (Keyboard, Video, Mouse)")
+	f.flagSetAMTFeatures.BoolVar(&f.SOL, "sol", false, "Enables or Disables SOL (Serial Over LAN)")
+	f.flagSetAMTFeatures.BoolVar(&f.IDER, "ider", false, "Enables or Disables IDER (IDE Redirection)")
+	f.flagSetAMTFeatures.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+
+	if err = f.flagSetAMTFeatures.Parse(f.commandLineArgs[3:]); err != nil {
+		f.printConfigurationUsage()
+		return utils.IncorrectCommandLineParameters
+	}
+	// Validate UserConsent
+	if f.UserConsent != "" {
+		f.UserConsent = strings.ToLower(f.UserConsent)
+		switch f.UserConsent {
+		case "kvm", "all", "none":
+			return nil
+		default:
+			f.printConfigurationUsage()
+			log.Error("invalid value for userconsent: ", f.UserConsent)
+			return utils.IncorrectCommandLineParameters
+		}
 	}
 
 	return nil
