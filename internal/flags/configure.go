@@ -295,14 +295,14 @@ func (f *Flags) handleAddEthernetSettings() error {
 			return utils.IncorrectCommandLineParameters
 		}
 
-		f.IpConfiguration.DHCP = f.LocalConfig.EthernetConfigs.DHCPEnabled
-		f.IpConfiguration.Static = f.LocalConfig.EthernetConfigs.Static
-		f.IpConfiguration.IpSync = f.LocalConfig.EthernetConfigs.IpSync
-		f.IpConfiguration.IpAddress = f.LocalConfig.EthernetConfigs.IpAddress
-		f.IpConfiguration.Netmask = f.LocalConfig.EthernetConfigs.Subnetmask
-		f.IpConfiguration.Gateway = f.LocalConfig.EthernetConfigs.Gateway
-		f.IpConfiguration.PrimaryDns = f.LocalConfig.EthernetConfigs.PrimaryDNS
-		f.IpConfiguration.SecondaryDns = f.LocalConfig.EthernetConfigs.SecondaryDNS
+		f.IpConfiguration.DHCP = f.LocalConfig.WiredConfig.DHCP
+		f.IpConfiguration.Static = f.LocalConfig.WiredConfig.Static
+		f.IpConfiguration.IpSync = f.LocalConfig.WiredConfig.IpSync
+		f.IpConfiguration.IpAddress = f.LocalConfig.WiredConfig.IpAddress
+		f.IpConfiguration.Netmask = f.LocalConfig.WiredConfig.Subnetmask
+		f.IpConfiguration.Gateway = f.LocalConfig.WiredConfig.Gateway
+		f.IpConfiguration.PrimaryDns = f.LocalConfig.WiredConfig.PrimaryDNS
+		f.IpConfiguration.SecondaryDns = f.LocalConfig.WiredConfig.SecondaryDNS
 
 	}
 
