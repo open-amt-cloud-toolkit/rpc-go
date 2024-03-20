@@ -10,7 +10,7 @@ import (
 )
 
 func (service *ProvisioningService) Configure() (err error) {
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate})
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddWifiSettings:
 		return service.AddWifiSettings()

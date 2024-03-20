@@ -99,6 +99,9 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, log
 		LogAMTMessages: logAMTMessages,
 		Certificates:   certificates,
 	}
+	if len(certificates) > 0 {
+		clientParams.UseTLS = true
+	}
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 }
 

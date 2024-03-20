@@ -11,7 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
-	"rpc/internal/amt"
+	"fmt"
 	"rpc/pkg/utils"
 	"strings"
 
@@ -51,52 +51,40 @@ func (service *ProvisioningService) Activate() error {
 	// Need to get certificate from AMT and pass it into the SetupWsmanClient
 	if service.flags.UseTLSActivation {
 		response, certificate, err := service.amtCommand.StartTLSActivation()
-
+		if err != nil {
+			log.Error(err)
+			return utils.AMTConnectionFailed
+		}
+		fmt.Println(response)
+		fmt.Println(certificate)
+		log.Debug("Secure Configuration: command: ", response.Header.Status)
+		service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
+		service.flags.RPCTLSActivationCertificate = certificate
 		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
+		if service.flags.UseACM {
+			err = service.ActivateACMOverTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Admin Control Mode")
+			}
+		} else if service.flags.UseCCM {
+			err = service.ActivateCCMOverTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Client Control Mode")
+			}
+		}
 	} else {
 		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{})
-	}
-
-	if service.flags.UseACM {
-		err = service.ActivateACM()
-		if err == nil {
-			log.Info("Status: Device activated in Admin Control Mode")
+		if service.flags.UseACM {
+			err = service.ActivateACMOverNonTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Admin Control Mode")
+			}
+		} else if service.flags.UseCCM {
+			err = service.ActivateCCMOverNonTLS()
 		}
-	} else if service.flags.UseCCM {
-		err = service.ActivateCCM()
 	}
 
 	return err
-}
-
-func (service *ProvisioningService) ActivateACM() error {
-	if service.flags.UseTLSActivation {
-		err := service.ActivateACMOverTLS()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := service.ActivateACMOverNonTLS()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (service *ProvisioningService) ActivateCCM() error {
-	if service.flags.UseTLSActivation {
-		err := service.ActivateCCMOverTLS()
-		if err != nil {
-			return err
-		}
-	} else {
-		err := service.ActivateCCMOverNonTLS()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (service *ProvisioningService) ActivateACMOverNonTLS() error {
@@ -181,25 +169,31 @@ func (service *ProvisioningService) ActivateCCMOverNonTLS() error {
 }
 
 func (service *ProvisioningService) ActivateCCMOverTLS() error {
-	response, certificate, err := service.amtCommand.StartTLSActivation()
-	if err != nil {
-		log.Error(err)
-	}
-	log.Debug("Secure Configuration: command: ", response.Header.Status)
-	service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
-	service.flags.RPCTLSActivationCertificate = composite
+
 	log.Info("Secure Configuration started")
 	mode, err := service.amtCommand.GetProvisioningState()
 	if err != nil {
 		log.Error(err)
 	}
 	log.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
-	_, err = service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
+	resp1, err := service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
 	if err != nil {
+		log.Error(err)
 		return utils.ActivationFailed
 	}
-	_, err = service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
-	_, err = service.interfacedWsmanMessage.CommitChanges()
+	log.Info(resp1)
+	resp2, err := service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp2)
+	resp3, err := service.interfacedWsmanMessage.CommitChanges()
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp3)
 	return nil
 }
 

@@ -23,7 +23,7 @@ type PrivateKeyPairReference struct {
 func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 	dataStruct := make(map[string]interface{})
 	cmd := service.amtCommand
-
+	cmd.StopTLSActivation()
 	// UserCert precheck for provisioning mode and missing password
 	// password is required for the local wsman connection but if device
 	// has not been provisioned yet, then asking for the password is confusing
@@ -220,7 +220,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate})
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.PublicKeyCertificateResponse{}
 		for i := range userCerts {

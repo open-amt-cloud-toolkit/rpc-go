@@ -40,7 +40,7 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate})
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
 		logrus.Error("Status: Unable to deactivate ", err)
