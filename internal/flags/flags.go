@@ -90,6 +90,7 @@ type Flags struct {
 	flagSetAddWifiSettings              *flag.FlagSet
 	flagSetEnableWifiPort               *flag.FlagSet
 	flagSetMEBx                         *flag.FlagSet
+	flagSetAMTFeatures                  *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -102,6 +103,10 @@ type Flags struct {
 	MEBxPassword                        string
 	ConfigTLSInfo                       ConfigTLSInfo
 	passwordReader                      utils.PasswordReader
+	UserConsent                         string
+	KVM                                 bool
+	SOL                                 bool
+	IDER                                bool
 }
 
 func NewFlags(args []string, pr utils.PasswordReader) *Flags {
@@ -127,6 +132,7 @@ func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
 	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
+	flags.flagSetAMTFeatures = flag.NewFlagSet(utils.SubCommandSetAMTFeatures, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}

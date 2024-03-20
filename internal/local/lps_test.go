@@ -18,17 +18,20 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/redirection"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/timesynchronization"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/tls"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/concrete"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/kvm"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/optin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,6 +59,48 @@ func (m MockWSMAN) SetIPSIEEE8021xCertificates(serverCertificateIssuer string, c
 // GetIPSIEEE8021xSettings implements amt.WSMANer.
 func (m MockWSMAN) GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error) {
 	panic("unimplemented")
+}
+
+var mockGetIpsOptInServiceError error = nil
+var mockGetIpsOptInServiceResponse optin.Response
+
+func (m MockWSMAN) GetIpsOptInService() (response optin.Response, err error) {
+	return mockGetIpsOptInServiceResponse, mockGetIpsOptInServiceError
+}
+
+var PutIpsOptInServiceError error = nil
+var PutIpsOptInServiceResponse optin.Response
+
+func (m MockWSMAN) PutIpsOptInService(request optin.OptInServiceRequest) (response optin.Response, err error) {
+	return PutIpsOptInServiceResponse, PutIpsOptInServiceError
+}
+
+var mockGetRedirectionServiceError error = nil
+var mockGetRedirectionServiceResponse redirection.Response
+
+func (m MockWSMAN) GetRedirectionService() (response redirection.Response, err error) {
+	return mockGetRedirectionServiceResponse, mockGetRedirectionServiceError
+}
+
+var mockPutRedirectionStateError error = nil
+var mockPutRedirectionStateResponse redirection.Response
+
+func (m MockWSMAN) PutRedirectionState(requestedState redirection.RedirectionRequest) (response redirection.Response, err error) {
+	return mockPutRedirectionStateResponse, mockPutRedirectionStateError
+}
+
+var mockRequestKVMStateChangeError error = nil
+var mockRequestKVMStateChangeResponse kvm.Response
+
+func (m MockWSMAN) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error) {
+	return mockRequestKVMStateChangeResponse, mockRequestKVMStateChangeError
+}
+
+var mockRequestRedirectionStateChangeError error = nil
+var mockRequestRedirectionStateChangeResponse redirection.Response
+
+func (m MockWSMAN) RequestRedirectionStateChange(requestedState redirection.RequestedState) (response redirection.Response, err error) {
+	return mockRequestRedirectionStateChangeResponse, mockRequestRedirectionStateChangeError
 }
 
 var PKCS10RequestError error = nil
@@ -617,7 +662,8 @@ func TestExecute(t *testing.T) {
 
 	t.Run("execute CommandConfigure with no SubCommand fails", func(t *testing.T) {
 		f.Command = utils.CommandConfigure
+		mockControlMode = 1
 		rc := ExecuteCommand(f)
-		assert.Equal(t, utils.IncorrectCommandLineParameters, rc)
+		assert.Equal(t, utils.AMTConnectionFailed, rc)
 	})
 }
