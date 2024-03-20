@@ -2,9 +2,19 @@ acmactivate:
   amtPassword: 'test'
   provisioningCert: 'your provisioning certificate'
   provisioningCertPwd: 'test'
+enterpriseAssistant:
+  eaAddress: 'https://example.com'
+  eaUsername: 'exampleUserName'
+  eaPassword: 'examplePassword'
 wiredConfig:
   dhcp: true
   ipsync: true
+  static: ''
+  subnetmask: ''
+  gateway: ''
+  dprimarydns: ''
+  secondarydns: ''
+  ieee8021xProfileName: 'exampleIeee8021xEAP-TLS'
 wifiConfigs:
   - profileName: 'exampleWifiWPA2' # friendly name, alphanumeric only
     ssid: 'exampleSSID'

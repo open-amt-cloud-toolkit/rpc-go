@@ -83,7 +83,7 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
 	usage += "Supported Configuration Commands:\n"
 	usage += "  " + utils.SubCommandAddEthernetSettings + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config ethernetconfig.yaml\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config wiredconfig.yaml\n"
 	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"

@@ -28,6 +28,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,6 +42,21 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 
 // Mock the go-wsman-messages
 type MockWSMAN struct{}
+
+// PutIPSIEEE8021xSettings implements amt.WSMANer.
+func (m MockWSMAN) PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error) {
+	panic("unimplemented")
+}
+
+// SetIPSIEEE8021xCertificates implements amt.WSMANer.
+func (m MockWSMAN) SetIPSIEEE8021xCertificates(serverCertificateIssuer string, clientCertificate string) (response ieee8021x.Response, err error) {
+	panic("unimplemented")
+}
+
+// GetIPSIEEE8021xSettings implements amt.WSMANer.
+func (m MockWSMAN) GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error) {
+	panic("unimplemented")
+}
 
 var PKCS10RequestError error = nil
 var PKCS10Response publickey.Response
