@@ -31,6 +31,43 @@ func getPromptForSecretsFlags() Flags {
 	return f
 }
 
+func TestHandleSetAMTFeatures(t *testing.T) {
+	cases := []struct {
+		description    string
+		cmdLine        string
+		expectedResult error
+	}{
+		{
+			description:    "Incorrect number of command-line parameters",
+			cmdLine:        "rpc configure setamtfeatures",
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{
+			description:    "Valid command-line parameters with kvm enabled",
+			cmdLine:        "rpc configure setamtfeatures -kvm",
+			expectedResult: nil,
+		},
+		{
+			description:    "Invalid user consent value",
+			cmdLine:        "rpc configure setamtfeatures -userConsent invalid",
+			expectedResult: utils.IncorrectCommandLineParameters,
+		},
+		{
+			description:    "Valid user consent value 'none'",
+			cmdLine:        "rpc configure setamtfeatures -userConsent none",
+			expectedResult: nil,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			args := strings.Fields(tc.cmdLine)
+			flags := NewFlags(args, MockPRSuccess)
+			gotResult := flags.handleSetAMTFeatures()
+			assert.Equal(t, tc.expectedResult, gotResult)
+		})
+	}
+}
+
 func TestPromptForSecrets(t *testing.T) {
 
 	t.Run("expect success on valid user input", func(t *testing.T) {

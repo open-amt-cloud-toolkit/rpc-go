@@ -13,16 +13,19 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/redirection"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/setupandconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/timesynchronization"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/tls"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/wifiportconfiguration"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/concrete"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/credential"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/kvm"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/client"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/optin"
 )
 
 type WSMANer interface {
@@ -63,6 +66,13 @@ type WSMANer interface {
 
 	CommitChanges() (response setupandconfiguration.Response, err error)
 	GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error)
+
+	RequestRedirectionStateChange(requestedState redirection.RequestedState) (response redirection.Response, err error)
+	RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error)
+	PutRedirectionState(requestedState redirection.RedirectionRequest) (response redirection.Response, err error)
+	GetRedirectionService() (response redirection.Response, err error)
+	GetIpsOptInService() (response optin.Response, err error)
+	PutIpsOptInService(request optin.OptInServiceRequest) (response optin.Response, err error)
 }
 
 type GoWSMANMessages struct {
@@ -307,4 +317,28 @@ func (g *GoWSMANMessages) CommitChanges() (response setupandconfiguration.Respon
 
 func (g *GoWSMANMessages) GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error) {
 	return g.wsmanMessages.AMT.PublicKeyManagementService.GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest, signingAlgorithm)
+}
+
+func (g *GoWSMANMessages) RequestRedirectionStateChange(requestedState redirection.RequestedState) (response redirection.Response, err error) {
+	return g.wsmanMessages.AMT.RedirectionService.RequestStateChange(requestedState)
+}
+
+func (g *GoWSMANMessages) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error) {
+	return g.wsmanMessages.CIM.KVMRedirectionSAP.RequestStateChange(requestedState)
+}
+
+func (g *GoWSMANMessages) PutRedirectionState(requestedState redirection.RedirectionRequest) (response redirection.Response, err error) {
+	return g.wsmanMessages.AMT.RedirectionService.Put(redirection.RedirectionRequest(requestedState))
+}
+
+func (g *GoWSMANMessages) GetRedirectionService() (response redirection.Response, err error) {
+	return g.wsmanMessages.AMT.RedirectionService.Get()
+}
+
+func (g *GoWSMANMessages) GetIpsOptInService() (response optin.Response, err error) {
+	return g.wsmanMessages.IPS.OptInService.Get()
+}
+
+func (g *GoWSMANMessages) PutIpsOptInService(request optin.OptInServiceRequest) (response optin.Response, err error) {
+	return g.wsmanMessages.IPS.OptInService.Put(request)
 }
