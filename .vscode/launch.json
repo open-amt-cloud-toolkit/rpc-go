@@ -38,7 +38,10 @@
             "args": [
                 "activate",
                 "-local",
-                "-ccm"
+                "-ccm",
+                "-password",
+                "P@ssw0rd",
+                "-v"
             ],
             "console": "integratedTerminal"
         },

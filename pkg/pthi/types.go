@@ -326,7 +326,7 @@ type StartConfigurationHBasedRequest struct {
 	ServerCertHash       [SHA_512_KEY_SIZE]uint8
 	HostVPNEnable        uint32
 	SuffixListLen        uint32
-	NetworkDnsSuffixList [320]uint8
+	NetworkDnsSuffixList [320]byte
 }
 
 const SHA_512_KEY_SIZE int = 64

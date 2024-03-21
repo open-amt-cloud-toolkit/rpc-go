@@ -32,7 +32,7 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
 	GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error)
 	Unprovision() (mode int, err error)
-	StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]uint8) (response StartConfigurationHBasedResponse, err error)
+	StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]byte) (response StartConfigurationHBasedResponse, err error)
 	StopConfiguration() (ResponseMessageHeader, error)
 	GetProvisioningState() (ProvisioningStateResponse, error)
 }
@@ -418,11 +418,11 @@ func (pthi Command) GetLocalSystemAccount() (localAccount GetLocalSystemAccountR
 	return response, nil
 }
 
-func (pthi Command) StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]uint8) (response StartConfigurationHBasedResponse, err error) {
+func (pthi Command) StartConfigurationHBased(serverHashAlgorithm CERT_HASH_ALGORITHM, serverCertHash [SHA_512_KEY_SIZE]uint8, hostVPNEnable uint32, suffixListLen uint32, networkDnsSuffixList [320]byte) (response StartConfigurationHBasedResponse, err error) {
 	commandSize := (uint32)(85)
 	if serverHashAlgorithm == CERT_HASH_ALGORITHM_SHA512 || serverHashAlgorithm == CERT_HASH_ALGORITHM_SHA224 {
 		emptyResponse := StartConfigurationHBasedResponse{}
-		return emptyResponse, errors.New(fmt.Sprintf("%d is not supported by StartConfigurationHBased command", serverHashAlgorithm))
+		return emptyResponse, fmt.Errorf(fmt.Sprintf("%d is not supported by StartConfigurationHBased command", serverHashAlgorithm))
 	}
 	command := StartConfigurationHBasedRequest{
 		Header:               CreateRequestHeader(START_CONFIGURATION_HBASED_REQUEST, 73),

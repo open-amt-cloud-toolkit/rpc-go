@@ -452,18 +452,16 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, certs.Co
 	}
 	defer amt.PTHI.Close()
 	serverHashAlgorithm := pthi.CERT_HASH_ALGORITHM_SHA256
-	composite, err := certs.GenerateHostBasedCertificate()
+	serverCertHash, composite, err := createCertForHostBased()
 	if err != nil {
-		return StartTLSActivationResponse{}, composite, err
+		return StartTLSActivationResponse{}, certs.Composite{}, err
 	}
-	certHash := sha256.Sum256(composite.Cert.Raw)
-	bytes := make([]byte, 64)
-	copy(bytes[:], certHash[:])
-	hostVPNEnable := uint32(0) // False
-	networkDnsSuffixList := [320]uint8{}
-	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]byte(bytes), hostVPNEnable, uint32(len(networkDnsSuffixList)), networkDnsSuffixList)
+	hostVPNEnable := uint32(0)                                                   // False
+	networkDnsSuffixList := convertSuffixToChar320Array(composite.Cert.DNSNames) // DNS name of the certificate we created for SecureHostBasedConfiguration
+	DnsSuffixListLength := uint32(len(networkDnsSuffixList))
+	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]uint8(serverCertHash), hostVPNEnable, DnsSuffixListLength, networkDnsSuffixList)
 	if err != nil {
-		return StartTLSActivationResponse{}, composite, err
+		return StartTLSActivationResponse{}, certs.Composite{}, err
 	}
 
 	response := StartTLSActivationResponse{
@@ -472,6 +470,43 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, certs.Co
 		AMTCertHash:   result.AMTCertHash,
 	}
 	return response, composite, nil
+}
+
+func createCertForHostBased() ([]byte, certs.Composite, error) {
+	composite, err := certs.GenerateHostBasedCertificate()
+	if err != nil {
+		return []byte{}, certs.Composite{}, err
+	}
+	certHash := sha256.Sum256(composite.Cert.Raw)
+	bytes := make([]byte, 64)
+	copy(bytes[:], certHash[:])
+	return bytes, composite, nil
+}
+
+func convertSuffixToChar320Array(suffixes []string) [320]byte {
+	const (
+		maxSuffixes       = 5
+		maxBytesPerSuffix = 64
+		maxTotalBytes     = 320
+	)
+	var charArray [maxTotalBytes]byte
+	// Convert and concatenate suffixes
+	var idx int
+	for _, suffix := range suffixes {
+		if idx+len(suffix)+1 > maxTotalBytes {
+			break
+		}
+		for i, b := range []byte(suffix) {
+			if i >= maxBytesPerSuffix {
+				break
+			}
+			charArray[idx+i] = b
+		}
+		idx += maxBytesPerSuffix
+		charArray[idx] = 0 // NULL termination
+		idx++
+	}
+	return charArray
 }
 
 func (amt AMTCommand) StopTLSActivation() (StopTLSActivationResponse, error) {

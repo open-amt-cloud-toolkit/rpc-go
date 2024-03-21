@@ -246,6 +246,7 @@ func GenerateHostBasedCertificate() (Composite, error) {
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
 			Organization: []string{"Open AMT Cloud Toolkit"},
+			CommonName: "vprodemo.com",
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(0, 0, 1),
@@ -253,7 +254,7 @@ func GenerateHostBasedCertificate() (Composite, error) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
-		DNSNames:              []string{"localhost"},
+		DNSNames:              []string{"vprodemo.com"},
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
 	}
 
