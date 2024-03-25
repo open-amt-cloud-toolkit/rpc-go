@@ -457,7 +457,7 @@ func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, certs.Co
 		return StartTLSActivationResponse{}, certs.Composite{}, err
 	}
 	hostVPNEnable := uint32(0)                                                   // False
-	networkDnsSuffixList := convertSuffixToChar320Array(composite.Cert.DNSNames) // DNS name of the certificate we created for SecureHostBasedConfiguration
+	networkDnsSuffixList := // convertSuffixToChar320Array(composite.Cert.DNSNames) // DNS name of the certificate we created for SecureHostBasedConfiguration
 	DnsSuffixListLength := uint32(len(networkDnsSuffixList))
 	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]uint8(serverCertHash), hostVPNEnable, DnsSuffixListLength, networkDnsSuffixList)
 	if err != nil {

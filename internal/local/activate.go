@@ -59,7 +59,12 @@ func (service *ProvisioningService) Activate() error {
 		fmt.Println(certificate)
 		log.Debug("Secure Configuration: command: ", response.Header.Status)
 		service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
-		service.flags.RPCTLSActivationCertificate = certificate
+		certAndKeys, err := service.ConvertPfxToObject(service.config.ACMSettings.ProvisioningCert, service.config.ACMSettings.ProvisioningCertPwd)
+		if err != nil {
+			log.Error(err)
+			return utils.ActivationFailed
+		}
+		service.flags.RPCTLSActivationCertificate.Cert = certAndKeys.certs[0]
 		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 		if service.flags.UseACM {
 			err = service.ActivateACMOverTLS()
@@ -144,8 +149,30 @@ func (service *ProvisioningService) ActivateACMOverNonTLS() error {
 }
 
 func (service *ProvisioningService) ActivateACMOverTLS() error {
-	// TODO: fill this shit in
-
+	log.Info("Secure Configuration started")
+	mode, err := service.amtCommand.GetProvisioningState()
+	if err != nil {
+		log.Error(err)
+	}
+	log.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
+	resp1, err := service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp1)
+	resp2, err := service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp2)
+	resp3, err := service.interfacedWsmanMessage.CommitChanges()
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp3)
 	return nil
 }
 
@@ -221,7 +248,7 @@ func cleanPEM(pem string) string {
 
 func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertObj, string, error) {
 	config := service.config.ACMSettings
-	certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
+	certsAndKeys, err := service.ConvertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
 	if err != nil {
 		return ProvisioningCertObj{}, "", err
 	}
@@ -232,7 +259,7 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 	return result, fingerprint, nil
 }
 
-func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
+func (service *ProvisioningService) ConvertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
 	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
 	if err != nil {
 		return CertsAndKeys{}, err
