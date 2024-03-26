@@ -185,7 +185,7 @@ func (g *GoWSMANMessages) GetEthernetSettings() ([]ethernetport.SettingsResponse
 	return response.Body.PullResponse.EthernetPortItems, nil
 }
 func (g *GoWSMANMessages) PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error) {
-	return g.wsmanMessages.AMT.EthernetPortSettings.Put(ethernetPortSettings, instanceId)
+	return g.wsmanMessages.AMT.EthernetPortSettings.Put(instanceId, ethernetPortSettings)
 }
 func (g *GoWSMANMessages) DeletePublicPrivateKeyPair(instanceId string) error {
 	_, err := g.wsmanMessages.AMT.PublicPrivateKeyPair.Delete(instanceId)
