@@ -64,7 +64,7 @@ func (service *ProvisioningService) Activate() error {
 			log.Error(err)
 			return utils.ActivationFailed
 		}
-		service.flags.RPCTLSActivationCertificate.Cert = certAndKeys.certs[0]
+		service.flags.RPCTLSActivationCertificate.TlsCert = convertProvisioningCertForTLS(certAndKeys)
 		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 		if service.flags.UseACM {
 			err = service.ActivateACMOverTLS()
@@ -430,4 +430,16 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 		return "", err
 	}
 	return signature, nil
+}
+
+func convertProvisioningCertForTLS(certAndKeys CertsAndKeys) tls.Certificate {
+	var certBytes [][]byte
+	for _, cert := range certAndKeys.certs {
+		certBytes = append(certBytes, cert.Raw)
+	}
+	tlsCert := tls.Certificate{
+		Certificate: certBytes,
+		PrivateKey:  certAndKeys.keys,
+	}
+	return tlsCert
 }
