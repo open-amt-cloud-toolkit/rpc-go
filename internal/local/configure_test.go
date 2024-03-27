@@ -16,6 +16,14 @@ import (
 func TestConfigure(t *testing.T) {
 	f := &flags.Flags{}
 
+	t.Run("expect success for SubCommandChangeAMTPassword", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandChangeAMTPassword
+		mockControlMode = 1
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.Nil(t, err)
+		mockControlModeErr = nil
+	})
 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
 		mockControlModeErr = errTestError
 		lps := setupService(f)

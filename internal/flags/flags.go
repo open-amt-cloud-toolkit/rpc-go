@@ -68,6 +68,7 @@ type Flags struct {
 	Local                               bool
 	StaticPassword                      string
 	Password                            string
+	NewPassword                         string
 	LogLevel                            string
 	Token                               string
 	TenantID                            string

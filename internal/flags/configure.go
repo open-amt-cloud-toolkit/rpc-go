@@ -95,8 +95,10 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetMEBx + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandSyncClock + "       Sync the host OS clock to AMT. AMT password is required\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSyncClock + " -password YourAMTPassword\n"
-	usage += "  " + utils.SubCommandSetAMTFeatures + "       Enables or Disables KVM, SOL, IDER. Sets user consent option (kvm, all, or none).\n"
+	usage += "  " + utils.SubCommandSetAMTFeatures + "     Enables or Disables KVM, SOL, IDER. Sets user consent option (kvm, all, or none).\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetAMTFeatures + " -userConsent all -kvm -sol -ider\n"
+	usage += "  " + utils.SubCommandChangeAMTPassword + "     Updates AMT password. If flags are not provided, new and current AMT passwords will be prompted for. AMT password is required\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandChangeAMTPassword + " -password YourAMTPassword -newamtpassword YourNewPassword\n"
 	usage += "\nRun '" + baseCommand + " COMMAND -h' for more information on a command.\n"
 	fmt.Println(usage)
 	return usage
@@ -124,6 +126,8 @@ func (f *Flags) handleConfigureCommand() error {
 		err = f.handleMEBxPassword()
 	case utils.SubCommandSyncClock:
 		err = f.handleSyncClock()
+	case utils.SubCommandChangeAMTPassword:
+		err = f.handleChangeAMTPassword()
 	case utils.SubCommandSetAMTFeatures:
 		err = f.handleSetAMTFeatures()
 	default:
@@ -152,6 +156,32 @@ func (f *Flags) handleConfigureCommand() error {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
+	return nil
+}
+
+func (f *Flags) handleChangeAMTPassword() error {
+	fs := f.NewConfigureFlagSet(utils.SubCommandChangeAMTPassword)
+	fs.StringVar(&f.NewPassword, "newamtpassword", "", "New AMT password")
+
+	if len(f.commandLineArgs) > 3 {
+		if err := fs.Parse(f.commandLineArgs[3:]); err != nil {
+			f.printConfigurationUsage()
+			return utils.IncorrectCommandLineParameters
+		}
+	}
+
+	if f.Password == "" {
+		if rc := f.ReadPasswordFromUser(); rc != nil {
+			return rc
+		}
+	}
+
+	if f.NewPassword == "" {
+		if rc := f.ReadNewPasswordTo(&f.NewPassword, "New AMT Password"); rc != nil {
+			return rc
+		}
+	}
+
 	return nil
 }
 

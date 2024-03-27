@@ -7,8 +7,10 @@ package amt
 
 import (
 	"encoding/base64"
+	"rpc/pkg/utils"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/authorization"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
@@ -50,6 +52,7 @@ type WSMANer interface {
 	GetLowAccuracyTimeSynch() (response timesynchronization.Response, err error)
 	SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (response timesynchronization.Response, err error)
 	GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error)
+	UpdateAMTPassword(passwordBase64 string) (authorization.Response, error)
 	// WiFi
 	GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error)
 	DeleteWiFiSetting(instanceId string) error
@@ -141,6 +144,10 @@ func (g *GoWSMANMessages) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateR
 
 func (g *GoWSMANMessages) GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error) {
 	return g.wsmanMessages.AMT.PublicKeyManagementService.GenerateKeyPair(keyAlgorithm, keyLength)
+}
+
+func (g *GoWSMANMessages) UpdateAMTPassword(digestPassword string) (authorization.Response, error) {
+	return g.wsmanMessages.AMT.AuthorizationService.SetAdminAclEntryEx(utils.AMTUserName, digestPassword)
 }
 
 func (g *GoWSMANMessages) CreateTLSCredentialContext(certHandle string) (response tls.Response, err error) {
