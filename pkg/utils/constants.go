@@ -101,7 +101,7 @@ var DeleteWifiConfigFailed = CustomError{Code: 114, Message: "DeleteWifiConfigFa
 var MissingOrIncorrectWifiProfileName = CustomError{Code: 116, Message: "MissingOrIncorrectWifiProfileName"}
 var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee8021xConfiguration"}
 var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
-var UnableToConfigure = CustomError{Code: 111, Message: "UnableToconfigure"}
+var UnableToConfigure = CustomError{Code: 120, Message: "UnableToConfigure"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}
