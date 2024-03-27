@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/authorization"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/general"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
@@ -44,6 +45,16 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 
 // Mock the go-wsman-messages
 type MockWSMAN struct{}
+
+func (MockWSMAN) UpdateAMTPassword(passwordBase64 string) (authorization.Response, error) {
+	return authorization.Response{
+		Body: authorization.Body{
+			SetAdminResponse: authorization.SetAdminAclEntryEx_OUTPUT{
+				ReturnValue: 0,
+			},
+		},
+	}, nil
+}
 
 var mockGetIpsOptInServiceError error = nil
 var mockGetIpsOptInServiceResponse optin.Response

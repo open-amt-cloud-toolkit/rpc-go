@@ -43,6 +43,8 @@ func (service *ProvisioningService) Configure() (err error) {
 		return service.ConfigureTLS()
 	case utils.SubCommandSyncClock:
 		return service.SynchronizeTime()
+	case utils.SubCommandChangeAMTPassword:
+		return service.ChangeAMTPassword()
 	case utils.SubCommandSetAMTFeatures:
 		if controlMode != 2 {
 			log.Error("Device needs to be in admin control mode to configure AMT features.")

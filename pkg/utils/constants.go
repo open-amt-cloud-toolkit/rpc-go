@@ -21,6 +21,8 @@ const (
 	// LMSPort is used for determining what port to connect to LMS on
 	LMSPort = "16992"
 
+	AMTUserName = "admin"
+
 	// MPSServerMaxLength is the max length of the servername
 	MPSServerMaxLength = 256
 
@@ -37,6 +39,7 @@ const (
 	SubCommandSetMEBx             = "mebx"
 	SubCommandConfigureTLS        = "tls"
 	SubCommandChangePassword      = "changepassword"
+	SubCommandChangeAMTPassword   = "amtpassword"
 	SubCommandSyncDeviceInfo      = "syncdeviceinfo"
 	SubCommandSyncClock           = "syncclock"
 	SubCommandSyncHostname        = "synchostname"
@@ -101,6 +104,7 @@ var DeleteWifiConfigFailed = CustomError{Code: 114, Message: "DeleteWifiConfigFa
 var MissingOrIncorrectWifiProfileName = CustomError{Code: 116, Message: "MissingOrIncorrectWifiProfileName"}
 var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee8021xConfiguration"}
 var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
+var ChangeAMTPasswordFailed = CustomError{Code: 119, Message: "ChangeAMTPasswordFailed"}
 var UnableToConfigure = CustomError{Code: 120, Message: "UnableToConfigure"}
 
 // (150-199) Maintenance Errors

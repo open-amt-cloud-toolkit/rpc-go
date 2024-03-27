@@ -134,7 +134,6 @@ func (service *ProvisioningService) putRedirectionService(getResponse redirectio
 		SystemName:              getResponse.SystemName,
 		ElementName:             getResponse.ElementName,
 		ListenerEnabled:         isRedirectionChanged,
-		AccessLog:               getResponse.AccessLog,
 		EnabledState:            redirection.EnabledState(3),
 	}
 	if isRedirectionChanged {
