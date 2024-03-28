@@ -562,7 +562,7 @@ func (f *Flags) promptForSecrets() error {
 		if item.ProfileName == "" {
 			continue
 		}
-		authProtocol := ieee8021x.AuthenticationProtocol(item.AuthenticationProtocol)
+		authProtocol := item.AuthenticationProtocol
 		if authProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
 			err := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
 			if err != nil {
@@ -717,7 +717,7 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
 		log.Error("missing caCert for config: ", cfg.ProfileName)
 		return err
 	}
-	authenticationProtocol := ieee8021x.AuthenticationProtocol(cfg.AuthenticationProtocol)
+	authenticationProtocol := cfg.AuthenticationProtocol
 	// not all defined protocols are supported
 	switch authenticationProtocol {
 	case ieee8021x.AuthenticationProtocolEAPTLS:
