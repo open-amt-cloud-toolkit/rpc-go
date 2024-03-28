@@ -7,11 +7,12 @@ package config
 
 type (
 	Config struct {
-		Password         string            `yaml:"password"`
-		WiredConfig      EthernetConfig    `yaml:"wiredConfig"`
-		WifiConfigs      []WifiConfig      `yaml:"wifiConfigs"`
-		Ieee8021xConfigs []Ieee8021xConfig `yaml:"ieee8021xConfigs"`
-		ACMSettings      ACMSettings       `yaml:"acmactivate"`
+		Password            string              `yaml:"password"`
+		WiredConfig         EthernetConfig      `yaml:"wiredConfig"`
+		WifiConfigs         []WifiConfig        `yaml:"wifiConfigs"`
+		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
+		ACMSettings         ACMSettings         `yaml:"acmactivate"`
+		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
 	}
 	WifiConfig struct {
 		ProfileName          string `yaml:"profileName"`
@@ -23,14 +24,15 @@ type (
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
 	EthernetConfig struct {
-		DHCP         bool   `yaml:"dhcp"`
-		Static       bool   `yaml:"static"`
-		IpSync       bool   `yaml:"ipsync"`
-		IpAddress    string `yaml:"ipaddress"`
-		Subnetmask   string `yaml:"subnetmask"`
-		Gateway      string `yaml:"gateway"`
-		PrimaryDNS   string `yaml:"primarydns"`
-		SecondaryDNS string `yaml:"secondarydns"`
+		DHCP                 bool   `yaml:"dhcp"`
+		Static               bool   `yaml:"static"`
+		IpSync               bool   `yaml:"ipsync"`
+		IpAddress            string `yaml:"ipaddress"`
+		Subnetmask           string `yaml:"subnetmask"`
+		Gateway              string `yaml:"gateway"`
+		PrimaryDNS           string `yaml:"primarydns"`
+		SecondaryDNS         string `yaml:"secondarydns"`
+		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
 	SecretConfig struct {
 		Secrets []Secret `yaml:"secrets"`
@@ -55,5 +57,11 @@ type (
 		AMTPassword         string `yaml:"amtPassword"`
 		ProvisioningCert    string `yaml:"provisioningCert"`
 		ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
+	}
+
+	EnterpriseAssistant struct {
+		EAAddress  string `yaml:"eaAddress"`
+		EAUsername string `yaml:"eaUsername"`
+		EAPassword string `yaml:"eaPassword"`
 	}
 )

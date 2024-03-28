@@ -30,6 +30,7 @@ type Response struct {
 	Certificate   string `json:"certificate"`
 	Domain        string `json:"domain"`
 	Username      string `json:"username"`
+	RootCert      string `json:"rootcert"`
 }
 
 type EAProfile struct {

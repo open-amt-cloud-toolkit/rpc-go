@@ -84,7 +84,7 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
 	usage += "Supported Configuration Commands:\n"
 	usage += "  " + utils.SubCommandAddEthernetSettings + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config ethernetconfig.yaml\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config wiredconfig.yaml\n"
 	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
@@ -288,9 +288,12 @@ func (f *Flags) handleConfigureTLS() error {
 
 func (f *Flags) handleAddEthernetSettings() error {
 	var configJson string
+	var secretsFilePath string
 	fs := f.NewConfigureFlagSet(utils.SubCommandAddEthernetSettings)
-	fs.StringVar(&f.configContent, "config", "", "Specify a config file or smb: file share URL")
-	fs.StringVar(&configJson, "configJson", "", "Configuration as a JSON string")
+	fs.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
+	fs.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
+	fs.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
+
 	fs.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "Configures wired settings to use dhcp")
 	fs.BoolVar(&f.IpConfiguration.Static, "static", false, "Configures wired settings to use static ip address")
 	fs.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "Sync the IP configuration of the host OS to AMT Network Settings")
@@ -305,6 +308,14 @@ func (f *Flags) handleAddEthernetSettings() error {
 	fs.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
 	fs.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
 	fs.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+
+	ieee8021xCfg := config.Ieee8021xConfig{}
+	fs.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
+	fs.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
+	fs.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
+	fs.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
+	fs.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
+	fs.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
 
 	if err := fs.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
@@ -343,7 +354,20 @@ func (f *Flags) handleAddEthernetSettings() error {
 		f.IpConfiguration.Gateway = f.LocalConfig.WiredConfig.Gateway
 		f.IpConfiguration.PrimaryDns = f.LocalConfig.WiredConfig.PrimaryDNS
 		f.IpConfiguration.SecondaryDns = f.LocalConfig.WiredConfig.SecondaryDNS
+		f.IpConfiguration.Ieee8021xProfileName = f.LocalConfig.WiredConfig.Ieee8021xProfileName
 
+		if f.IpConfiguration.Ieee8021xProfileName != "" {
+			err := f.verifyMatchingIeee8021xConfig(f.LocalConfig.WiredConfig.Ieee8021xProfileName)
+			if err != nil {
+				return err
+			}
+		}
+
+		if f.LocalConfig.EnterpriseAssistant.EAAddress != "" && f.LocalConfig.EnterpriseAssistant.EAUsername != "" && f.LocalConfig.EnterpriseAssistant.EAPassword != "" {
+			f.ConfigTLSInfo.EAAddress = f.LocalConfig.EnterpriseAssistant.EAAddress
+			f.ConfigTLSInfo.EAUsername = f.LocalConfig.EnterpriseAssistant.EAUsername
+			f.ConfigTLSInfo.EAPassword = f.LocalConfig.EnterpriseAssistant.EAPassword
+		}
 	}
 
 	if f.IpConfiguration.DHCP == f.IpConfiguration.Static {
@@ -532,14 +556,13 @@ func (f *Flags) promptForSecrets() error {
 		if item.ProfileName == "" {
 			continue
 		}
-		authProtocol := ieee8021x.AuthenticationProtocol(item.AuthenticationProtocol)
-		if authProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
+		if item.AuthenticationProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
 			err := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
 			if err != nil {
 				return err
 			}
 		}
-		if authProtocol == ieee8021x.AuthenticationProtocolEAPTLS && item.PrivateKey == "" {
+		if item.AuthenticationProtocol == ieee8021x.AuthenticationProtocolEAPTLS && item.PrivateKey == "" {
 			err := f.PromptUserInput("Please enter private key for "+item.ProfileName+": ", &item.PrivateKey)
 			if err != nil {
 				return err
@@ -687,9 +710,8 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
 		log.Error("missing caCert for config: ", cfg.ProfileName)
 		return err
 	}
-	authenticationProtocol := ieee8021x.AuthenticationProtocol(cfg.AuthenticationProtocol)
 	// not all defined protocols are supported
-	switch authenticationProtocol {
+	switch cfg.AuthenticationProtocol {
 	case ieee8021x.AuthenticationProtocolEAPTLS:
 		if cfg.ClientCert == "" {
 			log.Error("missing clientCert for config: ", cfg.ProfileName)

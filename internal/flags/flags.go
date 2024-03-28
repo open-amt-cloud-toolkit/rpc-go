@@ -33,14 +33,15 @@ type NetEnumerator struct {
 }
 
 type IPConfiguration struct {
-	DHCP         bool   `json:"dhcp"`
-	Static       bool   `json:"static"`
-	IpSync       bool   `json:"ipsync"`
-	IpAddress    string `json:"ipAddress"`
-	Netmask      string `json:"netmask"`
-	Gateway      string `json:"gateway"`
-	PrimaryDns   string `json:"primaryDns"`
-	SecondaryDns string `json:"secondaryDns"`
+	DHCP                 bool   `json:"dhcp"`
+	Static               bool   `json:"static"`
+	IpSync               bool   `json:"ipsync"`
+	IpAddress            string `json:"ipAddress"`
+	Netmask              string `json:"netmask"`
+	Gateway              string `json:"gateway"`
+	PrimaryDns           string `json:"primaryDns"`
+	SecondaryDns         string `json:"secondaryDns"`
+	Ieee8021xProfileName string `json:"ieee8021xProfileName"`
 }
 
 type HostnameInfo struct {
