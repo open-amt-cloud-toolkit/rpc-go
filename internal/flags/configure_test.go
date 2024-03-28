@@ -649,7 +649,7 @@ func TestInvalidAuthenticationProtocols(t *testing.T) {
 	f := Flags{}
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfgEAPTLS)
 	cases := []struct {
-		protocol ieee8021x.AuthenticationProtocol
+		protocol int
 	}{
 		{protocol: ieee8021x.AuthenticationProtocolEAPTTLS_MSCHAPv2},
 		{protocol: ieee8021x.AuthenticationProtocolPEAPv1_EAPGTC},
