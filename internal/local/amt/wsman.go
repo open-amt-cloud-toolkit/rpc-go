@@ -309,7 +309,7 @@ func (g *GoWSMANMessages) GetLowAccuracyTimeSynch() (response timesynchronizatio
 	return g.wsmanMessages.AMT.TimeSynchronizationService.GetLowAccuracyTimeSynch()
 }
 func (g *GoWSMANMessages) SetHighAccuracyTimeSynch(ta0 int64, tm1 int64, tm2 int64) (response timesynchronization.Response, err error) {
-	return g.wsmanMessages.AMT.TimeSynchronizationService.SetHighAccuracyTimeSynch(ta0, tm1, tm1)
+	return g.wsmanMessages.AMT.TimeSynchronizationService.SetHighAccuracyTimeSynch(ta0, tm1, tm2)
 }
 func (g *GoWSMANMessages) EnumerateTLSSettingData() (response tls.Response, err error) {
 	return g.wsmanMessages.AMT.TLSSettingData.Enumerate()
@@ -335,7 +335,7 @@ func (g *GoWSMANMessages) RequestKVMStateChange(requestedState kvm.KVMRedirectio
 }
 
 func (g *GoWSMANMessages) PutRedirectionState(requestedState redirection.RedirectionRequest) (response redirection.Response, err error) {
-	return g.wsmanMessages.AMT.RedirectionService.Put(redirection.RedirectionRequest(requestedState))
+	return g.wsmanMessages.AMT.RedirectionService.Put(requestedState)
 }
 
 func (g *GoWSMANMessages) GetRedirectionService() (response redirection.Response, err error) {
