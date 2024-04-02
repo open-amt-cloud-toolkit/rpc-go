@@ -164,6 +164,59 @@ func TestAddWifiSettings(t *testing.T) {
 
 	t.Run("expect Success", func(t *testing.T) {
 		cmdLine := []string{
+			`rpc`, `configure`, `wireless`,
+			`-password`, `cliP@ss0rd!`,
+			`-configJson`, jsonCfgStr,
+		}
+		f := NewFlags(cmdLine, MockPRSuccess)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, nil, gotResult)
+		assert.Equal(t, true, f.Local)
+		assert.Equal(t, f.Password, f.LocalConfig.Password)
+	})
+	t.Run("expect MissingOrIncorrectPassword", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `wireless`,
+			`-configJson`, jsonCfgStr,
+		}, MockPRFail)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
+	})
+	t.Run("expect Success on password prompt", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `wireless`,
+			`-configJson`, jsonCfgStr,
+		}, MockPRSuccess)
+		gotResult := f.ParseFlags()
+		assert.Equal(t, nil, gotResult)
+	})
+	t.Run("expect Success when password is in config file", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `wireless`,
+			`-configJson`, jsonCfgStr,
+		}, MockPRSuccess)
+		f.LocalConfig.Password = "localP@ssw0rd!"
+		gotResult := f.ParseFlags()
+		assert.Equal(t, nil, gotResult)
+	})
+	t.Run("expect MissingOrIncorrectPassword when passwords do not match", func(t *testing.T) {
+		f := NewFlags([]string{
+			`rpc`, `configure`, `wireless`,
+			`-password`, `cliP@ss0rd!`,
+			`-configJson`, jsonCfgStr,
+		}, MockPRSuccess)
+		f.LocalConfig.Password = "localP@ssw0rd!"
+		gotResult := f.ParseFlags()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, gotResult)
+	})
+}
+
+// Tests Deprecated SubCommand addwifisettings
+func TestAddWifiSettingsDeprecated(t *testing.T) {
+	jsonCfgStr := `{"WifiConfigs":[{"ProfileName":"wifiWPA", "SSID":"ssid", "PskPassphrase": "testPSK", "Priority":1, "AuthenticationMethod":4, "EncryptionMethod":4}]}`
+
+	t.Run("expect Success", func(t *testing.T) {
+		cmdLine := []string{
 			`rpc`, `configure`, `addwifisettings`,
 			`-password`, `cliP@ss0rd!`,
 			`-configJson`, jsonCfgStr,
@@ -307,7 +360,7 @@ func TestConfigureTLS(t *testing.T) {
 }
 
 func TestConfigJson(t *testing.T) {
-	cmdLine := `rpc configure addwifisettings -secrets ../../secrets.yaml -password test -configJson {"Password":"","FilePath":"../../config.yaml","WifiConfigs":[{"ProfileName":"wifiWPA2","SSID":"ssid","Priority":1,"AuthenticationMethod":6,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":""},{"ProfileName":"wifi8021x","SSID":"ssid","Priority":2,"AuthenticationMethod":7,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":"ieee8021xEAP-TLS"}],"Ieee8021xConfigs":[{"ProfileName":"ieee8021xEAP-TLS","Username":"test","Password":"","AuthenticationProtocol":0,"ClientCert":"test","CACert":"test","PrivateKey":""},{"ProfileName":"ieee8021xPEAPv0","Username":"test","Password":"","AuthenticationProtocol":2,"ClientCert":"testClientCert","CACert":"testCaCert","PrivateKey":"testPrivateKey"}],"AMTPassword":"","ProvisioningCert":"","ProvisioningCertPwd":""}`
+	cmdLine := `rpc configure wireless -secrets ../../secrets.yaml -password test -configJson {"Password":"","FilePath":"../../config.yaml","WifiConfigs":[{"ProfileName":"wifiWPA2","SSID":"ssid","Priority":1,"AuthenticationMethod":6,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":""},{"ProfileName":"wifi8021x","SSID":"ssid","Priority":2,"AuthenticationMethod":7,"EncryptionMethod":4,"PskPassphrase":"","Ieee8021xProfileName":"ieee8021xEAP-TLS"}],"Ieee8021xConfigs":[{"ProfileName":"ieee8021xEAP-TLS","Username":"test","Password":"","AuthenticationProtocol":0,"ClientCert":"test","CACert":"test","PrivateKey":""},{"ProfileName":"ieee8021xPEAPv0","Username":"test","Password":"","AuthenticationProtocol":2,"ClientCert":"testClientCert","CACert":"testCaCert","PrivateKey":"testPrivateKey"}],"AMTPassword":"","ProvisioningCert":"","ProvisioningCertPwd":""}`
 	defer userInput(t, "userInput\nuserInput\nuserInput")()
 	args := strings.Fields(cmdLine)
 	flags := NewFlags(args, MockPRSuccess)
@@ -322,51 +375,51 @@ func TestHandleAddWifiSettings(t *testing.T) {
 		expectedResult error
 	}{
 		{description: "Missing Ieee8021xProfileName value",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase \"mypassword\" -Ieee8021xProfileName",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing PskPassphrase value",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority 1 -PskPassphrase",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing priority value",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid \"myclissid\" -priority",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing ssid value",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing authenticationMethod value",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename cliprofname -authenticationMethod",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename cliprofname -authenticationMethod",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing profile name",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -profilename",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -profilename",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing filename",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -config",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing password",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -config",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Missing all params",
-			cmdLine:        "rpc configure addwifisettings",
+			cmdLine:        "rpc configure wireless",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Unknown param",
-			cmdLine:        "rpc configure addwifisettings -h",
+			cmdLine:        "rpc configure wireless -h",
 			expectedResult: utils.IncorrectCommandLineParameters,
 		},
 		{description: "Basic wifi config command line",
-			cmdLine:        `rpc configure addwifisettings -password Passw0rd! -profileName cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid "myclissid" -priority 1 -pskPassphrase "mypassword"`,
+			cmdLine:        `rpc configure wireless -password Passw0rd! -profileName cliprofname -authenticationMethod 6 -encryptionMethod 4 -ssid "myclissid" -priority 1 -pskPassphrase "mypassword"`,
 			expectedResult: nil,
 		},
 		{description: "Valid with reading from file",
-			cmdLine:        "rpc configure addwifisettings -password Passw0rd! -config ../../config.yaml -secrets ../../secrets.yaml",
+			cmdLine:        "rpc configure wireless -password Passw0rd! -config ../../config.yaml -secrets ../../secrets.yaml",
 			expectedResult: nil,
 		},
 	}
@@ -679,31 +732,31 @@ func TestHandleAddEthernetSettings(t *testing.T) {
 		expectedResult error
 	}{
 		{description: "fail - dchp without ipsync",
-			cmdLine:        "rpc configure wiredsettings -dhcp -password Passw0rd!",
+			cmdLine:        "rpc configure wired -dhcp -password Passw0rd!",
 			expectedResult: utils.InvalidParameterCombination,
 		},
 		{description: "fail - no flags",
-			cmdLine:        "rpc configure wiredsettings -password Passw0rd!",
+			cmdLine:        "rpc configure wired -password Passw0rd!",
 			expectedResult: utils.InvalidParameterCombination,
 		},
 		{description: "fail - static missing subnetmask",
-			cmdLine:        "rpc configure wiredsettings -static -ipaddress 192.168.1.7 -password Passw0rd!",
+			cmdLine:        "rpc configure wired -static -ipaddress 192.168.1.7 -password Passw0rd!",
 			expectedResult: utils.MissingOrIncorrectNetworkMask,
 		},
 		{description: "dhcp and ipsync",
-			cmdLine:        "rpc configure wiredsettings -dhcp -ipsync -password Passw0rd!",
+			cmdLine:        "rpc configure wired -dhcp -ipsync -password Passw0rd!",
 			expectedResult: nil,
 		},
 		{description: "static and ipsync",
-			cmdLine:        "rpc configure wiredsettings -static -ipsync -password Passw0rd!",
+			cmdLine:        "rpc configure wired -static -ipsync -password Passw0rd!",
 			expectedResult: nil,
 		},
 		{description: "static and params",
-			cmdLine:        "rpc configure wiredsettings -static -ipaddress 192.168.1.7 -subnetmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -password Passw0rd!",
+			cmdLine:        "rpc configure wired -static -ipaddress 192.168.1.7 -subnetmask 255.255.255.0 -gateway 192.168.1.1 -primarydns 8.8.8.8 -password Passw0rd!",
 			expectedResult: nil,
 		},
 		{description: "config",
-			cmdLine:        "rpc configure wiredsettings -config ../../config.yaml -password Passw0rd!",
+			cmdLine:        "rpc configure wired -config ../../config.yaml -password Passw0rd!",
 			expectedResult: nil,
 		},
 	}

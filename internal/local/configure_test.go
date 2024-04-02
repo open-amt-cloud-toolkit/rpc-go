@@ -43,6 +43,22 @@ func TestConfigure(t *testing.T) {
 		err := lps.Configure()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, err)
 	})
+	t.Run("expect error for SubCommandWireless", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandWireless
+		errEnableWiFi = errTestError
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.Error(t, err)
+		errEnableWiFi = nil
+	})
+	t.Run("expect success for SubCommandWireless", func(t *testing.T) {
+		f.SubCommand = utils.SubCommandWireless
+		lps := setupService(f)
+		err := lps.Configure()
+		assert.NoError(t, err)
+	})
+
+	// Test Deprecated SubCommand addwifisettings
 	t.Run("expect error for SubCommandAddWifiSettings", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
 		errEnableWiFi = errTestError
@@ -51,12 +67,15 @@ func TestConfigure(t *testing.T) {
 		assert.Error(t, err)
 		errEnableWiFi = nil
 	})
+
+	// Test Deprecated SubCommand addwifisettings
 	t.Run("expect success for SubCommandAddWifiSettings", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandAddWifiSettings
 		lps := setupService(f)
 		err := lps.Configure()
 		assert.NoError(t, err)
 	})
+
 	t.Run("expect error for SubCommandEnableWifiPort", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandEnableWifiPort
 		errEnableWiFi = errTestError

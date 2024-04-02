@@ -83,10 +83,10 @@ func (f *Flags) printConfigurationUsage() string {
 	usage := "\nRemote Provisioning Client (RPC) - used for activation, deactivation, maintenance and status of AMT\n\n"
 	usage += "Usage: " + baseCommand + " COMMAND [OPTIONS]\n\n"
 	usage += "Supported Configuration Commands:\n"
-	usage += "  " + utils.SubCommandAddEthernetSettings + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddEthernetSettings + " -password YourAMTPassword -config ethernetconfig.yaml\n"
-	usage += "  " + utils.SubCommandAddWifiSettings + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
-	usage += "                  Example: " + baseCommand + " " + utils.SubCommandAddWifiSettings + " -password YourAMTPassword -config wificonfig.yaml\n"
+	usage += "  " + utils.SubCommandWired + " Add or modify ethernet settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandWired + " -password YourAMTPassword -config ethernetconfig.yaml\n"
+	usage += "  " + utils.SubCommandWireless + " Add or modify WiFi settings in AMT. AMT password is required. A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
+	usage += "                  Example: " + baseCommand + " " + utils.SubCommandWireless + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandEnableWifiPort + " -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandConfigureTLS + "             Configures TLS in AMT. AMT password is required.\n"
@@ -115,8 +115,14 @@ func (f *Flags) handleConfigureCommand() error {
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
 	case utils.SubCommandAddEthernetSettings:
+		log.Info("Sub command \"wiredsettings\" is deprecated use \"wired\" instead")
+		err = f.handleAddEthernetSettings()
+	case utils.SubCommandWired:
 		err = f.handleAddEthernetSettings()
 	case utils.SubCommandAddWifiSettings:
+		log.Info("Sub command \"addwifisettings\" is deprecated use \"wireless\" instead")
+		err = f.handleAddWifiSettings()
+	case utils.SubCommandWireless:
 		err = f.handleAddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		err = f.handleEnableWifiPort()
@@ -318,7 +324,7 @@ func (f *Flags) handleConfigureTLS() error {
 
 func (f *Flags) handleAddEthernetSettings() error {
 	var configJson string
-	fs := f.NewConfigureFlagSet(utils.SubCommandAddEthernetSettings)
+	fs := f.NewConfigureFlagSet(utils.SubCommandWired)
 	fs.StringVar(&f.configContent, "config", "", "Specify a config file or smb: file share URL")
 	fs.StringVar(&configJson, "configJson", "", "Configuration as a JSON string")
 	fs.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "Configures wired settings to use dhcp")
@@ -441,12 +447,12 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
-	// rpc configure addwifisettings is not enough paramaters, need -config or a combination of command line flags
+	// rpc configure wireless is not enough paramaters, need -config or a combination of command line flags
 	if len(f.commandLineArgs[3:]) == 0 {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
-	// rpc configure addwifisettings -configstring "{ prop: val, prop2: val }"
+	// rpc configure wireless -configstring "{ prop: val, prop2: val }"
 	// rpc configure add -config "filename" -secrets "someotherfile"
 	if err = f.flagSetAddWifiSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
