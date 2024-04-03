@@ -29,7 +29,11 @@ func (service *ProvisioningService) Configure() (err error) {
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddEthernetSettings:
 		return service.AddEthernetSettings()
+	case utils.SubCommandWired:
+		return service.AddEthernetSettings()
 	case utils.SubCommandAddWifiSettings:
+		return service.AddWifiSettings()
+	case utils.SubCommandWireless:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()

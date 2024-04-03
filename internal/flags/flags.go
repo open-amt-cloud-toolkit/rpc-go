@@ -129,8 +129,8 @@ func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags.versionCommand = flag.NewFlagSet(utils.CommandVersion, flag.ContinueOnError)
 	flags.versionCommand.BoolVar(&flags.JsonOutput, "json", false, "json output")
 
-	flags.flagSetAddEthernetSettings = flag.NewFlagSet(utils.SubCommandAddEthernetSettings, flag.ContinueOnError)
-	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandAddWifiSettings, flag.ContinueOnError)
+	flags.flagSetAddEthernetSettings = flag.NewFlagSet(utils.SubCommandWired, flag.ContinueOnError)
+	flags.flagSetAddWifiSettings = flag.NewFlagSet(utils.SubCommandWireless, flag.ContinueOnError)
 	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
 	flags.flagSetAMTFeatures = flag.NewFlagSet(utils.SubCommandSetAMTFeatures, flag.ContinueOnError)
@@ -182,7 +182,7 @@ func (f *Flags) printUsage() string {
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
 	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
-	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
+	usage = usage + "              Example: " + executable + " configure " + utils.SubCommandWireless + " ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
 	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"

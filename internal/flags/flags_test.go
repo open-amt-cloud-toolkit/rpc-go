@@ -193,7 +193,7 @@ func TestPrintUsage(t *testing.T) {
 	usage = usage + "  amtinfo     Displays information about AMT status and configuration\n"
 	usage = usage + "              Example: " + executable + " amtinfo\n"
 	usage = usage + "  configure   Local configuration of a feature on this device. AMT password is required\n"
-	usage = usage + "              Example: " + executable + " configure addwifisettings ...\n"
+	usage = usage + "              Example: " + executable + " configure " + utils.SubCommandWireless + " ...\n"
 	usage = usage + "  deactivate  Deactivates this device. AMT password is required\n"
 	usage = usage + "              Example: " + executable + " deactivate -u wss://server/activate\n"
 	usage = usage + "  maintenance Execute a maintenance task for the device. AMT password is required\n"

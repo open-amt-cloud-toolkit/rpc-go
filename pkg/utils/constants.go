@@ -34,7 +34,9 @@ const (
 	CommandConfigure   = "configure"
 
 	SubCommandAddWifiSettings     = "addwifisettings"
-	SubCommandAddEthernetSettings = "addethernetsettings"
+	SubCommandWireless            = "wireless"
+	SubCommandAddEthernetSettings = "wiredsettings"
+	SubCommandWired               = "wired"
 	SubCommandEnableWifiPort      = "enablewifiport"
 	SubCommandSetMEBx             = "mebx"
 	SubCommandConfigureTLS        = "tls"
