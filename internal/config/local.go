@@ -7,11 +7,12 @@ package config
 
 type (
 	Config struct {
-		Password         string            `yaml:"password"`
-		WiredConfig      EthernetConfig    `yaml:"wiredConfig"`
-		WifiConfigs      []WifiConfig      `yaml:"wifiConfigs"`
-		Ieee8021xConfigs []Ieee8021xConfig `yaml:"ieee8021xConfigs"`
-		ACMSettings      ACMSettings       `yaml:"acmactivate"`
+		Password            string              `yaml:"password"`
+		WiredConfig         EthernetConfig      `yaml:"wiredConfig"`
+		WifiConfigs         []WifiConfig        `yaml:"wifiConfigs"`
+		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
+		ACMSettings         ACMSettings         `yaml:"acmactivate"`
+		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
 	}
 	WifiConfig struct {
 		ProfileName          string `yaml:"profileName"`
@@ -55,5 +56,11 @@ type (
 		AMTPassword         string `yaml:"amtPassword"`
 		ProvisioningCert    string `yaml:"provisioningCert"`
 		ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
+	}
+	EnterpriseAssistant struct {
+		EAAddress    string `yaml:"eaAddress"`
+		EAUsername   string `yaml:"eaUsername"`
+		EAPassword   string `yaml:"eaPassword"`
+		EAConfigured bool   `yaml:"eaConfigured"`
 	}
 )

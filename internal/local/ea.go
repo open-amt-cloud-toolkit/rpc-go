@@ -30,6 +30,8 @@ type Response struct {
 	Certificate   string `json:"certificate"`
 	Domain        string `json:"domain"`
 	Username      string `json:"username"`
+	Password      string `json:"password"`
+	RootCert      string `json:"rootcert"`
 }
 
 type EAProfile struct {
@@ -74,13 +76,12 @@ func (service *ProvisioningService) PerformPostRequest(url string, requestBody [
 }
 
 func (service *ProvisioningService) GetAuthToken(url string, credentials AuthRequest) (string, error) {
-	eaAddress := service.flags.ConfigTLSInfo.EAAddress + url
 	requestBody, err := json.Marshal(credentials)
 	if err != nil {
 		return "", fmt.Errorf("marshalling credentials: %v", err)
 	}
 
-	responseBody, err := service.PerformPostRequest(eaAddress, requestBody, "")
+	responseBody, err := service.PerformPostRequest(url, requestBody, "")
 	if err != nil {
 		return "", err
 	}
@@ -94,13 +95,13 @@ func (service *ProvisioningService) GetAuthToken(url string, credentials AuthReq
 }
 
 func (service *ProvisioningService) EAConfigureRequest(url string, token string, profileRequest EAProfile) (EAProfile, error) {
-	eaAddress := service.flags.ConfigTLSInfo.EAAddress + url
+	// eaAddress := service.config.EnterpriseAssistant.EAAddress + url
 	requestBody, err := json.Marshal(profileRequest)
 	if err != nil {
 		return EAProfile{}, fmt.Errorf("marshalling profile request: %v", err)
 	}
 
-	responseBody, err := service.PerformPostRequest(eaAddress, requestBody, token)
+	responseBody, err := service.PerformPostRequest(url, requestBody, token)
 	if err != nil {
 		return EAProfile{}, err
 	}

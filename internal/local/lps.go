@@ -12,8 +12,6 @@ import (
 	"rpc/internal/flags"
 	"rpc/internal/local/amt"
 	"rpc/pkg/utils"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type OSNetworker interface {
@@ -66,7 +64,7 @@ func ExecuteCommand(flags *flags.Flags) error {
 		err = service.DisplayVersion()
 	}
 	if err != nil {
-		log.Error(err)
+		return err
 	}
-	return err
+	return nil
 }

@@ -53,9 +53,8 @@ func TestGetAuthToken(t *testing.T) {
 			service := NewProvisioningService(f)
 			service.amtCommand = mockAMT
 			service.interfacedWsmanMessage = mockWsman
-			service.flags.ConfigTLSInfo.EAAddress = server.URL
 
-			gotToken, err := service.GetAuthToken("/api/authenticate/", tt.credentials)
+			gotToken, err := service.GetAuthToken(server.URL+"/api/authenticate/", tt.credentials)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetAuthToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -110,7 +109,7 @@ func TestEAConfigureRequest(t *testing.T) {
 
 			service.flags.ConfigTLSInfo.EAAddress = server.URL
 
-			gotProfile, err := service.EAConfigureRequest("/configure", tt.token, tt.profileReq)
+			gotProfile, err := service.EAConfigureRequest(server.URL+"/configure", tt.token, tt.profileReq)
 			if tt.wantErr {
 				assert.Error(t, err, "EAConfigureRequest() expected an error")
 			} else {

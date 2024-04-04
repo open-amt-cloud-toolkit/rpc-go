@@ -114,16 +114,13 @@ func (f *Flags) handleConfigureCommand() error {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
-	case utils.SubCommandAddEthernetSettings:
+	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
 		log.Info("Sub command \"wiredsettings\" is deprecated use \"wired\" instead")
 		err = f.handleAddEthernetSettings()
-	case utils.SubCommandWired:
-		err = f.handleAddEthernetSettings()
-	case utils.SubCommandAddWifiSettings:
+	case utils.SubCommandAddWifiSettings, utils.SubCommandWireless:
 		log.Info("Sub command \"addwifisettings\" is deprecated use \"wireless\" instead")
 		err = f.handleAddWifiSettings()
-	case utils.SubCommandWireless:
-		err = f.handleAddWifiSettings()
+
 	case utils.SubCommandEnableWifiPort:
 		err = f.handleEnableWifiPort()
 	case utils.SubCommandConfigureTLS:
@@ -427,9 +424,12 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
 	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
 	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
+
 	// Params for entering a single wifi config from command line
 	wifiCfg := config.WifiConfig{}
 	ieee8021xCfg := config.Ieee8021xConfig{}
+	eaSettings := config.EnterpriseAssistant{}
+
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
@@ -446,6 +446,9 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.flagSetAddWifiSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
 	f.flagSetAddWifiSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetAddWifiSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+	f.flagSetAddWifiSettings.StringVar(&eaSettings.EAAddress, "eaAddress", "", "Enterprise Assistant address")
+	f.flagSetAddWifiSettings.StringVar(&eaSettings.EAUsername, "eaUsername", "", "Enterprise Assistant username")
+	f.flagSetAddWifiSettings.StringVar(&eaSettings.EAPassword, "eaPassword", "", "Enterprise Assistant password")
 
 	// rpc configure wireless is not enough paramaters, need -config or a combination of command line flags
 	if len(f.commandLineArgs[3:]) == 0 {
@@ -471,6 +474,9 @@ func (f *Flags) handleAddWifiSettings() error {
 
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfg)
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
+	f.LocalConfig.EnterpriseAssistant = eaSettings
+	eaSettings.EAConfigured = false
+
 	err = f.handleLocalConfig()
 	if err != nil {
 		return utils.FailedReadingConfiguration
@@ -563,6 +569,18 @@ func (f *Flags) promptForSecrets() error {
 			}
 		}
 	}
+	// If EA settings are provided without password, prompt for EA password
+	if f.LocalConfig.EnterpriseAssistant.EAAddress != "" && f.LocalConfig.EnterpriseAssistant.EAUsername != "" {
+		if f.LocalConfig.EnterpriseAssistant.EAPassword == "" {
+			err := f.PromptUserInput("Please enter EA password: ", &f.LocalConfig.EnterpriseAssistant.EAPassword)
+			if err != nil {
+				return err
+			}
+		}
+		f.LocalConfig.EnterpriseAssistant.EAConfigured = true
+		return nil
+	}
+	// If EA settings are not provided, look for secrets in the secrets/config file
 	for i := range f.LocalConfig.Ieee8021xConfigs {
 		item := &f.LocalConfig.Ieee8021xConfigs[i]
 		if item.ProfileName == "" {
@@ -614,15 +632,14 @@ func (f *Flags) verifyWifiConfigurations() error {
 		switch authenticationMethod {
 		case wifi.AuthenticationMethod_WPA_PSK:
 			fallthrough
-		case wifi.AuthenticationMethod_WPA2_PSK:
+		case wifi.AuthenticationMethod_WPA2_PSK: // AuthenticationMethod 4
 			if cfg.PskPassphrase == "" {
 				log.Error("missing PskPassphrase for config: ", cfg.ProfileName)
 				return utils.MissingOrInvalidConfiguration
 			}
-			break
 		case wifi.AuthenticationMethod_WPA_IEEE8021x:
 			fallthrough
-		case wifi.AuthenticationMethod_WPA2_IEEE8021x:
+		case wifi.AuthenticationMethod_WPA2_IEEE8021x: // AuthenticationMethod 7
 			if cfg.ProfileName == "" {
 				log.Error("missing ieee8021x profile name")
 				return utils.MissingOrInvalidConfiguration
@@ -635,7 +652,6 @@ func (f *Flags) verifyWifiConfigurations() error {
 			if err != nil {
 				return err
 			}
-			break
 		case wifi.AuthenticationMethod_Other:
 			log.Errorf("unsupported AuthenticationMethod_Other (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
@@ -667,7 +683,7 @@ func (f *Flags) verifyWifiConfigurations() error {
 		switch encryptionMethod {
 		case wifi.EncryptionMethod_TKIP:
 			fallthrough
-		case wifi.EncryptionMethod_CCMP:
+		case wifi.EncryptionMethod_CCMP: // EncryptionMethod 4
 			break
 		case wifi.EncryptionMethod_Other:
 			log.Errorf("unsupported EncryptionMethod_Other (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
@@ -715,13 +731,16 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) error {
 
 func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
 	var err error = utils.MissingOrInvalidConfiguration
-	if cfg.Username == "" {
-		log.Error("missing username for config: ", cfg.ProfileName)
-		return err
-	}
-	if cfg.CACert == "" {
-		log.Error("missing caCert for config: ", cfg.ProfileName)
-		return err
+	isEAConfigured := f.LocalConfig.EnterpriseAssistant.EAConfigured
+	if !isEAConfigured {
+		if cfg.Username == "" {
+			log.Error("missing username for config: ", cfg.ProfileName)
+			return err
+		}
+		if cfg.CACert == "" {
+			log.Error("missing caCert for config: ", cfg.ProfileName)
+			return err
+		}
 	}
 	authenticationProtocol := cfg.AuthenticationProtocol
 	// not all defined protocols are supported
@@ -731,17 +750,30 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
 			log.Error("missing clientCert for config: ", cfg.ProfileName)
 			return err
 		}
-		if cfg.PrivateKey == "" {
-			log.Error("missing privateKey for config: ", cfg.ProfileName)
+		if cfg.CACert == "" {
+			log.Error("missing caCert for config: ", cfg.ProfileName)
 			return err
 		}
-		break
+	}
+	authenticationProtocol = cfg.AuthenticationProtocol
+	// not all defined protocols are supported
+	switch authenticationProtocol {
+	case ieee8021x.AuthenticationProtocolEAPTLS: // AuthenticationProtocol 0
+		if !isEAConfigured {
+			if cfg.ClientCert == "" {
+				log.Error("missing clientCert for config: ", cfg.ProfileName)
+				return err
+			}
+			if cfg.PrivateKey == "" {
+				log.Error("missing privateKey for config: ", cfg.ProfileName)
+				return err
+			}
+		}
 	case ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2:
-		if cfg.Password == "" {
+		if !isEAConfigured && cfg.Password == "" {
 			log.Error("missing password for for PEAPv0_EAPMSCHAPv2 config: ", cfg.ProfileName)
 			return err
 		}
-		break
 	case ieee8021x.AuthenticationProtocolEAPTTLS_MSCHAPv2:
 		log.Errorf("unsupported AuthenticationProtocolEAPTTLS_MSCHAPv2 (%d) for config: %s", cfg.AuthenticationProtocol, cfg.ProfileName)
 		return err
