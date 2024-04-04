@@ -91,14 +91,22 @@ func (f *Flags) handleMaintenanceCommand() error {
 }
 
 func (f *Flags) handleMaintenanceSyncClock() error {
-	if err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:]); err != nil {
+	err := f.amtMaintenanceSyncClockCommand.Parse(f.commandLineArgs[3:])
+	if err != nil {
+		if err.Error() == utils.HelpRequested.Message {
+			return utils.HelpRequested
+		}
 		return utils.IncorrectCommandLineParameters
 	}
 	return nil
 }
 
 func (f *Flags) handleMaintenanceSyncDeviceInfo() error {
-	if err := f.amtMaintenanceSyncDeviceInfoCommand.Parse(f.commandLineArgs[3:]); err != nil {
+	err := f.amtMaintenanceSyncDeviceInfoCommand.Parse(f.commandLineArgs[3:])
+	if err != nil {
+		if err.Error() == utils.HelpRequested.Message {
+			return utils.HelpRequested
+		}
 		return utils.IncorrectCommandLineParameters
 	}
 	return nil
@@ -106,8 +114,11 @@ func (f *Flags) handleMaintenanceSyncDeviceInfo() error {
 
 func (f *Flags) handleMaintenanceSyncHostname() error {
 	var err error
-	if err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtMaintenanceSyncHostnameCommand.Usage()
+	err = f.amtMaintenanceSyncHostnameCommand.Parse(f.commandLineArgs[3:])
+	if err != nil {
+		if err.Error() == utils.HelpRequested.Message {
+			return utils.HelpRequested
+		}
 		return utils.IncorrectCommandLineParameters
 	}
 	amtCommand := amt.NewAMTCommand()
@@ -149,8 +160,11 @@ func (f *Flags) handleMaintenanceSyncIP() error {
 	f.amtMaintenanceSyncIPCommand.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
 	f.amtMaintenanceSyncIPCommand.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
 
-	if err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtMaintenanceSyncIPCommand.Usage()
+	err := f.amtMaintenanceSyncIPCommand.Parse(f.commandLineArgs[3:])
+	if err != nil {
+		if err.Error() == utils.HelpRequested.Message {
+			return utils.HelpRequested
+		}
 		// Parse the error message to find the problematic flag.
 		// The problematic flag is of the following format '-' followed by flag name and then a ':'
 		re := regexp.MustCompile(`-.*:`)
@@ -215,8 +229,11 @@ func (f *Flags) handleMaintenanceSyncIP() error {
 
 func (f *Flags) handleMaintenanceSyncChangePassword() error {
 	f.amtMaintenanceChangePasswordCommand.StringVar(&f.StaticPassword, "static", "", "specify a new password for AMT")
-	if err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:]); err != nil {
-		f.amtMaintenanceChangePasswordCommand.Usage()
+	err := f.amtMaintenanceChangePasswordCommand.Parse(f.commandLineArgs[3:])
+	if err != nil {
+		if err.Error() == utils.HelpRequested.Message {
+			return utils.HelpRequested
+		}
 		return utils.IncorrectCommandLineParameters
 	}
 	return nil

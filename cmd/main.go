@@ -87,7 +87,9 @@ func main() {
 
 func handleErrorAndExit(err error) {
 	if customErr, ok := err.(utils.CustomError); ok {
-		log.Error(customErr.Error())
+		if err != utils.HelpRequested {
+			log.Error(customErr.Error())
+		}
 		os.Exit(customErr.Code)
 	} else {
 		log.Error(err.Error())

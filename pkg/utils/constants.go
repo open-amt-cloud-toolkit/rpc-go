@@ -59,6 +59,7 @@ var IncorrectPermissions = CustomError{Code: 1, Message: "IncorrectPermissions"}
 var HECIDriverNotDetected = CustomError{Code: 2, Message: "HECIDriverNotDetected"}
 var AmtNotDetected = CustomError{Code: 3, Message: "AmtNotDetected"}
 var AmtNotReady = CustomError{Code: 4, Message: "AmtNotReady"}
+var HelpRequested = CustomError{Code: 5, Message: "flag: help requested"}
 var GenericFailure = CustomError{Code: 10, Message: "GenericFailure"}
 
 // (20-69) Input errors to RPC
