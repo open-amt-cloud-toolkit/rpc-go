@@ -27,13 +27,9 @@ func (service *ProvisioningService) Configure() (err error) {
 	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
 
 	switch service.flags.SubCommand {
-	case utils.SubCommandAddEthernetSettings:
+	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
 		return service.AddEthernetSettings()
-	case utils.SubCommandWired:
-		return service.AddEthernetSettings()
-	case utils.SubCommandAddWifiSettings:
-		return service.AddWifiSettings()
-	case utils.SubCommandWireless:
+	case utils.SubCommandAddWifiSettings, utils.SubCommandWireless:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort()

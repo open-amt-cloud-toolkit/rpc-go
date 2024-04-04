@@ -54,6 +54,7 @@ func TestExecuteCommand(t *testing.T) {
 	f := &flags.Flags{}
 	f.Command = utils.CommandActivate
 	f.Profile = "profile01"
+	f.Password = "testPw"
 	rc := ExecuteCommand(f)
 	assert.NotEqual(t, nil, rc)
 }

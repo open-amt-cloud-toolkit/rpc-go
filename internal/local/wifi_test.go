@@ -6,12 +6,17 @@
 package local
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+	"strings"
 	"testing"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 
@@ -57,6 +62,15 @@ var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
 	CACert:                 "caCert",
 	PrivateKey:             "privateKey",
 }
+
+// var ieee8021xConfig = ieee8021xCfgEAPTLS
+//
+//	var ieee8021xSettings = models.IEEE8021xSettings{
+//		ElementName:            ieee8021xConfig.ProfileName,
+//		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
+//		AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
+//		Username:               ieee8021xConfig.Username,
+//	}
 var errTestError = errors.New("test error")
 
 func TestAddWifiSettings(t *testing.T) {
@@ -115,6 +129,13 @@ func TestProcessWifiConfig(t *testing.T) {
 		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
 		assert.NoError(t, err)
 	})
+	// t.Run("expect success when handling non-ieee8021x config", func(t *testing.T) {
+	// 	eaconfigure =true
+	// 	lps := setupService(f)
+	// 	err := lps.ProcessWifiConfig(&wifiCfgWPA2)
+	// 	assert.NoError(t, err)
+	// 	eaconfure = false
+	// })
 
 }
 func TestPruneWifiConfigs(t *testing.T) {
@@ -180,4 +201,105 @@ func TestRollbackAddedItems(t *testing.T) {
 		lps := setupService(f)
 		lps.RollbackAddedItems(&handles)
 	})
+}
+func TestSetIeee8021xConfigWithEA(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupMocks         func(*MockWSMAN)
+		mockauthResponse   AuthResponse
+		mockconfigResponse EAProfile
+		mockauthError      bool
+		mockconfigError    bool
+		expectError        bool
+	}{
+		{
+			name: "Successful Wifi configuration",
+			setupMocks: func(mock *MockWSMAN) {
+				mockGenKeyPairErr = nil
+				mockGenKeyPairReturnValue = 0
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
+				errAddClientCert = nil
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
+				mockCreateTLSCredentialContextErr = nil
+				errGetPublicPrivateKeyPairs = nil
+			},
+			mockauthResponse: AuthResponse{Token: "someToken"},
+			mockconfigResponse: EAProfile{
+				NodeID:       "someID",
+				Domain:       "someDomain",
+				ReqID:        "someReqID",
+				AuthProtocol: 0,
+
+				OSName:  "win11",
+				DevName: "someDevName",
+				Icon:    1,
+				Ver:     "someVer",
+				Response: Response{
+					CSR:           "someCSR",
+					KeyInstanceId: "someKeyInstanceID",
+					AuthProtocol:  0,
+					Certificate:   "someCertificate",
+					Domain:        "someDomain",
+					Username:      "someUsername",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "Failed to get auth token",
+			setupMocks:    func(mock *MockWSMAN) {},
+			mockauthError: true,
+			expectError:   true,
+		},
+		{
+			name:            "Failed to make request to EA",
+			setupMocks:      func(mock *MockWSMAN) {},
+			mockauthError:   false,
+			mockconfigError: true,
+			expectError:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, _, mockWsman := setupProvisioningService()
+			tt.setupMocks(mockWsman)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/api/authenticate/") {
+					if tt.mockauthError {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						json.NewEncoder(w).Encode(tt.mockauthResponse)
+					}
+				} else if strings.HasPrefix(r.URL.Path, "/api/configure/") {
+					if tt.expectError {
+						w.WriteHeader(http.StatusInternalServerError)
+					} else {
+						json.NewEncoder(w).Encode(tt.mockconfigResponse)
+					}
+				} else {
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+
+			service.flags.LocalConfig.EnterpriseAssistant.EAAddress = server.URL
+			service.flags.LocalConfig.EnterpriseAssistant.EAUsername = "user"
+			service.flags.LocalConfig.EnterpriseAssistant.EAPassword = "pass"
+			service.flags.LocalConfig.Ieee8021xConfigs = []config.Ieee8021xConfig{
+				ieee8021xCfgEAPTLS,
+			}
+
+			ieee8021xConfig, _ := service.checkForIeee8021xConfig(&wifiCfgWPA8021xEAPTLS)
+
+			_, err := service.setIeee8021xConfigWithEA(ieee8021xConfig)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			// Clean up
+			server.Close()
+		})
+	}
 }

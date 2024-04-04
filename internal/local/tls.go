@@ -58,7 +58,6 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 			service.RollbackAddedItems(&handles)
 		}
 	}()
-
 	credentials := AuthRequest{
 		Username: service.flags.ConfigTLSInfo.EAUsername,
 		Password: service.flags.ConfigTLSInfo.EAPassword,
@@ -66,7 +65,8 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 	guid, err := service.amtCommand.GetUUID()
 
 	// Call GetAuthToken
-	token, err := service.GetAuthToken("/api/authenticate/"+guid, credentials)
+	url := service.flags.ConfigTLSInfo.EAAddress + "/api/authenticate/" + guid
+	token, err := service.GetAuthToken(url, credentials)
 	if err != nil {
 		log.Errorf("error getting auth token: %v", err)
 		return utils.TLSConfigurationFailed
@@ -79,7 +79,8 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 	reqProfile := EAProfile{NodeID: guid, Domain: "", ReqID: "", AuthProtocol: 0, OSName: "win11", DevName: devName, Icon: 1, Ver: ""}
 
 	//Request Profile from Microsoft EA
-	_, err = service.EAConfigureRequest("/api/configure/profile/"+guid, token, reqProfile)
+	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/profile/" + guid
+	_, err = service.EAConfigureRequest(url, token, reqProfile)
 	if err != nil {
 		log.Errorf("error while requesting EA: %v", err)
 		return err
@@ -102,7 +103,8 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 	//Request Profile from Microsoft EA
 	reqProfile.DERKey = derKey
 	reqProfile.KeyInstanceId = handles.keyPairHandle
-	KeyPairResponse, err := service.EAConfigureRequest("/api/configure/keypair/"+guid, token, reqProfile)
+	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/keypair/" + guid
+	KeyPairResponse, err := service.EAConfigureRequest(url, token, reqProfile)
 	if err != nil {
 		log.Errorf("error generating 802.1x keypair: %v", err)
 		return utils.TLSConfigurationFailed
@@ -114,7 +116,8 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 	}
 
 	reqProfile.SignedCSR = response.Body.GeneratePKCS10RequestEx_OUTPUT.SignedCertificateRequest
-	eaResponse, err := service.EAConfigureRequest("/api/configure/csr/"+guid, token, reqProfile)
+	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/csr/" + guid
+	eaResponse, err := service.EAConfigureRequest(url, token, reqProfile)
 	if err != nil {
 		log.Errorf("error signing the certificate: %v", err)
 		return utils.TLSConfigurationFailed

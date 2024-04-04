@@ -7,6 +7,7 @@ package local
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
@@ -204,6 +205,12 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 		if err != nil {
 			return err
 		}
+		if service.config.EnterpriseAssistant.EAConfigured {
+			ieee8021xConfig, err = service.setIeee8021xConfigWithEA(ieee8021xConfig)
+			if err != nil {
+				return err
+			}
+		}
 		ieee8021xSettings, handles, err = service.setIeee8021xConfig(ieee8021xConfig)
 		if err != nil {
 			return err
@@ -266,6 +273,91 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 		}
 	}
 	return ieee8021xSettings, handles, nil
+}
+
+func (service *ProvisioningService) setIeee8021xConfigWithEA(ieee8021xConfig *config.Ieee8021xConfig) (*config.Ieee8021xConfig, error) {
+	handles := Handles{}
+	credentials := AuthRequest{
+		Username: service.config.EnterpriseAssistant.EAUsername,
+		Password: service.config.EnterpriseAssistant.EAPassword,
+	}
+	guid, err := service.amtCommand.GetUUID()
+	if err != nil {
+		return ieee8021xConfig, err
+	}
+
+	// Call GetAuthToken
+	url := service.config.EnterpriseAssistant.EAAddress + "/api/authenticate/" + guid
+	token, err := service.GetAuthToken(url, credentials)
+	if err != nil {
+		log.Errorf("error getting auth token: %v", err)
+		return ieee8021xConfig, utils.WiFiConfigurationFailed
+	}
+	devName, err := os.Hostname()
+	if err != nil {
+		log.Errorf("error getting auth token: %v", err)
+		return ieee8021xConfig, err
+	}
+	reqProfile := EAProfile{NodeID: guid, Domain: "", ReqID: "", AuthProtocol: ieee8021xConfig.AuthenticationProtocol, OSName: "win11", DevName: devName, Icon: 1, Ver: ""}
+
+	//Request Profile from Microsoft EA
+	url = service.config.EnterpriseAssistant.EAAddress + "/api/configure/profile/" + guid
+	reqResponse, err := service.EAConfigureRequest(url, token, reqProfile)
+	if err != nil {
+		log.Errorf("error while requesting EA: %v", err)
+		return ieee8021xConfig, err
+	}
+
+	ieee8021xConfig.PrivateKey = ""
+
+	if ieee8021xConfig.AuthenticationProtocol == 2 {
+		ieee8021xConfig.ClientCert = ""
+		ieee8021xConfig.Password = reqResponse.Response.Password
+		ieee8021xConfig.CACert = reqResponse.Response.RootCert
+		ieee8021xConfig.Username = reqResponse.Response.Username
+		return ieee8021xConfig, nil
+	}
+
+	// Generate KeyPair
+	handles.keyPairHandle, err = service.GenerateKeyPair()
+	if err != nil {
+		return ieee8021xConfig, err
+	}
+	handles.privateKeyHandle = handles.keyPairHandle
+
+	// Get DERkey
+	derKey, err := service.GetDERKey(handles)
+	if derKey == "" || err != nil {
+		log.Errorf("failed matching new amtKeyPairHandle: %s", handles.keyPairHandle)
+		return ieee8021xConfig, utils.WiFiConfigurationFailed
+	}
+
+	//Request Profile from Microsoft EA
+	reqProfile.DERKey = derKey
+	reqProfile.KeyInstanceId = handles.keyPairHandle
+	url = service.config.EnterpriseAssistant.EAAddress + "/api/configure/keypair/" + guid
+	KeyPairResponse, err := service.EAConfigureRequest(url, token, reqProfile)
+	if err != nil {
+		log.Errorf("error generating 802.1x keypair: %v", err)
+		return ieee8021xConfig, utils.WiFiConfigurationFailed
+	}
+
+	response, err := service.interfacedWsmanMessage.GeneratePKCS10RequestEx(KeyPairResponse.Response.KeyInstanceId, KeyPairResponse.Response.CSR, 1)
+	if err != nil {
+		return ieee8021xConfig, utils.WiFiConfigurationFailed
+	}
+
+	reqProfile.SignedCSR = response.Body.GeneratePKCS10RequestEx_OUTPUT.SignedCertificateRequest
+	url = service.config.EnterpriseAssistant.EAAddress + "/api/configure/csr/" + guid
+	eaResponse, err := service.EAConfigureRequest(url, token, reqProfile)
+	if err != nil {
+		log.Errorf("error signing the certificate: %v", err)
+		return ieee8021xConfig, utils.WiFiConfigurationFailed
+	}
+	ieee8021xConfig.ClientCert = eaResponse.Response.Certificate
+	ieee8021xConfig.CACert = eaResponse.Response.RootCert
+	ieee8021xConfig.Username = eaResponse.Response.Username
+	return ieee8021xConfig, nil
 }
 
 func (service *ProvisioningService) checkForIeee8021xConfig(wifiCfg *config.WifiConfig) (ieee8021xConfig *config.Ieee8021xConfig, err error) {
