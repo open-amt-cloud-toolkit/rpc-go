@@ -66,16 +66,17 @@ func (service *ProvisioningService) SetAMTFeatures() error {
 		log.Error("Error while getting the OptIn Service: ", err)
 		return utils.AMTFeaturesConfigurationFailed
 	}
-	optInRequired := getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired
+	var optInRequired uint32
+	optInRequired = uint32(getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired)
 	switch service.flags.UserConsent {
 	case "none":
-		optInRequired = int(optin.None)
+		optInRequired = uint32(optin.None)
 	case "kvm":
-		optInRequired = int(optin.KVM)
+		optInRequired = uint32(optin.KVM)
 	case "all":
-		optInRequired = int(optin.All)
+		optInRequired = uint32(optin.All)
 	}
-	if getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired != optInRequired {
+	if uint32(getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired) != optInRequired {
 		//Put OptInService
 		request := optin.OptInServiceRequest{
 			CanModifyOptInPolicy:    getOptInServiceResponse.Body.GetAndPutResponse.CanModifyOptInPolicy,
