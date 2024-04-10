@@ -92,10 +92,12 @@ func (f *Flags) handleActivateCommand() error {
 			if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
 				return rc
 			}
-			f.LocalConfig.ACMSettings.AMTPassword = f.Password
 		}
 
-		f.LocalConfig.Password = f.Password
+		if f.Password != "" {
+			f.LocalConfig.ACMSettings.AMTPassword = f.Password
+			f.LocalConfig.Password = f.Password
+		}
 
 		if f.UseACM {
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
