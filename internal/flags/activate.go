@@ -93,8 +93,9 @@ func (f *Flags) handleActivateCommand() error {
 				return rc
 			}
 			f.LocalConfig.ACMSettings.AMTPassword = f.Password
-			f.LocalConfig.Password = f.Password
 		}
+
+		f.LocalConfig.Password = f.Password
 
 		if f.UseACM {
 			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
