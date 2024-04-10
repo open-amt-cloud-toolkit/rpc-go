@@ -165,6 +165,9 @@ func (f *Flags) ParseFlags() error {
 		err = f.handleVersionCommand()
 	case utils.CommandConfigure:
 		err = f.handleConfigureCommand()
+	case "-h", "-help":
+		err = utils.HelpRequested
+		f.printUsage()
 	default:
 		err = utils.IncorrectCommandLineParameters
 		f.printUsage()

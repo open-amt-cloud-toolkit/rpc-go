@@ -133,9 +133,12 @@ func (f *Flags) handleConfigureCommand() error {
 		err = f.handleChangeAMTPassword()
 	case utils.SubCommandSetAMTFeatures:
 		err = f.handleSetAMTFeatures()
-	default:
+	case "-h", "-help":
+		err = utils.HelpRequested
 		f.printConfigurationUsage()
+	default:
 		err = utils.IncorrectCommandLineParameters
+		f.printConfigurationUsage()
 	}
 	if err != nil {
 		return err
@@ -240,8 +243,11 @@ func (f *Flags) handleMEBxPassword() error {
 	f.flagSetMEBx.StringVar(&f.MEBxPassword, "mebxpassword", f.lookupEnvOrString("MEBX_PASSWORD", ""), "MEBX password")
 
 	if len(f.commandLineArgs) > 3 {
-		if err := f.flagSetMEBx.Parse(f.commandLineArgs[3:]); err != nil {
-			f.printConfigurationUsage()
+		err := f.flagSetMEBx.Parse(f.commandLineArgs[3:])
+		if err != nil {
+			if err.Error() == utils.HelpRequested.Message {
+				return utils.HelpRequested
+			}
 			return utils.IncorrectCommandLineParameters
 		}
 	}
