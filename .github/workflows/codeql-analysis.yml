@@ -64,7 +64,17 @@ jobs:
       with:
         template: report
         token: ${{ secrets.SECURITY_TOKEN }}
+    - name: Check if report.pdf exists
+      id: check_file
+      run: |
+        if [ -f "report.pdf" ]; then
+          echo "EXISTS=true" >> $GITHUB_OUTPUT
+        else
+          echo "EXISTS=false" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
     - name: Rename Report
+      if: ${{ steps.check_file.outputs.EXISTS == 'true' }}
       shell: bash
       run: |
         DATE=$(date +"%Y-%m-%d")
