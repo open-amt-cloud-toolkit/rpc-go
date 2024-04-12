@@ -77,6 +77,8 @@ func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string
 		if err != nil {
 			log.Infof("unable to delete: %s %s", handle, err)
 			err = utils.DeleteWifiConfigFailed
+		} else {
+			delete(service.handlesWithCerts, handle)
 		}
 	}
 	for _, handle := range keyPairHandles {
@@ -243,7 +245,7 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 		ieee8021xSettings.Password = ieee8021xConfig.Password
 	}
 	if ieee8021xConfig.PrivateKey != "" {
-		handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
+		handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.PrivateKey)
 		if handles.privateKeyHandle == "" {
 			handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
 			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
