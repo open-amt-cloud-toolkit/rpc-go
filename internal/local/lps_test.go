@@ -567,6 +567,13 @@ var mockControlModeErr error = nil
 
 func (c MockAMT) GetControlMode() (int, error) { return mockControlMode, mockControlModeErr }
 
+var mockProvisioningState = 0
+var mockProvisioningStateErr error = nil
+
+func (c MockAMT) GetProvisioningState() (int, error) {
+	return mockProvisioningState, mockProvisioningStateErr
+}
+
 var mockDNSSuffix = "dns.org"
 var mockDNSSuffixErr error = nil
 

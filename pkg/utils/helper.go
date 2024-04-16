@@ -17,6 +17,19 @@ func InterpretControlMode(mode int) string {
 	}
 }
 
+func InterpretProvisioningState(state int) string {
+	switch state {
+	case 0:
+		return "pre-provisioning state"
+	case 1:
+		return "in-provisioning state"
+	case 2:
+		return "post-provisioning state"
+	default:
+		return "unknown state"
+	}
+}
+
 func InterpretHashAlgorithm(hashAlgorithm int) (hashSize int, algorithm string) {
 	switch hashAlgorithm {
 	case 0: // MD5

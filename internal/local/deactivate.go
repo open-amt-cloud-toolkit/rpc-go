@@ -6,16 +6,16 @@
 package local
 
 import (
+	"crypto/tls"
 	"rpc/pkg/utils"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) Deactivate() (err error) {
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return utils.AMTConnectionFailed
 	}
 	// Deactivate based on the control mode
@@ -25,16 +25,16 @@ func (service *ProvisioningService) Deactivate() (err error) {
 	case 2: // ACMMode
 		err = service.DeactivateACM()
 	default:
-		log.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
+		logrus.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
 		return utils.UnableToDeactivate
 	}
 
 	if err != nil {
-		log.Error("Deactivation failed.", err)
+		logrus.Error("Deactivation failed.", err)
 		return utils.UnableToDeactivate
 	}
 
-	log.Info("Status: Device deactivated")
+	logrus.Info("Status: Device deactivated")
 	return nil
 }
 
@@ -45,10 +45,10 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
 	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
-		log.Error("Status: Unable to deactivate ", err)
+		logrus.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate
 	}
 	return nil
@@ -56,11 +56,11 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 
 func (service *ProvisioningService) DeactivateCCM() (err error) {
 	if service.flags.Password != "" {
-		log.Warn("Password not required for CCM deactivation")
+		logrus.Warn("Password not required for CCM deactivation")
 	}
 	status, err := service.amtCommand.Unprovision()
 	if err != nil || status != 0 {
-		log.Error("Status: Failed to deactivate ", err)
+		logrus.Error("Status: Failed to deactivate ", err)
 		return utils.DeactivationFailed
 	}
 	return nil

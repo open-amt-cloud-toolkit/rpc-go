@@ -7,6 +7,7 @@ package local
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -38,4 +39,17 @@ func checkHandleExists(handles map[string]string, cert string) string {
 		}
 	}
 	return ""
+}
+
+// GetAMTMajorVersion parses a version formatted string and returns the major (first) number as an int
+func GetAMTMajorVersion(versionString string) int {
+	parts := strings.Split(versionString, ".")
+	if len(parts) < 1 {
+		return 0
+	}
+	majorVersion, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0
+	}
+	return majorVersion
 }

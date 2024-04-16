@@ -9,22 +9,25 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"math/big"
 	"net"
-	"software.sslmate.com/src/go-pkcs12"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type Composite struct {
 	Cert        *x509.Certificate
+	TlsCert 	tls.Certificate
 	Pem         string
 	Fingerprint string
 	privateKey  *rsa.PrivateKey
@@ -236,4 +239,48 @@ func NewCompositeChain(password string) (CompositeChain, error) {
 	chain.Pfxb64 = base64.StdEncoding.EncodeToString(chain.PfxData)
 
 	return chain, err
+}
+// GenerateHostBasedCertificate returns a Composite that can be used with AMT Secure Host Based Activation
+func GenerateHostBasedCertificate() (Composite, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return Composite{}, err
+	}
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization: []string{"Open AMT Cloud Toolkit"},
+			CommonName: "vprodemo.com",
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, 1),
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		DNSNames:              []string{"vprodemo.com"},
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return Composite{}, err
+	}
+
+	cert, err := x509.ParseCertificate(certDER)
+	if err != nil {
+		return Composite{}, err
+	}
+
+	tlsCert := tls.Certificate{
+		Certificate: [][]byte{cert.Raw},
+		PrivateKey: privateKey,
+	}
+
+	certComposite := Composite{
+		Cert: cert,
+		TlsCert: tlsCert,
+	}
+	return certComposite, nil
 }

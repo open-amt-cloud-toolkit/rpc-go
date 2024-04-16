@@ -11,18 +11,20 @@ import (
 )
 
 type AmtInfoFlags struct {
-	Ver      bool
-	Bld      bool
-	Sku      bool
-	UUID     bool
-	Mode     bool
-	DNS      bool
-	Cert     bool
-	UserCert bool
-	Ras      bool
-	Lan      bool
-	Hostname bool
-	OpState  bool
+	Ver              bool
+	Bld              bool
+	Sku              bool
+	UUID             bool
+	Mode             bool
+	DNS              bool
+	Cert             bool
+	UserCert         bool
+	Ras              bool
+	Lan              bool
+	Hostname         bool
+	OpState          bool
+	SecureActivation bool
+	StopActivation   bool
 }
 
 func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) error {

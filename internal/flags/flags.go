@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/internal/amt"
+	"rpc/internal/certs"
 	"rpc/internal/config"
 	"rpc/internal/smb"
 	"rpc/pkg/utils"
@@ -108,6 +109,9 @@ type Flags struct {
 	KVM                                 bool
 	SOL                                 bool
 	IDER                                bool
+	UseTLSActivation                    bool
+	AMTTLSActivationCertificateHash     []byte
+	RPCTLSActivationCertificate         certs.Composite
 }
 
 func NewFlags(args []string, pr utils.PasswordReader) *Flags {
