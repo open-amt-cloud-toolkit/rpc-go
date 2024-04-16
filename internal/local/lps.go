@@ -31,9 +31,15 @@ type ProvisioningService struct {
 }
 
 func NewProvisioningService(flags *flags.Flags) ProvisioningService {
+	scheme := "http"
+	port := utils.LMSPort
+	if flags.UseTLSActivation {
+		scheme = "https"
+		port = utils.LMSTLSPort
+	}
 	serverURL := &url.URL{
-		Scheme: "http",
-		Host:   utils.LMSAddress + ":" + utils.LMSPort,
+		Scheme: scheme,
+		Host:   utils.LMSAddress + ":" + port,
 		Path:   "/wsman",
 	}
 	return ProvisioningService{

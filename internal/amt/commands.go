@@ -5,8 +5,10 @@
 package amt
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"rpc/internal/certs"
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
 	"strconv"
@@ -68,6 +70,16 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type StartTLSActivationResponse struct {
+	Header        pthi.ResponseMessageHeader
+	HashAlgorithm uint8
+	AMTCertHash   [64]uint8
+}
+
+type StopTLSActivationResponse struct {
+	Header pthi.ResponseMessageHeader
+}
+
 type ChangeEnabledResponse uint8
 
 func (r ChangeEnabledResponse) IsTransitionAllowed() bool {
@@ -88,6 +100,7 @@ type Interface interface {
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
+	GetProvisioningState() (int, error)
 	GetOSDNSSuffix() (string, error)
 	GetDNSSuffix() (string, error)
 	GetCertificateHashes() ([]CertHashEntry, error)
@@ -95,6 +108,8 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (InterfaceSettings, error)
 	GetLocalSystemAccount() (LocalSystemAccount, error)
 	Unprovision() (mode int, err error)
+	StartTLSActivation() (StartTLSActivationResponse, certs.Composite, error)
+	StopTLSActivation() (StopTLSActivationResponse, error)
 }
 
 func ANSI2String(ansi pthi.AMTANSIString) string {
@@ -248,6 +263,19 @@ func (amt AMTCommand) GetControlMode() (int, error) {
 	}
 
 	return result, nil
+}
+func (amt AMTCommand) GetProvisioningState() (int, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return -1, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.GetProvisioningState()
+	if err != nil {
+		return -1, err
+	}
+
+	return int(result.ProvisioningState), nil
 }
 
 // Unprovision ...
@@ -415,4 +443,87 @@ func (amt AMTCommand) GetLocalSystemAccount() (LocalSystemAccount, error) {
 	}
 
 	return lsa, nil
+}
+
+func (amt AMTCommand) StartTLSActivation() (StartTLSActivationResponse, certs.Composite, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		return StartTLSActivationResponse{}, certs.Composite{}, err
+	}
+	defer amt.PTHI.Close()
+	serverHashAlgorithm := pthi.CERT_HASH_ALGORITHM_SHA256
+	serverCertHash, composite, err := createCertForHostBased()
+	if err != nil {
+		return StartTLSActivationResponse{}, certs.Composite{}, err
+	}
+	hostVPNEnable := uint32(0)                                                   // False
+	networkDnsSuffixList := [320]byte{} // convertSuffixToChar320Array(composite.Cert.DNSNames) // DNS name of the certificate we created for SecureHostBasedConfiguration
+	DnsSuffixListLength := uint32(len(networkDnsSuffixList))
+	result, err := amt.PTHI.StartConfigurationHBased(serverHashAlgorithm, [64]uint8(serverCertHash), hostVPNEnable, DnsSuffixListLength, networkDnsSuffixList)
+	if err != nil {
+		return StartTLSActivationResponse{}, certs.Composite{}, err
+	}
+
+	response := StartTLSActivationResponse{
+		Header:        result.Header,
+		HashAlgorithm: result.HashAlgorithm,
+		AMTCertHash:   result.AMTCertHash,
+	}
+	return response, composite, nil
+}
+
+func createCertForHostBased() ([]byte, certs.Composite, error) {
+	composite, err := certs.GenerateHostBasedCertificate()
+	if err != nil {
+		return []byte{}, certs.Composite{}, err
+	}
+	certHash := sha256.Sum256(composite.Cert.Raw)
+	bytes := make([]byte, 64)
+	copy(bytes[:], certHash[:])
+	return bytes, composite, nil
+}
+
+func convertSuffixToChar320Array(suffixes []string) [320]byte {
+	const (
+		maxSuffixes       = 5
+		maxBytesPerSuffix = 64
+		maxTotalBytes     = 320
+	)
+	var charArray [maxTotalBytes]byte
+	// Convert and concatenate suffixes
+	var idx int
+	for _, suffix := range suffixes {
+		if idx+len(suffix)+1 > maxTotalBytes {
+			break
+		}
+		for i, b := range []byte(suffix) {
+			if i >= maxBytesPerSuffix {
+				break
+			}
+			charArray[idx+i] = b
+		}
+		idx += maxBytesPerSuffix
+		charArray[idx] = 0 // NULL termination
+		idx++
+	}
+	return charArray
+}
+
+func (amt AMTCommand) StopTLSActivation() (StopTLSActivationResponse, error) {
+	err := amt.PTHI.Open(false)
+	if err != nil {
+		emptyResponse := StopTLSActivationResponse{}
+		return emptyResponse, err
+	}
+	defer amt.PTHI.Close()
+	result, err := amt.PTHI.StopConfiguration()
+	if err != nil {
+		emptyResponse := StopTLSActivationResponse{}
+		return emptyResponse, err
+	}
+
+	response := StopTLSActivationResponse{
+		Header: result,
+	}
+	return response, err
 }

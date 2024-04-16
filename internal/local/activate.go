@@ -10,11 +10,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"rpc/pkg/utils"
 	"strings"
 
@@ -34,6 +36,15 @@ func (service *ProvisioningService) Activate() error {
 	}
 
 	service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	amtVersion, err := service.amtCommand.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
+	if err != nil {
+		return utils.AMTConnectionFailed
+	}
+	amtMajorVersion := GetAMTMajorVersion(amtVersion)
+	if amtMajorVersion > 14 {
+		log.Info("AMT version 15 or greater detected, using secure host based configuration flow")
+		service.flags.UseTLSActivation = true
+	}
 
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
@@ -41,22 +52,52 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
 
-	if service.flags.UseACM {
-		err = service.ActivateACM()
-		if err == nil {
-			log.Info("Status: Device activated in Admin Control Mode")
+	// Need to get certificate from AMT and pass it into the SetupWsmanClient
+	if service.flags.UseTLSActivation {
+		response, certificate, err := service.amtCommand.StartTLSActivation()
+		if err != nil {
+			log.Error(err)
+			return utils.AMTConnectionFailed
 		}
-	} else if service.flags.UseCCM {
-		err = service.ActivateCCM()
+		fmt.Println(response)
+		fmt.Println(certificate)
+		log.Debug("Secure Configuration: command: ", response.Header.Status)
+		service.flags.AMTTLSActivationCertificateHash = response.AMTCertHash[:]
+		certAndKeys, err := service.ConvertPfxToObject(service.config.ACMSettings.ProvisioningCert, service.config.ACMSettings.ProvisioningCertPwd)
+		if err != nil {
+			log.Error(err)
+			return utils.ActivationFailed
+		}
+		service.flags.RPCTLSActivationCertificate.TlsCert = convertProvisioningCertForTLS(certAndKeys)
+		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{service.flags.RPCTLSActivationCertificate.TlsCert})
+		if service.flags.UseACM {
+			err = service.ActivateACMOverTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Admin Control Mode")
+			}
+		} else if service.flags.UseCCM {
+			err = service.ActivateCCMOverTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Client Control Mode")
+			}
+		}
+	} else {
+		service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel, []tls.Certificate{})
+		if service.flags.UseACM {
+			err = service.ActivateACMOverNonTLS()
+			if err == nil {
+				log.Info("Status: Device activated in Admin Control Mode")
+			}
+		} else if service.flags.UseCCM {
+			err = service.ActivateCCMOverNonTLS()
+		}
 	}
 
 	return err
 }
 
-func (service *ProvisioningService) ActivateACM() error {
-
+func (service *ProvisioningService) ActivateACMOverNonTLS() error {
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
 	if err != nil {
@@ -112,16 +153,79 @@ func (service *ProvisioningService) ActivateACM() error {
 	return nil
 }
 
-func (service *ProvisioningService) ActivateCCM() error {
+func (service *ProvisioningService) ActivateACMOverTLS() error {
+	log.Info("Secure Configuration started")
+	mode, err := service.amtCommand.GetProvisioningState()
+	if err != nil {
+		log.Error(err)
+	}
+	log.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
+	resp1, err := service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp1)
+	resp2, err := service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp2)
+	resp3, err := service.interfacedWsmanMessage.CommitChanges()
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp3)
+	return nil
+}
+
+func (service *ProvisioningService) ActivateCCMOverNonTLS() error {
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
 		return utils.ActivationFailed
 	}
 	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
 	if err != nil {
+		if service.flags.UseTLSActivation {
+			response, _ := service.amtCommand.StopTLSActivation()
+			if response.Header.Status == 0 {
+				log.Info("Secure Configuration stopped")
+			}
+		}
 		return utils.ActivationFailed
 	}
 	log.Info("Status: Device activated in Client Control Mode")
+	return nil
+}
+
+func (service *ProvisioningService) ActivateCCMOverTLS() error {
+
+	log.Info("Secure Configuration started")
+	mode, err := service.amtCommand.GetProvisioningState()
+	if err != nil {
+		log.Error(err)
+	}
+	log.Debug("AMT mode: ", string(utils.InterpretProvisioningState(mode)))
+	resp1, err := service.interfacedWsmanMessage.SetAdminPassword("admin", service.flags.Password)
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp1)
+	resp2, err := service.interfacedWsmanMessage.SetupMEBX("P@ssw0rd")
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp2)
+	resp3, err := service.interfacedWsmanMessage.CommitChanges()
+	if err != nil {
+		log.Error(err)
+		return utils.ActivationFailed
+	}
+	log.Info(resp3)
 	return nil
 }
 
@@ -149,7 +253,7 @@ func cleanPEM(pem string) string {
 
 func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertObj, string, error) {
 	config := service.config.ACMSettings
-	certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
+	certsAndKeys, err := service.ConvertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
 	if err != nil {
 		return ProvisioningCertObj{}, "", err
 	}
@@ -160,7 +264,7 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 	return result, fingerprint, nil
 }
 
-func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
+func (service *ProvisioningService) ConvertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
 	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
 	if err != nil {
 		return CertsAndKeys{}, err
@@ -331,4 +435,16 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 		return "", err
 	}
 	return signature, nil
+}
+
+func convertProvisioningCertForTLS(certAndKeys CertsAndKeys) tls.Certificate {
+	var certBytes [][]byte
+	for _, cert := range certAndKeys.certs {
+		certBytes = append(certBytes, cert.Raw)
+	}
+	tlsCert := tls.Certificate{
+		Certificate: certBytes,
+		PrivateKey:  certAndKeys.keys,
+	}
+	return tlsCert
 }

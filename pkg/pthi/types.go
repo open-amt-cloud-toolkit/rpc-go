@@ -124,6 +124,9 @@ const GET_UUID_RESPONSE = 0x480005c
 const STATE_INDEPENNDENCE_IsChangeToAMTEnabled_CMD = 0x5
 const STATE_INDEPENNDENCE_IsChangeToAMTEnabled_SUBCMD = 0x51
 
+const START_CONFIGURATION_HBASED_REQUEST = 0x400008b
+const START_CONFIGURATION_HBASED_RESPONSE = 0x480008b
+
 type AMTUnicodeString struct {
 	Length uint16
 	String [UNICODE_STRING_LEN]uint8
@@ -304,4 +307,36 @@ type SetAmtOperationalStateResponse struct {
 	SubCommand    uint8
 	VersionNumber uint8
 	Status        Status
+}
+
+type CERT_HASH_ALGORITHM uint8
+
+const (
+	CERT_HASH_ALGORITHM_MD5 CERT_HASH_ALGORITHM = iota
+	CERT_HASH_ALGORITHM_SHA1
+	CERT_HASH_ALGORITHM_SHA256
+	CERT_HASH_ALGORITHM_SHA384
+	CERT_HASH_ALGORITHM_SHA224
+	CERT_HASH_ALGORITHM_SHA512
+)
+
+type StartConfigurationHBasedRequest struct {
+	Header               MessageHeader
+	ServerHashAlgorithm  CERT_HASH_ALGORITHM
+	ServerCertHash       [SHA_512_KEY_SIZE]uint8
+	HostVPNEnable        uint32
+	SuffixListLen        uint32
+	NetworkDnsSuffixList [320]byte
+}
+
+const SHA_512_KEY_SIZE int = 64
+
+type StartConfigurationHBasedResponse struct {
+	Header        ResponseMessageHeader
+	HashAlgorithm uint8
+	AMTCertHash   [SHA_512_KEY_SIZE]uint8
+}
+type ProvisioningStateResponse struct {
+	Header ResponseMessageHeader
+	ProvisioningState uint32
 }
