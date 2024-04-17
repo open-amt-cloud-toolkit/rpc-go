@@ -1,3 +1,15 @@
+# [2.33.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.32.2...v2.33.0) (2024-04-17)
+
+
+### Bug Fixes
+
+* wifi prune ([#482](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/482)) ([0e2ce20](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/0e2ce200d0f4c37d22f843cb4328d1b597b2635a))
+
+
+### Features
+
+* adds 8021x to wired configuration ([1e34d85](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/1e34d852d980fa0c243dd101ec57b6211175b9cf))
+
 <a name="v2.25.1"></a>
 ## [v2.25.1] - 2024-02-08
 ### Build
