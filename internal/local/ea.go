@@ -95,7 +95,6 @@ func (service *ProvisioningService) GetAuthToken(url string, credentials AuthReq
 }
 
 func (service *ProvisioningService) EAConfigureRequest(url string, token string, profileRequest EAProfile) (EAProfile, error) {
-	// eaAddress := service.config.EnterpriseAssistant.EAAddress + url
 	requestBody, err := json.Marshal(profileRequest)
 	if err != nil {
 		return EAProfile{}, fmt.Errorf("marshalling profile request: %v", err)

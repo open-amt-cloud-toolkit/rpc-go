@@ -31,6 +31,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/common"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/optin"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,6 +46,36 @@ func (m MockOSNetworker) RenewDHCPLease() error {
 
 // Mock the go-wsman-messages
 type MockWSMAN struct{}
+
+var mockPutIPSIEEE8021xError error = nil
+var mockPutIPSIEEE8021xResponse ieee8021x.Response
+
+func (m MockWSMAN) PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error) {
+	return mockPutIPSIEEE8021xResponse, mockPutIPSIEEE8021xError
+}
+
+var mockSetIPSIEEE8021xError error = nil
+var mockSetIPSIEEE8021xResponse ieee8021x.Response
+
+func (m MockWSMAN) SetIPSIEEE8021xCertificates(serverCertificateIssuer string, clientCertificate string) (response ieee8021x.Response, err error) {
+	return mockSetIPSIEEE8021xResponse, mockSetIPSIEEE8021xError
+}
+
+var mockGetIPSIEEE8021xError error = nil
+
+func (m MockWSMAN) GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error) {
+	return ieee8021x.Response{
+		Body: ieee8021x.Body{
+			IEEE8021xSettingsResponse: ieee8021x.IEEE8021xSettingsResponse{
+				InstanceID:    "wifi8021x",
+				ElementName:   "8021x",
+				Enabled:       3,
+				AvailableInS0: true,
+				PxeTimeout:    120,
+			},
+		},
+	}, mockGetIPSIEEE8021xError
+}
 
 func (MockWSMAN) UpdateAMTPassword(passwordBase64 string) (authorization.Response, error) {
 	return authorization.Response{

@@ -63,14 +63,6 @@ var ieee8021xCfgEAPTLS = config.Ieee8021xConfig{
 	PrivateKey:             "privateKey",
 }
 
-// var ieee8021xConfig = ieee8021xCfgEAPTLS
-//
-//	var ieee8021xSettings = models.IEEE8021xSettings{
-//		ElementName:            ieee8021xConfig.ProfileName,
-//		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
-//		AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
-//		Username:               ieee8021xConfig.Username,
-//	}
 var errTestError = errors.New("test error")
 
 func TestAddWifiSettings(t *testing.T) {
@@ -129,14 +121,6 @@ func TestProcessWifiConfig(t *testing.T) {
 		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
 		assert.NoError(t, err)
 	})
-	// t.Run("expect success when handling non-ieee8021x config", func(t *testing.T) {
-	// 	eaconfigure =true
-	// 	lps := setupService(f)
-	// 	err := lps.ProcessWifiConfig(&wifiCfgWPA2)
-	// 	assert.NoError(t, err)
-	// 	eaconfure = false
-	// })
-
 }
 func TestPruneWifiConfigs(t *testing.T) {
 	f := &flags.Flags{}
