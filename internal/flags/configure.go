@@ -114,13 +114,16 @@ func (f *Flags) handleConfigureCommand() error {
 
 	f.SubCommand = f.commandLineArgs[2]
 	switch f.SubCommand {
-	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
+	case utils.SubCommandAddEthernetSettings:
 		log.Info("Sub command \"wiredsettings\" is deprecated use \"wired\" instead")
 		err = f.handleAddEthernetSettings()
-	case utils.SubCommandAddWifiSettings, utils.SubCommandWireless:
+	case utils.SubCommandWired:
+		err = f.handleAddEthernetSettings()
+	case utils.SubCommandAddWifiSettings:
 		log.Info("Sub command \"addwifisettings\" is deprecated use \"wireless\" instead")
 		err = f.handleAddWifiSettings()
-
+	case utils.SubCommandWireless:
+		err = f.handleAddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
 		err = f.handleEnableWifiPort()
 	case utils.SubCommandConfigureTLS:
@@ -321,28 +324,55 @@ func (f *Flags) handleConfigureTLS() error {
 
 func (f *Flags) handleAddEthernetSettings() error {
 	var configJson string
-	fs := f.NewConfigureFlagSet(utils.SubCommandWired)
-	fs.StringVar(&f.configContent, "config", "", "Specify a config file or smb: file share URL")
-	fs.StringVar(&configJson, "configJson", "", "Configuration as a JSON string")
-	fs.BoolVar(&f.IpConfiguration.DHCP, "dhcp", false, "Configures wired settings to use dhcp")
-	fs.BoolVar(&f.IpConfiguration.Static, "static", false, "Configures wired settings to use static ip address")
-	fs.BoolVar(&f.IpConfiguration.IpSync, "ipsync", false, "Sync the IP configuration of the host OS to AMT Network Settings")
-	fs.Func(
+	var secretsFilePath string
+	var secretConfig config.SecretConfig
+
+	f.flagSetAddEthernetSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
+	f.flagSetAddEthernetSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
+	f.flagSetAddEthernetSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
+
+	wiredSettings := config.EthernetConfig{}
+	f.flagSetAddEthernetSettings.BoolVar(&wiredSettings.DHCP, "dhcp", false, "Configures wired settings to use dhcp")
+	f.flagSetAddEthernetSettings.BoolVar(&wiredSettings.Static, "static", false, "Configures wired settings to use static ip address")
+	f.flagSetAddEthernetSettings.BoolVar(&wiredSettings.IpSync, "ipsync", false, "Sync the IP configuration of the host OS to AMT Network Settings")
+	f.flagSetAddEthernetSettings.Func(
 		"ipaddress",
 		"IP address to be assigned to AMT",
-		validateIP(&f.IpConfiguration.IpAddress))
-	fs.Func(
+		validateIP(&wiredSettings.IpAddress))
+	f.flagSetAddEthernetSettings.Func(
 		"subnetmask",
 		"Subnetwork mask to be assigned to AMT",
-		validateIP(&f.IpConfiguration.Netmask))
-	fs.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&f.IpConfiguration.Gateway))
-	fs.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.PrimaryDns))
-	fs.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&f.IpConfiguration.SecondaryDns))
+		validateIP(&wiredSettings.Subnetmask))
+	f.flagSetAddEthernetSettings.Func("gateway", "Gateway address to be assigned to AMT", validateIP(&wiredSettings.Gateway))
+	f.flagSetAddEthernetSettings.Func("primarydns", "Primary DNS to be assigned to AMT", validateIP(&wiredSettings.PrimaryDNS))
+	f.flagSetAddEthernetSettings.Func("secondarydns", "Secondary DNS to be assigned to AMT", validateIP(&wiredSettings.SecondaryDNS))
+	f.flagSetAddEthernetSettings.StringVar(&wiredSettings.Ieee8021xProfileName, "ieee8021xProfileName", "", "specify 802.1x profile name")
+	f.flagSetAddEthernetSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	f.flagSetAddEthernetSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	f.flagSetAddEthernetSettings.BoolVar(&f.JsonOutput, "json", false, "JSON output")
+	f.flagSetAddEthernetSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
-	if err := fs.Parse(f.commandLineArgs[3:]); err != nil {
+	ieee8021xCfg := config.Ieee8021xConfig{}
+	f.flagSetAddEthernetSettings.StringVar(&ieee8021xCfg.Username, "username", "", "specify username")
+	f.flagSetAddEthernetSettings.StringVar(&ieee8021xCfg.Password, "ieee8021xPassword", f.lookupEnvOrString("IEE8021X_PASSWORD", ""), "8021x password if authenticationProtocol is PEAPv0/EAP-MSCHAPv2(2)")
+	f.flagSetAddEthernetSettings.IntVar(&ieee8021xCfg.AuthenticationProtocol, "authenticationProtocol", 0, "specify authentication protocol")
+	f.flagSetAddEthernetSettings.StringVar(&ieee8021xCfg.ClientCert, "clientCert", "", "specify client certificate")
+	f.flagSetAddEthernetSettings.StringVar(&ieee8021xCfg.CACert, "caCert", "", "specify CA certificate")
+	f.flagSetAddEthernetSettings.StringVar(&ieee8021xCfg.PrivateKey, "privateKey", f.lookupEnvOrString("IEE8021X_PRIVATE_KEY", ""), "specify private key")
+
+	eaSettings := config.EnterpriseAssistant{}
+	f.flagSetAddEthernetSettings.StringVar(&eaSettings.EAAddress, "eaAddress", "", "Enterprise Assistant address")
+	f.flagSetAddEthernetSettings.StringVar(&eaSettings.EAUsername, "eaUsername", "", "Enterprise Assistant username")
+	f.flagSetAddEthernetSettings.StringVar(&eaSettings.EAPassword, "eaPassword", "", "Enterprise Assistant password")
+
+	if err := f.flagSetAddEthernetSettings.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
+	// update the config with the data read from flags
+	f.LocalConfig.WiredConfig = wiredSettings
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
+	f.LocalConfig.EnterpriseAssistant = eaSettings
 
 	if f.configContent != "" || configJson != "" {
 		err := f.handleLocalConfig()
@@ -356,63 +386,116 @@ func (f *Flags) handleAddEthernetSettings() error {
 				return utils.IncorrectCommandLineParameters
 			}
 		}
-
-		if f.IpConfiguration.DHCP ||
-			f.IpConfiguration.Static ||
-			f.IpConfiguration.IpSync ||
-			f.IpConfiguration.IpAddress != "" ||
-			f.IpConfiguration.Netmask != "" ||
-			f.IpConfiguration.Gateway != "" ||
-			f.IpConfiguration.PrimaryDns != "" ||
-			f.IpConfiguration.SecondaryDns != "" {
-			return utils.IncorrectCommandLineParameters
+	} else {
+		// if no config file is provided, set IEEE profile name as given in WiredConfig
+		if f.LocalConfig.WiredConfig.Ieee8021xProfileName != "" && len(f.LocalConfig.Ieee8021xConfigs) > 0 {
+			f.LocalConfig.Ieee8021xConfigs[0].ProfileName = f.LocalConfig.WiredConfig.Ieee8021xProfileName
 		}
-
-		f.IpConfiguration.DHCP = f.LocalConfig.WiredConfig.DHCP
-		f.IpConfiguration.Static = f.LocalConfig.WiredConfig.Static
-		f.IpConfiguration.IpSync = f.LocalConfig.WiredConfig.IpSync
-		f.IpConfiguration.IpAddress = f.LocalConfig.WiredConfig.IpAddress
-		f.IpConfiguration.Netmask = f.LocalConfig.WiredConfig.Subnetmask
-		f.IpConfiguration.Gateway = f.LocalConfig.WiredConfig.Gateway
-		f.IpConfiguration.PrimaryDns = f.LocalConfig.WiredConfig.PrimaryDNS
-		f.IpConfiguration.SecondaryDns = f.LocalConfig.WiredConfig.SecondaryDNS
-
 	}
 
-	if f.IpConfiguration.DHCP == f.IpConfiguration.Static {
+	if f.LocalConfig.WiredConfig.DHCP == f.LocalConfig.WiredConfig.Static {
 		log.Error("must specify -dhcp or -static, but not both")
 		return utils.InvalidParameterCombination
 	}
 
-	if f.IpConfiguration.DHCP && !f.IpConfiguration.IpSync {
+	if f.LocalConfig.WiredConfig.DHCP && !f.LocalConfig.WiredConfig.IpSync {
 		return utils.InvalidParameterCombination
 	}
 
-	if f.IpConfiguration.IpSync {
-		if f.IpConfiguration.IpAddress != "" ||
-			f.IpConfiguration.Netmask != "" ||
-			f.IpConfiguration.Gateway != "" ||
-			f.IpConfiguration.PrimaryDns != "" ||
-			f.IpConfiguration.SecondaryDns != "" {
+	if f.LocalConfig.WiredConfig.IpSync {
+		if f.LocalConfig.WiredConfig.IpAddress != "" ||
+			f.LocalConfig.WiredConfig.Subnetmask != "" ||
+			f.LocalConfig.WiredConfig.Gateway != "" ||
+			f.LocalConfig.WiredConfig.PrimaryDNS != "" ||
+			f.LocalConfig.WiredConfig.SecondaryDNS != "" {
 			return utils.InvalidParameterCombination
 		}
 	}
 
-	if f.IpConfiguration.Static && !f.IpConfiguration.IpSync {
-		if f.IpConfiguration.IpAddress == "" {
+	if f.LocalConfig.WiredConfig.Static && !f.LocalConfig.WiredConfig.IpSync {
+		if f.LocalConfig.WiredConfig.IpAddress == "" {
 			return utils.MissingOrIncorrectStaticIP
 		}
-		if f.IpConfiguration.Netmask == "" {
+		if f.LocalConfig.WiredConfig.Subnetmask == "" {
 			return utils.MissingOrIncorrectNetworkMask
 		}
-		if f.IpConfiguration.Gateway == "" {
+		if f.LocalConfig.WiredConfig.Gateway == "" {
 			return utils.MissingOrIncorrectGateway
 		}
-		if f.IpConfiguration.PrimaryDns == "" {
+		if f.LocalConfig.WiredConfig.PrimaryDNS == "" {
 			return utils.MissingOrIncorrectPrimaryDNS
 		}
 	}
 
+	if secretsFilePath != "" {
+		err := cleanenv.ReadConfig(secretsFilePath, &secretConfig)
+		if err != nil {
+			log.Error("error reading secrets file: ", err)
+			return utils.FailedReadingConfiguration
+		}
+	}
+
+	err := f.verifyWiredIeee8021xConfig(secretConfig)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *Flags) verifyWiredIeee8021xConfig(secretConfig config.SecretConfig) error {
+
+	// Check if the 802.1x profile name is set
+	if f.LocalConfig.WiredConfig.Ieee8021xProfileName == "" {
+		return nil
+	}
+	// Check and prompt for EA password if necessary
+	if f.LocalConfig.EnterpriseAssistant.EAAddress != "" && f.LocalConfig.EnterpriseAssistant.EAUsername != "" {
+		if f.LocalConfig.EnterpriseAssistant.EAPassword == "" {
+			if err := f.PromptUserInput("Please enter EA password: ", &f.LocalConfig.EnterpriseAssistant.EAPassword); err != nil {
+				return err
+			}
+		}
+		f.LocalConfig.EnterpriseAssistant.EAConfigured = true
+	}
+	// Find and validate the 802.1x config
+	var wired8021xConfig *config.Ieee8021xConfig
+	for i, item := range f.LocalConfig.Ieee8021xConfigs {
+		if item.ProfileName == f.LocalConfig.WiredConfig.Ieee8021xProfileName {
+			wired8021xConfig = &f.LocalConfig.Ieee8021xConfigs[i]
+			break
+		}
+	}
+	// If the profile was not found, log and return an error
+	if wired8021xConfig == nil {
+		log.Error("ieee8021x profile name does not match")
+		return utils.MissingOrInvalidConfiguration
+	}
+	// Verify authentication protocol
+	if wired8021xConfig.AuthenticationProtocol != ieee8021x.AuthenticationProtocolEAPTLS && wired8021xConfig.AuthenticationProtocol != ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
+		log.Error("invalid authentication protocol for wired 802.1x")
+		return utils.MissingOrInvalidConfiguration
+	}
+	// Merge secrets with configs
+	if !f.LocalConfig.EnterpriseAssistant.EAConfigured && secretConfig.Secrets != nil {
+		for _, secret := range secretConfig.Secrets {
+			if secret.PrivateKey != "" {
+				for i := range f.LocalConfig.Ieee8021xConfigs {
+					item := &f.LocalConfig.Ieee8021xConfigs[i]
+					if item.ProfileName == secret.ProfileName {
+						item.PrivateKey = secret.PrivateKey
+					}
+				}
+			}
+		}
+	}
+	// Prompt for private key if not already configured
+	if !f.LocalConfig.EnterpriseAssistant.EAConfigured && wired8021xConfig.PrivateKey == "" {
+		return f.PromptUserInput("Please enter private key for "+wired8021xConfig.ProfileName+": ", &wired8021xConfig.PrivateKey)
+	}
+	// Verify matching 802.1x config
+	if err := f.verifyMatchingIeee8021xConfig(wired8021xConfig.ProfileName); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -586,14 +669,13 @@ func (f *Flags) promptForSecrets() error {
 		if item.ProfileName == "" {
 			continue
 		}
-		authProtocol := item.AuthenticationProtocol
-		if authProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
+		if item.AuthenticationProtocol == ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 && item.Password == "" {
 			err := f.PromptUserInput("Please enter password for "+item.ProfileName+": ", &item.Password)
 			if err != nil {
 				return err
 			}
 		}
-		if authProtocol == ieee8021x.AuthenticationProtocolEAPTLS && item.PrivateKey == "" {
+		if item.AuthenticationProtocol == ieee8021x.AuthenticationProtocolEAPTLS && item.PrivateKey == "" {
 			err := f.PromptUserInput("Please enter private key for "+item.ProfileName+": ", &item.PrivateKey)
 			if err != nil {
 				return err
@@ -742,23 +824,9 @@ func (f *Flags) verifyIeee8021xConfig(cfg config.Ieee8021xConfig) error {
 			return err
 		}
 	}
-	authenticationProtocol := cfg.AuthenticationProtocol
 	// not all defined protocols are supported
-	switch authenticationProtocol {
+	switch cfg.AuthenticationProtocol {
 	case ieee8021x.AuthenticationProtocolEAPTLS:
-		if cfg.ClientCert == "" {
-			log.Error("missing clientCert for config: ", cfg.ProfileName)
-			return err
-		}
-		if cfg.CACert == "" {
-			log.Error("missing caCert for config: ", cfg.ProfileName)
-			return err
-		}
-	}
-	authenticationProtocol = cfg.AuthenticationProtocol
-	// not all defined protocols are supported
-	switch authenticationProtocol {
-	case ieee8021x.AuthenticationProtocolEAPTLS: // AuthenticationProtocol 0
 		if !isEAConfigured {
 			if cfg.ClientCert == "" {
 				log.Error("missing clientCert for config: ", cfg.ProfileName)

@@ -1,25 +1,86 @@
 package local
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
+	"strings"
 	"testing"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/stretchr/testify/assert"
 )
 
+var mockauthResponse = AuthResponse{Token: "someToken"}
+var mockconfigResponse = EAProfile{
+	NodeID:       "someID",
+	Domain:       "someDomain",
+	ReqID:        "someReqID",
+	AuthProtocol: 0,
+
+	OSName:  "win11",
+	DevName: "someDevName",
+	Icon:    1,
+	Ver:     "someVer",
+	Response: Response{
+		CSR:           "someCSR",
+		KeyInstanceId: "someKeyInstanceID",
+		AuthProtocol:  0,
+		Certificate:   "someCertificate",
+		Domain:        "someDomain",
+		Username:      "someUsername",
+	},
+}
+var Ieee8021xConfigs = []config.Ieee8021xConfig{
+	{
+		ProfileName:            "testProfile",
+		Username:               "exampleUserName",
+		AuthenticationProtocol: 0,
+		ClientCert:             "clientCert",
+		CACert:                 "caCert",
+		PrivateKey:             "privateKey",
+	},
+}
+
+func httpServer(expectError error) (server *httptest.Server) {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/authenticate/") {
+			if expectError != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			} else {
+				json.NewEncoder(w).Encode(mockauthResponse)
+			}
+		} else if strings.HasPrefix(r.URL.Path, "/api/configure/") {
+			if expectError != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			} else {
+				json.NewEncoder(w).Encode(mockconfigResponse)
+			}
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
 func TestWiredSettings(t *testing.T) {
 	tests := []struct {
-		name        string
-		flags       *flags.Flags
-		setupMocks  func(*MockWSMAN)
-		expectedErr error
+		name               string
+		config             *config.Config
+		setupMocks         func(*MockWSMAN)
+		mockauthResponse   AuthResponse
+		mockconfigResponse EAProfile
+		mockauthError      bool
+		mockconfigError    bool
+		expectedErr        error
 	}{
 		{
 			name: "Success - DHCP and IpSync",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					DHCP:   true,
 					IpSync: true,
 				},
@@ -38,8 +99,8 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Success - Static and IpSync",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					Static: true,
 					IpSync: true,
 				},
@@ -58,13 +119,13 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Success - Static and Info",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					Static:     true,
 					IpAddress:  "192.168.1.7",
-					Netmask:    "255.255.255.0",
+					Subnetmask: "255.255.255.0",
 					Gateway:    "192.168.1.1",
-					PrimaryDns: "8.8.8.8",
+					PrimaryDNS: "8.8.8.8",
 				},
 			},
 			setupMocks: func(mock *MockWSMAN) {
@@ -84,14 +145,14 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Success - Static and Info and secondaryDns",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					Static:       true,
 					IpAddress:    "192.168.1.7",
-					Netmask:      "255.255.255.0",
+					Subnetmask:   "255.255.255.0",
 					Gateway:      "192.168.1.1",
-					PrimaryDns:   "8.8.8.8",
-					SecondaryDns: "4.4.4.4",
+					PrimaryDNS:   "8.8.8.8",
+					SecondaryDNS: "4.4.4.4",
 				},
 			},
 			setupMocks: func(mock *MockWSMAN) {
@@ -112,8 +173,8 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Fail - No DHCP or Static",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					DHCP:   false,
 					Static: false,
 				},
@@ -123,8 +184,8 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Fail - Static, No IpSync, Missing Info",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					Static: true,
 				},
 			},
@@ -133,11 +194,11 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Fail - DHCP and Info ",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					DHCP:         true,
 					IpAddress:    "192.168.1.7",
-					SecondaryDns: "4.4.4.4",
+					SecondaryDNS: "4.4.4.4",
 				},
 			},
 			setupMocks:  func(mock *MockWSMAN) {},
@@ -145,8 +206,8 @@ func TestWiredSettings(t *testing.T) {
 		},
 		{
 			name: "Fail - WSManMessage Error",
-			flags: &flags.Flags{
-				IpConfiguration: flags.IPConfiguration{
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
 					DHCP:   true,
 					IpSync: true,
 				},
@@ -154,19 +215,143 @@ func TestWiredSettings(t *testing.T) {
 			setupMocks: func(mock *MockWSMAN) {
 				errPutEthernetSettings = utils.WSMANMessageError
 			},
-			expectedErr: utils.WSMANMessageError,
+			expectedErr: utils.NetworkConfigurationFailed,
+		},
+		{
+			name: "Success - 802.1x Configuration Without EA",
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
+					DHCP:                 true,
+					IpSync:               true,
+					Ieee8021xProfileName: "testProfile",
+				},
+				EnterpriseAssistant: config.EnterpriseAssistant{
+					EAAddress:    "",
+					EAUsername:   "user",
+					EAPassword:   "pass",
+					EAConfigured: false,
+				},
+				Ieee8021xConfigs: Ieee8021xConfigs,
+			},
+			setupMocks: func(mock *MockWSMAN) {
+				errPutEthernetSettings = nil
+				mockGenKeyPairErr = nil
+				mockGenKeyPairReturnValue = 0
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
+				errAddClientCert = nil
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
+				mockCreateTLSCredentialContextErr = nil
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "Success - 802.1x Configuration With EA Configured",
+			config: &config.Config{
+				WiredConfig: config.EthernetConfig{
+					DHCP:                 true,
+					IpSync:               true,
+					Ieee8021xProfileName: "testProfile",
+				},
+				EnterpriseAssistant: config.EnterpriseAssistant{
+					EAAddress:    "",
+					EAUsername:   "user",
+					EAPassword:   "pass",
+					EAConfigured: true,
+				},
+				Ieee8021xConfigs: Ieee8021xConfigs,
+			},
+			setupMocks: func(mock *MockWSMAN) {
+				errPutEthernetSettings = nil
+				mockGenKeyPairErr = nil
+				mockGenKeyPairReturnValue = 0
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
+				errAddClientCert = nil
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
+				mockCreateTLSCredentialContextErr = nil
+			},
+			mockauthResponse:   mockauthResponse,
+			mockconfigResponse: mockconfigResponse,
+			expectedErr:        nil,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			flags := &flags.Flags{}
+			mockAMT := new(MockAMT)
 			mockWsman := new(MockWSMAN)
 			tc.setupMocks(mockWsman)
-
-			testService := NewProvisioningService(tc.flags)
+			server := httpServer(tc.expectedErr)
+			tc.config.EnterpriseAssistant.EAAddress = server.URL
+			testService := NewProvisioningService(flags)
+			testService.amtCommand = mockAMT
+			testService.config = tc.config
 			testService.interfacedWsmanMessage = mockWsman
 
 			err := testService.AddEthernetSettings()
 			assert.Equal(t, tc.expectedErr, err)
+			// Clean up
+			server.Close()
+		})
+	}
+}
+
+func TestAddCertsUsingEnterpriseAssistant(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupMocks         func(*MockWSMAN)
+		mockauthResponse   AuthResponse
+		mockconfigResponse EAProfile
+		mockauthError      bool
+		mockconfigError    bool
+		expectError        error
+	}{
+		{
+			name: "Successful TLS configuration",
+			setupMocks: func(mock *MockWSMAN) {
+				mockGenKeyPairErr = nil
+				mockGenKeyPairReturnValue = 0
+				mockGenKeyPairSelectors = []publickey.SelectorResponse{{Name: "", Text: "keyHandle"}}
+				errAddClientCert = nil
+				PublicPrivateKeyPairResponse = publicPrivateKeyPair
+				mockCreateTLSCredentialContextErr = nil
+			},
+			mockauthResponse:   mockauthResponse,
+			mockconfigResponse: mockconfigResponse,
+			expectError:        nil,
+		},
+		{
+			name:          "Failed to get auth token",
+			setupMocks:    func(mock *MockWSMAN) {},
+			mockauthError: true,
+			expectError:   utils.Ieee8021xConfigurationFailed,
+		},
+		{
+			name:            "Failed to make request to EA",
+			setupMocks:      func(mock *MockWSMAN) {},
+			mockauthError:   false,
+			mockconfigError: true,
+			expectError:     utils.Ieee8021xConfigurationFailed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service, _, mockWsman := setupProvisioningService()
+			tt.setupMocks(mockWsman)
+			server := httpServer(tt.expectError)
+			service.config.EnterpriseAssistant.EAAddress = server.URL
+			service.config.EnterpriseAssistant.EAUsername = "user"
+			service.config.EnterpriseAssistant.EAPassword = "pass"
+			var handles Handles
+			handles, _, err := service.AddCertsUsingEnterpriseAssistant(handles, Ieee8021xConfigs[0])
+			if tt.expectError != nil {
+				assert.Error(t, err)
+			} else {
+				assert.NotEmpty(t, handles.keyPairHandle)
+				assert.NoError(t, err)
+			}
+			// Clean up
+			server.Close()
 		})
 	}
 }

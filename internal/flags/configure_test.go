@@ -650,7 +650,56 @@ func TestVerifyMatchingIeee8021xConfig(t *testing.T) {
 		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
 	})
 }
+func TestVerifyWiredIeee8021xConfig(t *testing.T) {
+	name := "test8021xProfile"
+	secrets := config.SecretConfig{
+		Secrets: []config.Secret{
+			{
+				ProfileName:   "profileName",
+				PskPassphrase: "pskPassphrase",
+				PrivateKey:    "privateKey",
+				Password:      "password",
+			},
+		},
+	}
 
+	f := Flags{}
+	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, config.Ieee8021xConfig{})
+	f.LocalConfig.WiredConfig.Ieee8021xProfileName = name
+
+	t.Run("expect nil with missing Ieee8021x Profile name", func(t *testing.T) {
+		f.LocalConfig.WiredConfig.Ieee8021xProfileName = ""
+		f2 := Flags{}
+		rc := f2.verifyWiredIeee8021xConfig(secrets)
+		assert.Equal(t, nil, rc)
+	})
+
+	t.Run("expect wired8021xConfig to be nil", func(t *testing.T) {
+		defer userInput(t, "userInput")()
+		f.LocalConfig.WiredConfig.Ieee8021xProfileName = name
+		f.LocalConfig.EnterpriseAssistant.EAAddress = "http://test"
+		f.LocalConfig.EnterpriseAssistant.EAUsername = "testEAUser"
+		rc := f.verifyWiredIeee8021xConfig(secrets)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
+		assert.Equal(t, "userInput", f.LocalConfig.EnterpriseAssistant.EAPassword)
+	})
+
+	t.Run("expect MissingOrInvalidConfiguration if missing username", func(t *testing.T) {
+		f.LocalConfig.EnterpriseAssistant.EAAddress = "testpassword"
+		rc := f.verifyWiredIeee8021xConfig(secrets)
+		assert.Equal(t, utils.MissingOrInvalidConfiguration, rc)
+	})
+	t.Run("expect end of function", func(t *testing.T) {
+		f.LocalConfig.WiredConfig.Ieee8021xProfileName = "test8021xProfile"
+		f.LocalConfig.Ieee8021xConfigs[0].ProfileName = "test8021xProfile"
+		f.LocalConfig.Ieee8021xConfigs[0].Username = "testUsername"
+		f.LocalConfig.Ieee8021xConfigs[0].CACert = "testCACert"
+		f.LocalConfig.Ieee8021xConfigs[0].ClientCert = "testClientCert"
+		f.LocalConfig.Ieee8021xConfigs[0].PrivateKey = "testPrivateKey"
+		rc := f.verifyWiredIeee8021xConfig(secrets)
+		assert.Equal(t, nil, rc)
+	})
+}
 func TestInvalidAuthenticationMethods(t *testing.T) {
 	f := Flags{}
 	f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, wifiCfgWPA)
