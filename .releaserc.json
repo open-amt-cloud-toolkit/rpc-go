@@ -30,6 +30,7 @@
         ]
       }
     ],
+    "@semantic-release/github",
     [
       "@semantic-release/exec",
       {
@@ -37,6 +38,7 @@
         "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version}",
         "verifyReleaseCmd": "echo v${nextRelease.version} > .nextVersion"
       }
-    ]
+    ],
+    "@semantic-release/git"
   ]
 }
