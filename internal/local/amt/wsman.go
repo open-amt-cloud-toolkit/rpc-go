@@ -27,6 +27,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/client"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/optin"
 )
 
@@ -61,6 +62,9 @@ type WSMANer interface {
 	// Wired
 	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
 	PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error)
+	GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error)
+	PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error)
+	SetIPSIEEE8021xCertificates(serverCertificateIssuer, clientCertificate string) (response ieee8021x.Response, err error)
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
 	EnumerateTLSSettingData() (response tls.Response, err error)
@@ -324,6 +328,18 @@ func (g *GoWSMANMessages) CommitChanges() (response setupandconfiguration.Respon
 
 func (g *GoWSMANMessages) GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error) {
 	return g.wsmanMessages.AMT.PublicKeyManagementService.GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest, signingAlgorithm)
+}
+
+func (g *GoWSMANMessages) GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error) {
+	return g.wsmanMessages.IPS.IEEE8021xSettings.Get()
+}
+
+func (g *GoWSMANMessages) PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error) {
+	return g.wsmanMessages.IPS.IEEE8021xSettings.Put(ieee8021xSettings)
+}
+
+func (g *GoWSMANMessages) SetIPSIEEE8021xCertificates(serverCertificateIssuer, clientCertificate string) (response ieee8021x.Response, err error) {
+	return g.wsmanMessages.IPS.IEEE8021xSettings.SetCertificates(serverCertificateIssuer, clientCertificate)
 }
 
 func (g *GoWSMANMessages) RequestRedirectionStateChange(requestedState redirection.RequestedState) (response redirection.Response, err error) {

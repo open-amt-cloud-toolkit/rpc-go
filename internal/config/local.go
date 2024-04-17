@@ -24,14 +24,15 @@ type (
 		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
 	EthernetConfig struct {
-		DHCP         bool   `yaml:"dhcp"`
-		Static       bool   `yaml:"static"`
-		IpSync       bool   `yaml:"ipsync"`
-		IpAddress    string `yaml:"ipaddress"`
-		Subnetmask   string `yaml:"subnetmask"`
-		Gateway      string `yaml:"gateway"`
-		PrimaryDNS   string `yaml:"primarydns"`
-		SecondaryDNS string `yaml:"secondarydns"`
+		DHCP                 bool   `yaml:"dhcp"`
+		Static               bool   `yaml:"static"`
+		IpSync               bool   `yaml:"ipsync"`
+		IpAddress            string `yaml:"ipaddress"`
+		Subnetmask           string `yaml:"subnetmask"`
+		Gateway              string `yaml:"gateway"`
+		PrimaryDNS           string `yaml:"primarydns"`
+		SecondaryDNS         string `yaml:"secondarydns"`
+		Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 	}
 	SecretConfig struct {
 		Secrets []Secret `yaml:"secrets"`
