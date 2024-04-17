@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@3c75220e8d20774b68eea48e869a706ff7249b54 # v6.0.0
+      - uses: wagoid/commitlint-github-action@7f0a61df502599e1f1f50880aaa7ec1e2c0592f2 # v6.0.1
         with:
           configFile: .github/commitlint.config.cjs
       - name: Install Dependencies
