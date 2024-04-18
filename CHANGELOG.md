@@ -1,14 +1,207 @@
-# [2.33.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.32.2...v2.33.0) (2024-04-17)
-
-
+<a name="v2.33.0"></a>
+## [v2.33.0] - 2024-04-17
 ### Bug Fixes
-
 * wifi prune ([#482](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/482)) ([0e2ce20](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/0e2ce200d0f4c37d22f843cb4328d1b597b2635a))
 
-
 ### Features
-
 * adds 8021x to wired configuration ([1e34d85](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/1e34d852d980fa0c243dd101ec57b6211175b9cf))
+
+<a name="v2.32.2"></a>
+## [v2.32.2] - 2024-04-10
+### Bug Fixes
+- read ccm password from commandline ([5a83d49](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/5a83d49aebe1b089cb8de4f33c928b2d45efa28a))
+
+<a name="v2.32.1"></a>
+## [v2.32.1] - 2024-04-08
+### Bug Fixes
+- changed optin all type ([47ba85f](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/47ba85f30dfec6e6648c1a198e77b7fbd179eeeb))
+
+<a name="v2.31.2"></a>
+## [v2.31.2] - 2024-04-04
+### Build
+- **deps:** bump codecov/codecov-action from 4.1.1 to 4.2.0 ([#465](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/465)) 
+- **deps:** bump golang from 0466223 to cdc86d9 ([#464](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/464))
+- **deps:** bump wagoid/commitlint-github-action from 5.4.5 to 6.0.0 ([#457](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/457))
+- **deps:** deps: bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.2.0 to 2.2.2 
+- **deps:** bump aquasecurity/trivy-action from 0.18.0 to 0.19.0
+- **deps:** bump actions/add-to-project from 0.6.1 to 1.0.0
+- **deps:** bump codecov/codecov-action from 4.1.0 to 4.1.1
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.11 to 2.2.0 ([#446](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/446))
+- **deps:** bump github/codeql-action from 3.24.8 to 3.24.9 ([#448](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/448))
+- **deps:** bump actions/add-to-project from 0.6.0 to 0.6.1 ([#445](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/445))
+- **deps:** bump cycjimmy/semantic-release-action from 4.0.0 to 4.1.0 ([#444](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/444))
+- **deps:** bump github/codeql-action from 3.24.7 to 3.24.8 ([#439](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/439))
+- **deps:** bump golang from fc5e584 to 0466223 ([#438](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/438))
+
+### Ci
+- addresses permissions for trivy-scan to upload ([#447](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/447))
+
+### Docs
+- update badge links
+- update badge styles
+
+### Feat
+- adds configure amtpassword local command ([#442](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/442)) 
+- adds amt features configuration ([#407](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/407)) 
+
+### Fix
+- use tm2 for SetHighAccuracyTimeSynch ([#460](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/460)) 
+- removes duplicate printing for -h and -help flags on maintenance commands
+- configure error code
+- variable names for configJson input ([#441](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/441))
+
+### Refractor
+- adds wireless and wired subcommands deprecating addwifisettings and wiredsettings ([#461](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/461)) 
+
+<a name="v2.29.1"></a>
+## [v2.29.1] - 2024-03-15
+### Build
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.10 to 2.1.11
+- **deps:** bump docker/login-action from 3.0.0 to 3.1.0 
+
+### Docs
+- adds copyright headers
+
+### Fix
+- local acm activate does not prompt for password when it is in the config ([#436](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/436)) 
+
+<a name="v2.29.0"></a>
+## [v2.29.0] - 2024-03-14
+### Build
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.9 to 2.1.10
+
+### Feat
+- adds addwiredsettings local configuration command ([#422](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/422)) 
+
+<a name="v2.28.3"></a>
+## [v2.28.3] - 2024-03-13
+### Fix
+- XML messages are no longer escaped when using -json flag ([#429](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/429)) 
+
+<a name="v2.28.2"></a>
+## [v2.28.2] - 2024-03-13
+### Build
+- **deps:** bump actions/checkout from 4.1.1 to 4.1.2 ([#423](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/423)) 
+- **deps:** bump github/codeql-action from 3.24.6 to 3.24.7 ([#424](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/424)) 
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.8 to 2.1.9
+
+### Fix
+- changes amtinfo output to use stdout instead of stderr
+
+<a name="v2.28.1"></a>
+## [v2.28.1] - 2024-03-13
+### Build
+- **deps:** bump golang from 8e96e6c to fc5e584 ([#414](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/414))
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.7 to 2.1.8
+
+### Ci
+- adds changelog plugin to release
+
+### Fix
+- generated binaries should not use CGO ([#426](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/426))
+
+<a name="v2.28.0"></a>
+## [v2.28.0] - 2024-03-07
+### Feat
+- prompts for password in local activate and configure mebx ([#415](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/415))
+
+<a name="v2.27.4"></a>
+## [v2.27.4] - 2024-03-07
+### Build
+- **deps:** bump golang.org/x/term from 0.17.0 to 0.18.0 ([#410](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/410))
+- **deps:** bump github/stretchr/testify from 1.8.4 to 1.9.0 ([#409](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/409))
+
+### Fix
+- local acm activate properly orders certificate chain
+
+<a name="v2.27.3"></a>
+## [v2.27.3] - 2024-03-05
+### Build
+- **deps:** bump golang.org/x/sys from 0.17.0 to 0.18.0 ([#411](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/411))
+
+### Fix
+- typo "AMT is already enabled" ([#412](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/412))
+
+<a name="v2.27.2"></a>
+## [v2.27.2] - 2024-03-04
+### Fix
+- local acm activation
+
+<a name="v2.27.1"></a>
+## [v2.27.1] - 2024-03-04
+### Build
+- **deps:** bump aquasecurity/trivy-action from 0.17.0 to 0.18.0
+- **deps:** bump github/codeql-action from 3.24.5 to 3.24.6 ([#408](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/408))
+
+### Fix
+- password read on prompt
+
+<a name="v2.27.0"></a>
+## [v2.27.0] - 2024-02-28
+### Build
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.5 to 2.1.6 
+- **deps:** bump github/codeql-action from 3.24.1 to 3.24.3
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.6 to 2.1.7
+- **deps:** bump codecov/codecov-action from 4.0.1 to 4.0.2
+- **deps:** bump github/codeql-action from 3.24.3 to 3.24.5
+- **deps:** bump codecov/codecov-action from 4.0.2 to 4.1.0
+- **deps:** bump actions/addd-to-project from 0.5.0 to 0.6.0
+
+### Feat
+- adds tls configuration with signed certificate 
+
+<a name="v2.26.2"></a>
+## [v2.26.2] - 2024-02-15
+### Fix
+- inject version upon release in CI ([#389](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/389))
+
+<a name="v2.26.1"></a>
+## [v2.26.1] - 2024-02-15
+### Fix
+- update version to v2.26.1 ([#388](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/388))
+
+<a name="v2.26.0"></a>
+## [v2.26.0] - 2024-02-14
+### Build
+- **gh-actions:** upgrade build flags for executable
+- **deps:** bump github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 from 2.1.4 to 2.1.5
+- **deps:** bump golang.org/x/term from 0.16.0 to 0.17.0 ([#383](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/383))
+- **deps:** bump github/codeql-action from 3.24.0 to 3.24.1 
+
+### Ci
+- remove azure boards sync ([#387](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/387))
+
+### Fix
+- read AMT and SMB passwords without terminal echo unless requested ([#357](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/357))
+- check error upon getting lan interface settings ([#386](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/386))
+
+### Feat
+- adds an option to sync clock locally
+
+### Refractor
+- adds unit test to tls
+- migrate apf to use go-wsman-messages ([#382](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/382))
+
+<a name="v2.25.3"></a>
+## [v2.25.3] - 2024-02-09
+### Build
+- **deps:** update go-wsman-messages v2.1.4 ([#378](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/378))
+
+### Fix
+- test executable flows for githubrelease ([#377](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/377))
+
+<a name="v2.25.2"></a>
+## [v2.25.2] - 2024-02-09
+### Build
+- **deps:** bump github.com/google/uuid from 1.4.0 to 1.6.0 ([#374](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/374))
+- **deps:** bump github.com/open-amt-cloud-toolkit
+- **deps:** bump golang from 1.21-alpine to 1.22-alpine ([#367](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/367))
+
+### Ci
+- add executables to artifact
+
+### Fix
+- this releases rpc-go with go-wsman-messages v2.1.3 ([#376](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/376))
 
 <a name="v2.25.1"></a>
 ## [v2.25.1] - 2024-02-08
