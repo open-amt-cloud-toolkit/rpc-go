@@ -39,7 +39,7 @@ func (service *ProvisioningService) SetAMTFeatures() error {
 		return utils.AMTFeaturesConfigurationFailed
 	}
 	if !isISMSystem {
-		var kvmStateEnabled kvm.KVMRedirectionSAPRequestedStateInputs
+		var kvmStateEnabled kvm.KVMRedirectionSAPRequestStateChangeInput
 		kvmStateEnabled = 3 // 3 (Disabled) - to disable the network interface of the feature
 		if service.flags.KVM {
 			kvmStateEnabled = 2 // 2 (Enabled) - to enable the network interface of the feature
@@ -70,23 +70,23 @@ func (service *ProvisioningService) SetAMTFeatures() error {
 	optInRequired = uint32(getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired)
 	switch service.flags.UserConsent {
 	case "none":
-		optInRequired = uint32(optin.None)
+		optInRequired = uint32(optin.OptInRequiredNone)
 	case "kvm":
-		optInRequired = uint32(optin.KVM)
+		optInRequired = uint32(optin.OptInRequiredKVM)
 	case "all":
-		optInRequired = uint32(optin.All)
+		optInRequired = uint32(optin.OptInRequiredAll)
 	}
 	if uint32(getOptInServiceResponse.Body.GetAndPutResponse.OptInRequired) != optInRequired {
 		//Put OptInService
 		request := optin.OptInServiceRequest{
-			CanModifyOptInPolicy:    getOptInServiceResponse.Body.GetAndPutResponse.CanModifyOptInPolicy,
+			CanModifyOptInPolicy:    int(getOptInServiceResponse.Body.GetAndPutResponse.CanModifyOptInPolicy),
 			CreationClassName:       getOptInServiceResponse.Body.GetAndPutResponse.CreationClassName,
 			ElementName:             getOptInServiceResponse.Body.GetAndPutResponse.ElementName,
 			Name:                    getOptInServiceResponse.Body.GetAndPutResponse.Name,
 			OptInCodeTimeout:        getOptInServiceResponse.Body.GetAndPutResponse.OptInCodeTimeout,
 			OptInDisplayTimeout:     getOptInServiceResponse.Body.GetAndPutResponse.OptInDisplayTimeout,
 			OptInRequired:           int(optInRequired),
-			OptInState:              getOptInServiceResponse.Body.GetAndPutResponse.OptInState,
+			OptInState:              int(getOptInServiceResponse.Body.GetAndPutResponse.OptInState),
 			SystemCreationClassName: getOptInServiceResponse.Body.GetAndPutResponse.SystemCreationClassName,
 			SystemName:              getOptInServiceResponse.Body.GetAndPutResponse.SystemName,
 		}

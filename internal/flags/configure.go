@@ -547,8 +547,8 @@ func (f *Flags) handleAddWifiSettings() error {
 
 	if wifiCfg.ProfileName != "" {
 		authMethod := wifi.AuthenticationMethod(wifiCfg.AuthenticationMethod)
-		if authMethod == wifi.AuthenticationMethod_WPA_IEEE8021x ||
-			authMethod == wifi.AuthenticationMethod_WPA2_IEEE8021x {
+		if authMethod == wifi.AuthenticationMethodWPAIEEE8021x ||
+			authMethod == wifi.AuthenticationMethodWPA2IEEE8021x {
 			// reuse profilename as configuration reference
 			wifiCfg.Ieee8021xProfileName = wifiCfg.ProfileName
 			ieee8021xCfg.ProfileName = wifiCfg.ProfileName
@@ -644,7 +644,7 @@ func (f *Flags) promptForSecrets() error {
 			continue
 		}
 		authMethod := wifi.AuthenticationMethod(item.AuthenticationMethod)
-		if (authMethod == wifi.AuthenticationMethod_WPA_PSK || authMethod == wifi.AuthenticationMethod_WPA2_PSK) &&
+		if (authMethod == wifi.AuthenticationMethodWPAPSK || authMethod == wifi.AuthenticationMethodWPA2PSK) &&
 			item.PskPassphrase == "" {
 			err := f.PromptUserInput("Please enter PskPassphrase for "+item.ProfileName+": ", &item.PskPassphrase)
 			if err != nil {
@@ -712,16 +712,16 @@ func (f *Flags) verifyWifiConfigurations() error {
 
 		authenticationMethod := wifi.AuthenticationMethod(cfg.AuthenticationMethod)
 		switch authenticationMethod {
-		case wifi.AuthenticationMethod_WPA_PSK:
+		case wifi.AuthenticationMethodWPAPSK:
 			fallthrough
-		case wifi.AuthenticationMethod_WPA2_PSK: // AuthenticationMethod 4
+		case wifi.AuthenticationMethodWPA2PSK: // AuthenticationMethod 4
 			if cfg.PskPassphrase == "" {
 				log.Error("missing PskPassphrase for config: ", cfg.ProfileName)
 				return utils.MissingOrInvalidConfiguration
 			}
-		case wifi.AuthenticationMethod_WPA_IEEE8021x:
+		case wifi.AuthenticationMethodWPAIEEE8021x:
 			fallthrough
-		case wifi.AuthenticationMethod_WPA2_IEEE8021x: // AuthenticationMethod 7
+		case wifi.AuthenticationMethodWPA2IEEE8021x: // AuthenticationMethod 7
 			if cfg.ProfileName == "" {
 				log.Error("missing ieee8021x profile name")
 				return utils.MissingOrInvalidConfiguration
@@ -734,26 +734,20 @@ func (f *Flags) verifyWifiConfigurations() error {
 			if err != nil {
 				return err
 			}
-		case wifi.AuthenticationMethod_Other:
+		case wifi.AuthenticationMethodOther:
 			log.Errorf("unsupported AuthenticationMethod_Other (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_OpenSystem:
+		case wifi.AuthenticationMethodOpenSystem:
 			log.Errorf("unsupported AuthenticationMethod_OpenSystem (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_SharedKey:
+		case wifi.AuthenticationMethodSharedKey:
 			log.Errorf("unsupported AuthenticationMethod_SharedKey (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_DMTFReserved:
-			log.Errorf("unsupported AuthenticationMethod_DMTFReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
-			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_WPA3_SAE:
+		case wifi.AuthenticationMethodWPA3SAE:
 			log.Errorf("unsupported AuthenticationMethod_WPA3_SAE (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_WPA3_OWE:
+		case wifi.AuthenticationMethodWPA3OWE:
 			log.Errorf("unsupported AuthenticationMethod_WPA3_OWE (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
-			return utils.MissingOrInvalidConfiguration
-		case wifi.AuthenticationMethod_VendorReserved:
-			log.Errorf("unsupported AuthenticationMethod_VendorReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
 		default:
 			log.Errorf("invalid AuthenticationMethod_VendorReserved (%d) for config: %s", cfg.AuthenticationMethod, cfg.ProfileName)
@@ -775,9 +769,6 @@ func (f *Flags) verifyWifiConfigurations() error {
 			return utils.MissingOrInvalidConfiguration
 		case wifi.EncryptionMethod_None:
 			log.Errorf("unsupported EncryptionMethod_None (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
-			return utils.MissingOrInvalidConfiguration
-		case wifi.EncryptionMethod_DMTFReserved:
-			log.Errorf("unsupported EncryptionMethod_DMTFReserved (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
 			return utils.MissingOrInvalidConfiguration
 		default:
 			log.Errorf("invalid EncryptionMethod (%d) for config: %s", cfg.EncryptionMethod, cfg.ProfileName)
