@@ -235,7 +235,7 @@ func TestHandleActivateCommandLocal(t *testing.T) {
 			cmdLine:    "./rpc activate -local -acm -config ../../config.yaml",
 			wantResult: nil,
 		},
-		"should pass wif acm and ACM Settings specified": {
+		"should pass if acm and ACM Settings specified": {
 			cmdLine: "./rpc activate -local -acm " +
 				" -amtPassword " + trickyPassword +
 				` -provisioningCert MIIW/gIBAzCCFroGCSqGSIb3DQEHAaCCFqsEghanMIIWozCCBgwGCSqGSIb3DQEHAaCCBf0EggX5MIIF9TCCBfEGCyqGSIb3DQEMCgECoIIE/jCCBPowHAYKKoZIhvc` +

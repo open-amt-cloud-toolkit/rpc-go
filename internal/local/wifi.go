@@ -14,6 +14,7 @@ import (
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -241,7 +242,7 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 		AuthenticationProtocol: models.AuthenticationProtocol(ieee8021xConfig.AuthenticationProtocol),
 		Username:               ieee8021xConfig.Username,
 	}
-	if ieee8021xSettings.AuthenticationProtocol == models.AuthenticationProtocolPEAPv0_EAPMSCHAPv2 {
+	if ieee8021xSettings.AuthenticationProtocol == models.AuthenticationProtocol(ieee8021x.AuthenticationProtocolPEAPv0_EAPMSCHAPv2) {
 		ieee8021xSettings.Password = ieee8021xConfig.Password
 	}
 	if ieee8021xConfig.PrivateKey != "" {

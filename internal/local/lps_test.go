@@ -6,6 +6,7 @@
 package local
 
 import (
+	"encoding/xml"
 	"errors"
 	"net/http"
 	amt2 "rpc/internal/amt"
@@ -118,7 +119,7 @@ func (m MockWSMAN) PutRedirectionState(requestedState redirection.RedirectionReq
 var mockRequestKVMStateChangeError error = nil
 var mockRequestKVMStateChangeResponse kvm.Response
 
-func (m MockWSMAN) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error) {
+func (m MockWSMAN) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestStateChangeInput) (response kvm.Response, err error) {
 	return mockRequestKVMStateChangeResponse, mockRequestKVMStateChangeError
 }
 
@@ -143,7 +144,7 @@ func (m MockWSMAN) CommitChanges() (response setupandconfiguration.Response, err
 	return setupandconfiguration.Response{
 		Body: setupandconfiguration.Body{
 			CommitChanges_OUTPUT: setupandconfiguration.CommitChanges_OUTPUT{
-				ReturnValue: mockCommitChangesReturnValue,
+				ReturnValue: setupandconfiguration.ReturnValue(mockCommitChangesReturnValue),
 			},
 		},
 	}, mockCommitChangesErr
@@ -177,7 +178,7 @@ func (m MockWSMAN) GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLengt
 	return publickey.Response{
 		Body: publickey.Body{
 			GenerateKeyPair_OUTPUT: publickey.GenerateKeyPair_OUTPUT{
-				ReturnValue: mockGenKeyPairReturnValue,
+				ReturnValue: publickey.ReturnValue(mockGenKeyPairReturnValue),
 				KeyPair: publickey.KeyPairResponse{
 					ReferenceParameters: publickey.ReferenceParametersResponse{
 						SelectorSet: publickey.SelectorSetResponse{
@@ -250,7 +251,7 @@ func (m MockWSMAN) Unprovision(int) (setupandconfiguration.Response, error) {
 	return setupandconfiguration.Response{
 		Body: setupandconfiguration.Body{
 			Unprovision_OUTPUT: setupandconfiguration.Unprovision_OUTPUT{
-				ReturnValue: mockACMUnprovisionValue,
+				ReturnValue: setupandconfiguration.ReturnValue(mockACMUnprovisionValue),
 			},
 		},
 	}, mockACMUnprovisionErr
@@ -338,53 +339,79 @@ func (m MockWSMAN) DeletePublicCert(instanceId string) error {
 var errGetCredentialRelationships error = nil
 
 func (m MockWSMAN) GetCredentialRelationships() ([]credential.CredentialContext, error) {
-	return []credential.CredentialContext{{
-		ElementInContext: models.AssociationReference{
-			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-			ReferenceParameters: models.ReferenceParmetersNoNamespace{
-				ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-				SelectorSet: []models.SelectorNoNamespace{
-					{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Certificate: Handle: 2",
+	return []credential.CredentialContext{
+		{
+			ElementInContext: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Certificate: Handle: 2",
+							},
+						},
+					},
+				},
+			},
+			ElementProvidingContext: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+							},
+						},
+					},
+				},
+			},
+		}, {
+			ElementInContext: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Certificate: Handle: 1",
+							},
+						},
+					},
+				},
+			},
+			ElementProvidingContext: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+							},
+						},
 					},
 				},
 			},
 		},
-		ElementProvidingContext: models.AssociationReference{
-			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-			ReferenceParameters: models.ReferenceParmetersNoNamespace{
-				ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
-				SelectorSet: []models.SelectorNoNamespace{{
-					Name:  "InstanceID",
-					Value: "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
-				}},
-			},
-		},
-	}, {
-		ElementInContext: models.AssociationReference{
-			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-			ReferenceParameters: models.ReferenceParmetersNoNamespace{
-				ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-				SelectorSet: []models.SelectorNoNamespace{
-					{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Certificate: Handle: 1",
-					},
-				},
-			},
-		},
-		ElementProvidingContext: models.AssociationReference{
-			Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-			ReferenceParameters: models.ReferenceParmetersNoNamespace{
-				ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
-				SelectorSet: []models.SelectorNoNamespace{{
-					Name:  "InstanceID",
-					Value: "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
-				}},
-			},
-		},
-	}}, errGetCredentialRelationships
+	}, errGetCredentialRelationships
 }
 
 var errGetConcreteDependencies error = nil
@@ -394,77 +421,122 @@ func (m MockWSMAN) GetConcreteDependencies() ([]concrete.ConcreteDependency, err
 		{
 			Antecedent: models.AssociationReference{
 				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
 					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTableService",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "CreationClassName",
-						Value: "AMT_AssetTableService",
-					}, {
-						Name:  "Name",
-						Value: "Intel(r) AMT Asset Table Service",
-					}, {
-						Name:  "SystemCreationClassName",
-						Value: "CIM_ComputerSystem",
-					}, {
-						Name:  "SystemName",
-						Value: "Intel(r) AMT",
-					}},
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "CreationClassName",
+								Text:    "AMT_AssetTableService",
+							}, {
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "Name",
+								Text:    "Intel(r) AMT Asset Table Service",
+							}, {
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "SystemCreationClassName",
+								Text:    "CIM_ComputerSystem",
+							}, {
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "SystemName",
+								Text:    "Intel(r) AMT",
+							},
+						},
+					},
 				},
 			},
 			Dependent: models.AssociationReference{
 				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
 					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_AssetTable",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "InstanceID",
-						Value: "1",
-					}, {
-						Name:  "TableType",
-						Value: "131",
-					}},
-				},
-			},
-		},
-		{
-			Antecedent: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
-					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Certificate: Handle: 1",
-					}},
-				},
-			},
-			Dependent: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
-					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Key: Handle: 0",
-					}},
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "1",
+							}, {
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "TableType",
+								Text:    "131",
+							},
+						},
+					},
 				},
 			},
 		}, {
 			Antecedent: models.AssociationReference{
 				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
 					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Certificate: Handle: 1",
-					}},
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Certificate: Handle: 1",
+							},
+						},
+					},
 				},
 			},
 			Dependent: models.AssociationReference{
 				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParmetersNoNamespace{
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Key: Handle: 0",
+							},
+						},
+					},
+				},
+			},
+		}, {
+			Antecedent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Certificate: Handle: 1",
+							},
+						},
+					},
+				},
+			},
+			Dependent: models.AssociationReference{
+				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+				ReferenceParameters: models.ReferenceParametersNoNamespace{
+					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
 					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_SOME_UNHANDLED_RESOURCE_FOR_TESTING",
-					SelectorSet: []models.SelectorNoNamespace{{
-						Name:  "InstanceID",
-						Value: "Intel(r) AMT Key: Handle: 0",
-					}},
+					SelectorSet: models.SelectorNoNamespace{
+						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+						Selectors: []models.SelectorResponse{
+							{
+								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+								Name:    "InstanceID",
+								Text:    "Intel(r) AMT Key: Handle: 0",
+							},
+						},
+					},
 				},
 			},
 		},
