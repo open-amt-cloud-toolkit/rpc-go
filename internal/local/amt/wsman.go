@@ -75,7 +75,7 @@ type WSMANer interface {
 	GeneratePKCS10RequestEx(keyPair, nullSignedCertificateRequest string, signingAlgorithm publickey.SigningAlgorithm) (response publickey.Response, err error)
 
 	RequestRedirectionStateChange(requestedState redirection.RequestedState) (response redirection.Response, err error)
-	RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error)
+	RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestStateChangeInput) (response kvm.Response, err error)
 	PutRedirectionState(requestedState redirection.RedirectionRequest) (response redirection.Response, err error)
 	GetRedirectionService() (response redirection.Response, err error)
 	GetIpsOptInService() (response optin.Response, err error)
@@ -346,7 +346,7 @@ func (g *GoWSMANMessages) RequestRedirectionStateChange(requestedState redirecti
 	return g.wsmanMessages.AMT.RedirectionService.RequestStateChange(requestedState)
 }
 
-func (g *GoWSMANMessages) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestedStateInputs) (response kvm.Response, err error) {
+func (g *GoWSMANMessages) RequestKVMStateChange(requestedState kvm.KVMRedirectionSAPRequestStateChangeInput) (response kvm.Response, err error) {
 	return g.wsmanMessages.CIM.KVMRedirectionSAP.RequestStateChange(requestedState)
 }
 

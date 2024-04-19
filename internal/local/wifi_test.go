@@ -27,7 +27,7 @@ var wifiCfgWPA = config.WifiConfig{
 	ProfileName:          "wifiWPA",
 	SSID:                 "ssid",
 	Priority:             1,
-	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_PSK),
+	AuthenticationMethod: int(wifi.AuthenticationMethodWPAPSK),
 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	PskPassphrase:        "wifiWPAPassPhrase",
 	Ieee8021xProfileName: "",
@@ -37,7 +37,7 @@ var wifiCfgWPA2 = config.WifiConfig{
 	ProfileName:          "wifiWPA2",
 	SSID:                 "ssid",
 	Priority:             2,
-	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA2_PSK),
+	AuthenticationMethod: int(wifi.AuthenticationMethodWPA2PSK),
 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	PskPassphrase:        "wifiWPAPassPhrase",
 	Ieee8021xProfileName: "",
@@ -47,7 +47,7 @@ var wifiCfgWPA8021xEAPTLS = config.WifiConfig{
 	ProfileName:          "wifiWPA28021x",
 	SSID:                 "ssid",
 	Priority:             2,
-	AuthenticationMethod: int(wifi.AuthenticationMethod_WPA_IEEE8021x),
+	AuthenticationMethod: int(wifi.AuthenticationMethodWPAIEEE8021x),
 	EncryptionMethod:     int(wifi.EncryptionMethod_CCMP),
 	PskPassphrase:        "",
 	Ieee8021xProfileName: "ieee8021xCfgEAPTLS",
@@ -107,7 +107,7 @@ func TestProcessWifiConfig(t *testing.T) {
 	// bad name error already tested
 	t.Run("expect success when handling ieee8021x config", func(t *testing.T) {
 		orig := wifiCfgWPA8021xEAPTLS.AuthenticationMethod
-		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = int(wifi.AuthenticationMethod_WPA_IEEE8021x)
+		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = int(wifi.AuthenticationMethodWPAIEEE8021x)
 		f.LocalConfig.Ieee8021xConfigs = []config.Ieee8021xConfig{
 			ieee8021xCfgEAPTLS,
 		}
