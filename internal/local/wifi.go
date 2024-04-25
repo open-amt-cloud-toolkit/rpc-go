@@ -236,6 +236,10 @@ func (service *ProvisioningService) ProcessWifiConfig(wifiCfg *config.WifiConfig
 
 func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.Ieee8021xConfig) (ieee8021xSettings models.IEEE8021xSettings, handles Handles, err error) {
 	handles = Handles{}
+	handles.rootCertHandle, _ = service.GetCertHandle(ieee8021xConfig.CACert)
+	if handles.rootCertHandle != "" {
+		service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
+	}
 	ieee8021xSettings = models.IEEE8021xSettings{
 		ElementName:            ieee8021xConfig.ProfileName,
 		InstanceID:             fmt.Sprintf("Intel(r) AMT: 8021X Settings %s", ieee8021xConfig.ProfileName),
