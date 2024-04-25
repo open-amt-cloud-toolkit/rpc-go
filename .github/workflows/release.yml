@@ -21,7 +21,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           persist-credentials: false
           
@@ -54,7 +54,7 @@ jobs:
             echo "next=none" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         if: ${{ steps.version.outputs.next != 'none' }}
         with:
           repository: open-amt-cloud-toolkit/e2e-testing
