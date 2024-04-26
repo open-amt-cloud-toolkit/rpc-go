@@ -60,12 +60,12 @@ jobs:
       # Runs a single command using the runners shell
       - name: build go
         if: ${{ matrix.os == 'windows-2019' }}
-        run: go build -o rpc.exe ./cmd
+        run: go build -ldflags "-w -s" -o rpc.exe ./cmd
       
       # Runs a single command using the runners shell
       - name: build go
         if: ${{ matrix.os != 'windows-2019' }}
-        run: go build -o rpc ./cmd
+        run: go build -ldflags "-w -s" -o rpc ./cmd
 
       - name: GitHub Upload Release Artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
