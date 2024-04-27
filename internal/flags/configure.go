@@ -89,7 +89,7 @@ func (f *Flags) printConfigurationUsage() string {
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandWireless + " -password YourAMTPassword -config wificonfig.yaml\n"
 	usage += "  " + utils.SubCommandEnableWifiPort + "  Enables WiFi port and local profile synchronization settings in AMT. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandEnableWifiPort + " -password YourAMTPassword\n"
-	usage += "  " + utils.SubCommandConfigureTLS + "             Configures TLS in AMT. AMT password is required.\n"
+	usage += "  " + utils.SubCommandConfigureTLS + "             Configures TLS in AMT. AMT password is required.  A config.yml or command line flags must be provided for all settings. This command runs without cloud interaction.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandConfigureTLS + " -mode Server -password YourAMTPassword\n"
 	usage += "  " + utils.SubCommandSetMEBx + "            Configures MEBx Password. AMT password is required.\n"
 	usage += "                  Example: " + baseCommand + " " + utils.SubCommandSetMEBx + " -mebxpassword YourMEBxPassword -password YourAMTPassword\n"
@@ -302,6 +302,20 @@ func (f *Flags) handleConfigureTLS() error {
 		return e
 	})
 
+	// tlsSettings := config.TlsConfig{}
+	// f.flagSetTlsSettings.StringVar(&f.configContent, "config", "", "specify a config file")
+	// f.flagSetTlsSettings.IntVar(&tlsSettings.Delay, "delay", 3, "Configures TLS delay time")
+	// f.flagSetTlsSettings.StringVar(&tlsSettings.Mode, "mode", "", "Configures authentication mode")
+	// f.flagSetTlsSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
+	// f.flagSetTlsSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
+	// f.flagSetTlsSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
+
+	// if err := f.flagSetTlsSettings.Parse(f.commandLineArgs[3:]); err != nil {
+	// 	f.printConfigurationUsage()
+	// 	return utils.IncorrectCommandLineParameters
+	// }
+
+	fs.StringVar(&f.configContent, "config", "", "specify a config file")
 	fs.IntVar(&f.ConfigTLSInfo.DelayInSeconds, "delay", 3, "Delay time in seconds after putting remote TLS settings")
 	fs.StringVar(&f.ConfigTLSInfo.EAAddress, "eaAddress", "", "Enterprise Assistant address")
 	fs.StringVar(&f.ConfigTLSInfo.EAUsername, "eaUsername", "", "Enterprise Assistant username")
@@ -318,6 +332,10 @@ func (f *Flags) handleConfigureTLS() error {
 		fmt.Printf("unhandled additional args: %v\n", fs.Args())
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
+	}
+	err := f.handleLocalConfig()
+	if err != nil {
+		return utils.FailedReadingConfiguration
 	}
 	return nil
 }
