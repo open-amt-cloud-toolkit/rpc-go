@@ -302,24 +302,8 @@ func (f *Flags) handleConfigureTLS() error {
 		return e
 	})
 
-	// tlsSettings := config.TlsConfig{}
-	// f.flagSetTlsSettings.StringVar(&f.configContent, "config", "", "specify a config file")
-	// f.flagSetTlsSettings.IntVar(&tlsSettings.Delay, "delay", 3, "Configures TLS delay time")
-	// f.flagSetTlsSettings.StringVar(&tlsSettings.Mode, "mode", "", "Configures authentication mode")
-	// f.flagSetTlsSettings.BoolVar(&f.Verbose, "v", false, "Verbose output")
-	// f.flagSetTlsSettings.StringVar(&f.LogLevel, "l", "info", "Log level (panic,fatal,error,warn,info,debug,trace)")
-	// f.flagSetTlsSettings.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
-
-	// if err := f.flagSetTlsSettings.Parse(f.commandLineArgs[3:]); err != nil {
-	// 	f.printConfigurationUsage()
-	// 	return utils.IncorrectCommandLineParameters
-	// }
-
 	fs.StringVar(&f.configContent, "config", "", "specify a config file")
 	fs.IntVar(&f.ConfigTLSInfo.DelayInSeconds, "delay", 3, "Delay time in seconds after putting remote TLS settings")
-	fs.StringVar(&f.ConfigTLSInfo.EAAddress, "eaAddress", "", "Enterprise Assistant address")
-	fs.StringVar(&f.ConfigTLSInfo.EAUsername, "eaUsername", "", "Enterprise Assistant username")
-	fs.StringVar(&f.ConfigTLSInfo.EAPassword, "eaPassword", "", "Enterprise Assistant password")
 
 	if len(f.commandLineArgs) < (3 + 0) {
 		fs.Usage()
@@ -333,9 +317,13 @@ func (f *Flags) handleConfigureTLS() error {
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
 	}
-	err := f.handleLocalConfig()
-	if err != nil {
-		return utils.FailedReadingConfiguration
+	if f.configContent != "" {
+		err := f.handleLocalConfig()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+		f.ConfigTLSInfo.TLSMode, _ = ParseTLSMode(f.LocalConfig.TlsConfig.Mode)
+		f.ConfigTLSInfo.DelayInSeconds = f.LocalConfig.TlsConfig.Delay
 	}
 	return nil
 }

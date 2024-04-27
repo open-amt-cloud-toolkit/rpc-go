@@ -1,3 +1,13 @@
+## [2.33.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.33.0...v2.33.1) (2024-04-25)
+
+
+### Bug Fixes
+
+* 8021x wifi config with preexisting root cert ([55cc329](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/55cc32939313b8709c5f4b3d86bb1cfb1dc9e79e))
+* **deps:** update to fixed go-wsman-messages to support 32-bit ([#500](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/500)) ([2640a12](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/2640a129e0b999ad531883204ad9663fac7b4a00))
+* return value on success in lib.go ([#499](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/499)) ([ea30d19](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/ea30d196fc51ed06501dc46b8dca09f9947037bb))
+* use go-wsman-messages v2.2.4 ([e2e568f](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/e2e568fa1f57b40b943283670396a4c1987c05ff))
+
 <a name="v2.33.0"></a>
 ## [v2.33.0] - 2024-04-17
 ### Bug Fixes

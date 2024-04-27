@@ -92,7 +92,6 @@ type Flags struct {
 	flagSetEnableWifiPort               *flag.FlagSet
 	flagSetMEBx                         *flag.FlagSet
 	flagSetAMTFeatures                  *flag.FlagSet
-	// flagSetTlsSettings    		        *flag.FlagSet
 	amtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
@@ -135,7 +134,6 @@ func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags.flagSetEnableWifiPort = flag.NewFlagSet(utils.SubCommandEnableWifiPort, flag.ContinueOnError)
 	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
 	flags.flagSetAMTFeatures = flag.NewFlagSet(utils.SubCommandSetAMTFeatures, flag.ContinueOnError)
-	// flags.flagSetTlsSettings = flag.NewFlagSet(utils.SubCommandConfigureTLS, flag.ContinueOnError)
 
 	flags.amtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}

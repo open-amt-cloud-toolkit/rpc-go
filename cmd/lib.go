@@ -47,8 +47,9 @@ func rpcExec(Input *C.char, Output **C.char) int {
 	err = runRPC(args)
 	if err != nil {
 		*Output = C.CString("rpcExec failed: " + inputString)
+		return handleError(err)
 	}
-	return handleError(err)
+	return int(utils.Success)
 }
 
 func handleError(err error) int {

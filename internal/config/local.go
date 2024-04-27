@@ -16,8 +16,8 @@ type (
 		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
 	}
 	TlsConfig struct {
-		Delay		int		`yaml:"delay"`
-		Mode		string	`yaml:"mode"` 
+		Delay int    `yaml:"delay" env-default:"3"`
+		Mode  string `yaml:"mode"`
 	}
 	WifiConfig struct {
 		ProfileName          string `yaml:"profileName"`
