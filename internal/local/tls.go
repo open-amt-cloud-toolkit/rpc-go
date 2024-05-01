@@ -282,7 +282,7 @@ func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) tls.
 	}
 	if setting.InstanceID == RemoteTLSInstanceId {
 		log.Infof("configuring remote TLS settings mode: %s", tlsMode)
-		if setting.NonSecureConnectionsSupported {
+		if setting.NonSecureConnectionsSupported != nil && *setting.NonSecureConnectionsSupported {
 			data.AcceptNonSecureConnections = tlsMode == flags.TLSModeServerAndNonTLS || tlsMode == flags.TLSModeMutualAndNonTLS
 		}
 		data.MutualAuthentication = tlsMode == flags.TLSModeMutual || tlsMode == flags.TLSModeMutualAndNonTLS
