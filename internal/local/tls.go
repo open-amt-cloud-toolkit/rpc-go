@@ -23,7 +23,7 @@ const LocalTLSInstanceId = `Intel(r) AMT LMS TLS Settings`
 
 func (service *ProvisioningService) ConfigureTLS() error {
 	var err error
-	if service.flags.LocalConfig.EnterpriseAssistant.EAAddress != "" && service.flags.LocalConfig.EnterpriseAssistant.EAUsername != "" && service.flags.LocalConfig.EnterpriseAssistant.EAPassword != "" {
+	if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
 		err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
 		if err != nil {
 			log.Error("url validation failed: ", err)

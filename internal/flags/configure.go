@@ -304,6 +304,9 @@ func (f *Flags) handleConfigureTLS() error {
 
 	fs.StringVar(&f.configContent, "config", "", "specify a config file")
 	fs.IntVar(&f.ConfigTLSInfo.DelayInSeconds, "delay", 3, "Delay time in seconds after putting remote TLS settings")
+	fs.StringVar(&f.ConfigTLSInfo.EAAddress, "eaAddress", "", "Enterprise Assistant address")
+	fs.StringVar(&f.ConfigTLSInfo.EAUsername, "eaUsername", "", "Enterprise Assistant username")
+	fs.StringVar(&f.ConfigTLSInfo.EAPassword, "eaPassword", "", "Enterprise Assistant password")
 
 	if len(f.commandLineArgs) < (3 + 0) {
 		fs.Usage()
@@ -324,7 +327,20 @@ func (f *Flags) handleConfigureTLS() error {
 		}
 		f.ConfigTLSInfo.TLSMode, _ = ParseTLSMode(f.LocalConfig.TlsConfig.Mode)
 		f.ConfigTLSInfo.DelayInSeconds = f.LocalConfig.TlsConfig.Delay
+		f.ConfigTLSInfo.EAAddress = f.LocalConfig.EnterpriseAssistant.EAAddress
+		f.ConfigTLSInfo.EAUsername = f.LocalConfig.EnterpriseAssistant.EAUsername
+		f.ConfigTLSInfo.EAPassword = f.LocalConfig.EnterpriseAssistant.EAPassword
 	}
+	if f.ConfigTLSInfo.EAAddress != "" && f.ConfigTLSInfo.EAUsername != "" {
+		if f.ConfigTLSInfo.EAPassword == "" {
+			err := f.PromptUserInput("Please enter EA password: ", &f.ConfigTLSInfo.EAPassword)
+			if err != nil {
+				return err
+			}
+		}
+		f.LocalConfig.EnterpriseAssistant.EAConfigured = true
+	}
+
 	return nil
 }
 
