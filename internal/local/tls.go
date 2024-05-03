@@ -252,8 +252,9 @@ func (service *ProvisioningService) EnableTLS() error {
 			}
 		}
 	}
-	// service.Pause(service.flags.ConfigTLSInfo.DelayInSeconds)
-	// time.Sleep(time.Duration(howManySeconds) * time.Second)
+
+	service.Pause(service.flags.ConfigTLSInfo.DelayInSeconds)
+
 	_, err = service.interfacedWsmanMessage.CommitChanges()
 	if err != nil {
 		log.Error("commit changes failed")
@@ -282,7 +283,7 @@ func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) tls.
 	}
 	if setting.InstanceID == RemoteTLSInstanceId {
 		log.Infof("configuring remote TLS settings mode: %s", tlsMode)
-		if setting.NonSecureConnectionsSupported {
+		if setting.NonSecureConnectionsSupported == nil || *setting.NonSecureConnectionsSupported {
 			data.AcceptNonSecureConnections = tlsMode == flags.TLSModeServerAndNonTLS || tlsMode == flags.TLSModeMutualAndNonTLS
 		}
 		data.MutualAuthentication = tlsMode == flags.TLSModeMutual || tlsMode == flags.TLSModeMutualAndNonTLS
