@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
+	"time"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/wifi"
@@ -156,7 +157,7 @@ func (service *ProvisioningService) ProcessWifiConfigs() error {
 	lc := service.flags.LocalConfig
 	var successes []string
 	var failures []string
-	for _, cfg := range lc.WifiConfigs {
+	for i, cfg := range lc.WifiConfigs {
 		log.Info("configuring wifi profile: ", cfg.ProfileName)
 		err := service.ProcessWifiConfig(&cfg)
 		if err != nil {
@@ -165,6 +166,9 @@ func (service *ProvisioningService) ProcessWifiConfigs() error {
 		} else {
 			log.Info("successfully configured: ", cfg.ProfileName)
 			successes = append(successes, cfg.ProfileName)
+		}
+		if i < len(lc.WifiConfigs)-1 {
+			time.Sleep(3 * time.Second) // A 3-second delay is needed to fix an intermittent AMT issue if there are multiple wireless profiles
 		}
 	}
 	if len(failures) > 0 {
