@@ -6,8 +6,10 @@
 package local
 
 import (
+	log "github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
+	"time"
 )
 
 func reflectObjectName(v any) string {
@@ -38,4 +40,12 @@ func checkHandleExists(handles map[string]string, cert string) string {
 		}
 	}
 	return ""
+}
+
+func (service *ProvisioningService) Pause(howManySeconds int) {
+	if howManySeconds <= 0 {
+		return
+	}
+	log.Debugf("pausing %d seconds", howManySeconds)
+	time.Sleep(time.Duration(howManySeconds) * time.Second)
 }

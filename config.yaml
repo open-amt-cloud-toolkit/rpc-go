@@ -40,3 +40,5 @@ ieee8021xConfigs:
     password: "" # SECRET: can be in this file, a secrets file, or user prompt
     authenticationProtocol: 2 # Extensible Authentication Protocol (ex. EAP-TLS(0))
     caCert: 'testCaCertString'
+tlsConfig:
+  mode: 'Server' # Supported modes are: Server and ServerAndNonTLS

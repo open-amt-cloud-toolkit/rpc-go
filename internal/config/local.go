@@ -8,11 +8,16 @@ package config
 type (
 	Config struct {
 		Password            string              `yaml:"password"`
+		TlsConfig           TlsConfig           `yaml:"tlsConfig"`
 		WiredConfig         EthernetConfig      `yaml:"wiredConfig"`
 		WifiConfigs         []WifiConfig        `yaml:"wifiConfigs"`
 		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
 		ACMSettings         ACMSettings         `yaml:"acmactivate"`
 		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
+	}
+	TlsConfig struct {
+		Delay int    `yaml:"delay" env-default:"3"`
+		Mode  string `yaml:"mode"`
 	}
 	WifiConfig struct {
 		ProfileName          string `yaml:"profileName"`

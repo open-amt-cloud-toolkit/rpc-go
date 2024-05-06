@@ -1,3 +1,10 @@
+# [2.34.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.33.1...v2.34.0) (2024-05-03)
+
+
+### Features
+
+* add yaml support to local tls config ([8ecb612](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8ecb61257d6242f9d3d9467944482df58c27bd73))
+
 ## [2.33.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.33.0...v2.33.1) (2024-04-25)
 
 
