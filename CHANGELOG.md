@@ -1,3 +1,10 @@
+## [2.34.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.0...v2.34.1) (2024-05-08)
+
+
+### Bug Fixes
+
+* add delay when processing multiple wireless profiles ([#510](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/510)) ([353af73](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/353af731b6127e2ede460e31706a382774ddc871))
+
 # [2.34.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.33.1...v2.34.0) (2024-05-03)
 
 
