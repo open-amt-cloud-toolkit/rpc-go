@@ -215,7 +215,7 @@ func (g *GoWSMANMessages) GetCredentialRelationships() ([]credential.CredentialC
 	if err != nil {
 		return nil, err
 	}
-	return response.Body.PullResponse.Items, nil
+	return response.Body.PullResponse.Items.CredentialContext, nil
 }
 func (g *GoWSMANMessages) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
 	response, err := g.wsmanMessages.CIM.ConcreteDependency.Enumerate()
