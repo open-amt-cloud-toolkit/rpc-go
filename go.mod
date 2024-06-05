@@ -13,7 +13,7 @@ require (
 	github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 v2.7.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/sys v0.20.0
+	golang.org/x/sys v0.21.0
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/term v0.20.0
+	golang.org/x/term v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 	software.sslmate.com/src/go-pkcs12 v0.4.0
