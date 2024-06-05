@@ -1,3 +1,10 @@
+## [2.34.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.1...v2.34.2) (2024-06-05)
+
+
+### Bug Fixes
+
+* resolves close call issue in go-wsman-messages ([#550](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/550)) ([af9ffdb](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/af9ffdb9e1faae44a876346b9e08e67fb88e08b4))
+
 ## [2.34.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.0...v2.34.1) (2024-05-08)
 
 
