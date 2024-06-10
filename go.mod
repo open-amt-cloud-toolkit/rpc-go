@@ -7,7 +7,7 @@ go 1.20
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.2
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/open-amt-cloud-toolkit/go-wsman-messages/v2 v2.7.1
