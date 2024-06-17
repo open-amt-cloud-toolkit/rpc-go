@@ -7,6 +7,7 @@ package amt
 
 import (
 	"encoding/base64"
+	"net"
 	"rpc/pkg/utils"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
@@ -29,6 +30,7 @@ import (
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/hostbasedsetup"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/optin"
+	"github.com/sirupsen/logrus"
 )
 
 type WSMANer interface {
@@ -94,7 +96,6 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 }
 
 func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, logAMTMessages bool) {
-
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
@@ -102,6 +103,19 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, log
 		UseDigest:      true,
 		UseTLS:         false,
 		LogAMTMessages: logAMTMessages,
+	}
+	logrus.Info("Attempting to connect to LMS...")
+	port := utils.LMSPort
+	if clientParams.UseTLS {
+		port = client.TLSPort
+	}
+	con, err := net.Dial("tcp4", utils.LMSAddress+":"+port)
+	if err != nil {
+		logrus.Info("Failed to connect to LMS, using local transport instead.")
+		clientParams.Transport = NewLocalTransport()
+	} else {
+		logrus.Info("Successfully connected to LMS.")
+		con.Close()
 	}
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 }

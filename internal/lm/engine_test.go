@@ -7,6 +7,7 @@ package lm
 import (
 	"errors"
 	"rpc/pkg/pthi"
+	"sync"
 	"testing"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
@@ -53,7 +54,8 @@ func Test_NewLMEConnection(t *testing.T) {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 	lmStatusChannel := make(chan bool)
-	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatusChannel)
+	wg := &sync.WaitGroup{}
+	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatusChannel, wg)
 	assert.Equal(t, lmDataChannel, lme.Session.DataBuffer)
 	assert.Equal(t, lmErrorChannel, lme.Session.ErrorBuffer)
 	assert.Equal(t, lmStatusChannel, lme.Session.Status)
@@ -96,8 +98,10 @@ func TestLMEConnection_Initialize(t *testing.T) {
 			sendError = tt.sendErr
 			initError = tt.initErr
 			lme := &LMEConnection{
-				Command:    pthiVar,
-				Session:    &apf.Session{},
+				Command: pthiVar,
+				Session: &apf.Session{
+					WaitGroup: &sync.WaitGroup{},
+				},
 				ourChannel: 1,
 			}
 			if err := lme.Initialize(); (err != nil) != tt.wantErr {
@@ -112,9 +116,10 @@ func Test_Send(t *testing.T) {
 	sendBytesWritten = 14
 
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.Session{},
-		ourChannel: 1,
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		}, ourChannel: 1,
 	}
 	data := []byte("hello")
 	err := lme.Send(data)
@@ -124,8 +129,10 @@ func Test_Connect(t *testing.T) {
 	resetMock()
 	sendBytesWritten = 54
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.Session{},
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -136,8 +143,10 @@ func Test_Connect_With_Error(t *testing.T) {
 	sendError = errors.New("no such device")
 	sendBytesWritten = 54
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.Session{},
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -154,6 +163,7 @@ func Test_Listen(t *testing.T) {
 			DataBuffer:  lmDataChannel,
 			ErrorBuffer: lmErrorChannel,
 			Status:      make(chan bool),
+			WaitGroup:   &sync.WaitGroup{},
 		},
 		ourChannel: 1,
 	}
