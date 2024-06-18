@@ -77,17 +77,17 @@ func (e Executor) MakeItSo(messageRequest Message) {
 		return
 	}
 	defer e.localManagement.Close()
-	defer close(e.data)
-	defer close(e.errors)
-	if e.status != nil {
-		defer close(e.status)
-	}
 
 	for {
 		select {
 		case dataFromServer := <-rpsDataChannel:
 			shallIReturn := e.HandleDataFromRPS(dataFromServer)
 			if shallIReturn { //quits the loop -- we're either done or reached a point where we need to stop
+				close(e.data)
+				close(e.errors)
+				if e.status != nil {
+					close(e.status)
+				}
 				return
 			}
 		case <-interrupt:
@@ -108,6 +108,11 @@ func (e Executor) HandleInterrupt() {
 	// 	log.Error("Connection close failed", err)
 	// 	return
 	// }
+	close(e.data)
+	close(e.errors)
+	if e.status != nil {
+		close(e.status)
+	}
 
 	err := e.server.Close()
 	if err != nil {
