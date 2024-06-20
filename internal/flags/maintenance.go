@@ -207,9 +207,6 @@ func (f *Flags) handleMaintenanceSyncIP() error {
 			continue
 		}
 		addrs, _ := f.netEnumerator.InterfaceAddrs(&i)
-		if err != nil {
-			continue
-		}
 		for _, address := range addrs {
 			if ipnet, ok := address.(*net.IPNet); ok &&
 				ipnet.IP.To4() != nil &&

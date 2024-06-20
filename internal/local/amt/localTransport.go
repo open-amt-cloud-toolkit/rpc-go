@@ -12,27 +12,28 @@ import (
 	"io"
 	"net/http"
 	"rpc/internal/lm"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 )
 
-// LocalTransport - Your custom net.Conn implementation
 type LocalTransport struct {
-	local  lm.LocalMananger
-	data   chan []byte
-	errors chan error
-	status chan bool
+	local     lm.LocalMananger
+	data      chan []byte
+	errors    chan error
+	status    chan bool
+	waitGroup *sync.WaitGroup
 }
 
 func NewLocalTransport() *LocalTransport {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
-	lmStatus := make(chan bool)
+	waiter := &sync.WaitGroup{}
 	lm := &LocalTransport{
-		local:  lm.NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatus),
-		data:   lmDataChannel,
-		errors: lmErrorChannel,
-		status: lmStatus,
+		local:     lm.NewLMEConnection(lmDataChannel, lmErrorChannel, waiter),
+		data:      lmDataChannel,
+		errors:    lmErrorChannel,
+		waitGroup: waiter,
 	}
 	// defer lm.local.Close()
 	// defer close(lmDataChannel)
@@ -49,20 +50,18 @@ func NewLocalTransport() *LocalTransport {
 
 // Custom dialer function
 func (l *LocalTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	//Something comes here...Maybe
-	go l.local.Listen()
-
 	// send channel open
 	err := l.local.Connect()
+	//Something comes here...Maybe
+	go l.local.Listen()
 
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 	// wait for channel open confirmation
-	<-l.status
+	l.waitGroup.Wait()
 	logrus.Trace("Channel open confirmation received")
-
 	// Serialize the HTTP request to raw form
 	rawRequest, err := serializeHTTPRequest(r)
 	if err != nil {
@@ -71,22 +70,30 @@ func (l *LocalTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 
 	var responseReader *bufio.Reader
-	// send our data to LMX
-	err = l.local.Send(rawRequest)
+
+	err = l.local.Send([]byte(rawRequest))
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	for dataFromLM := range l.data {
-		if len(dataFromLM) > 0 {
-			logrus.Debug("received data from LME")
-			logrus.Trace(string(dataFromLM))
-
-			// /<-l.status
-			responseReader = bufio.NewReader(bytes.NewReader(dataFromLM))
-			break
+Loop:
+	for {
+		select {
+		case dataFromLM := <-l.data:
+			if len(dataFromLM) > 0 {
+				logrus.Debug("received data from LME")
+				logrus.Trace(string(dataFromLM))
+				responseReader = bufio.NewReader(bytes.NewReader(dataFromLM))
+				break Loop
+			}
+		case errFromLMS := <-l.errors:
+			if errFromLMS != nil {
+				logrus.Error("error from LMS")
+				break Loop
+			}
 		}
+
 	}
 
 	response, err := http.ReadResponse(responseReader, r)
@@ -100,6 +107,8 @@ func (l *LocalTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func serializeHTTPRequest(r *http.Request) ([]byte, error) {
 	var reqBuffer bytes.Buffer
+
+	r.Header.Set("Transfer-Encoding", "chunked")
 
 	// Write request line
 	reqLine := fmt.Sprintf("%s %s %s\r\n", r.Method, r.URL.RequestURI(), r.Proto)
@@ -115,8 +124,12 @@ func serializeHTTPRequest(r *http.Request) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		length := fmt.Sprintf("%x", len(bodyBytes))
+		bodyBytes = append([]byte(length+"\r\n"), bodyBytes...)
+		bodyBytes = append(bodyBytes, []byte("\r\n0\r\n\r\n")...)
 		// Important: Replace the body so it can be read again later if needed
 		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 		reqBuffer.Write(bodyBytes)
 	}
 
