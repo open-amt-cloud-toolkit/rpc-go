@@ -53,12 +53,10 @@ func Test_NewLMEConnection(t *testing.T) {
 	resetMock()
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
-	lmStatusChannel := make(chan bool)
 	wg := &sync.WaitGroup{}
-	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatusChannel, wg)
+	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, wg)
 	assert.Equal(t, lmDataChannel, lme.Session.DataBuffer)
 	assert.Equal(t, lmErrorChannel, lme.Session.ErrorBuffer)
-	assert.Equal(t, lmStatusChannel, lme.Session.Status)
 }
 func TestLMEConnection_Initialize(t *testing.T) {
 	resetMock()

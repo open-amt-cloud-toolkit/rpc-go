@@ -23,7 +23,7 @@ type LMEConnection struct {
 	retries    int
 }
 
-func NewLMEConnection(data chan []byte, errors chan error, status chan bool, wg *sync.WaitGroup) *LMEConnection {
+func NewLMEConnection(data chan []byte, errors chan error, wg *sync.WaitGroup) *LMEConnection {
 	lme := &LMEConnection{
 		ourChannel: 1,
 	}
@@ -32,7 +32,6 @@ func NewLMEConnection(data chan []byte, errors chan error, status chan bool, wg 
 		DataBuffer:  data,
 		ErrorBuffer: errors,
 		Tempdata:    []byte{},
-		Status:      status,
 		WaitGroup:   wg,
 	}
 
@@ -140,7 +139,6 @@ func (lme *LMEConnection) Listen() {
 		binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
 
 		lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
-		lme.Session.Status <- true
 	}()
 	for {
 		result2, bytesRead, err2 := lme.Command.Receive()

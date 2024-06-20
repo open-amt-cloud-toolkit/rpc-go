@@ -28,13 +28,11 @@ type LocalTransport struct {
 func NewLocalTransport() *LocalTransport {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
-	lmStatus := make(chan bool)
 	waiter := &sync.WaitGroup{}
 	lm := &LocalTransport{
-		local:     lm.NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatus, waiter),
+		local:     lm.NewLMEConnection(lmDataChannel, lmErrorChannel, waiter),
 		data:      lmDataChannel,
 		errors:    lmErrorChannel,
-		status:    lmStatus,
 		waitGroup: waiter,
 	}
 	// defer lm.local.Close()

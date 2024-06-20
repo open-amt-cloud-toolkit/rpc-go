@@ -23,7 +23,6 @@ type Executor struct {
 	payload         Payload
 	data            chan []byte
 	errors          chan error
-	status          chan bool
 	waitGroup       *sync.WaitGroup
 }
 
@@ -46,8 +45,7 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	if err != nil {
 		// client.localManagement.Close()
 		log.Trace("LMS not running.  Using LME Connection\n")
-		client.status = make(chan bool)
-		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.status, client.waitGroup)
+		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.waitGroup)
 		client.isLME = true
 		client.localManagement.Initialize()
 	} else {
@@ -85,9 +83,6 @@ func (e Executor) MakeItSo(messageRequest Message) {
 			if shallIReturn { //quits the loop -- we're either done or reached a point where we need to stop
 				close(e.data)
 				close(e.errors)
-				if e.status != nil {
-					close(e.status)
-				}
 				return
 			}
 		case <-interrupt:
@@ -110,9 +105,6 @@ func (e Executor) HandleInterrupt() {
 	// }
 	close(e.data)
 	close(e.errors)
-	if e.status != nil {
-		close(e.status)
-	}
 
 	err := e.server.Close()
 	if err != nil {
