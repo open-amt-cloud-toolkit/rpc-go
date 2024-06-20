@@ -1,3 +1,10 @@
+# [2.35.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.2...v2.35.0) (2024-06-20)
+
+
+### Features
+
+* enable local commands without lms ([#486](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/486)) ([8b7e7b1](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8b7e7b1bad73aa903a1e11294e78831d07c8fb45))
+
 ## [2.34.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.1...v2.34.2) (2024-06-05)
 
 
