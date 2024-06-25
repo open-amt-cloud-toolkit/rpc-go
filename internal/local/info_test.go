@@ -7,6 +7,7 @@ package local
 
 import (
 	"errors"
+	"net"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
@@ -180,4 +181,86 @@ func TestDecodeAMT(t *testing.T) {
 			t.Errorf("DecodeAMT(%q, %q) = %v; want %v", tc.version, tc.SKU, got, tc.want)
 		}
 	}
+}
+
+var testNetEnumerator1 = flags.NetEnumerator{
+	Interfaces: func() ([]net.Interface, error) {
+		return []net.Interface{
+			{
+				Index: 0, MTU: 1200, Name: "ethTest01",
+				HardwareAddr: []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05},
+				Flags:        1,
+			},
+		}, nil
+	},
+	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
+		if i.Name == "errTest01" {
+			return nil, errors.New("test message")
+		} else {
+			return []net.Addr{
+				&net.IPNet{
+					IP:   net.ParseIP("127.0.0.1"),
+					Mask: net.CIDRMask(8, 32),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("192.168.1.1"),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}, nil
+		}
+	},
+}
+
+var testNetEnumerator2 = flags.NetEnumerator{
+	Interfaces: func() ([]net.Interface, error) {
+		return []net.Interface{
+			{
+				Index: 0, MTU: 1200, Name: "errTest01",
+				HardwareAddr: []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05},
+				Flags:        1,
+			},
+		}, nil
+	},
+	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
+		if i.Name == "errTest01" {
+			return nil, errors.New("test message")
+		} else {
+			return []net.Addr{
+				&net.IPNet{
+					IP:   net.ParseIP("127.0.0.1"),
+					Mask: net.CIDRMask(8, 32),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("192.168.1.1"),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}, nil
+		}
+	},
+}
+
+func TestGetOSIPAddress(t *testing.T) {
+	t.Run("Valid MAC address", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:01:02:03:04:05", testNetEnumerator1)
+		assert.NoError(t, err)
+		assert.Equal(t, "192.168.1.1", osIpAddress)
+	})
+
+	t.Run("Zero MAC address", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:00:00:00:00:00", testNetEnumerator1)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0", osIpAddress)
+	})
+
+	t.Run("net interface fail", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:01:02:03:04:05", testNetEnumerator2)
+		assert.Equal(t, "0.0.0.0", osIpAddress)
+		assert.Equal(t, errors.New("Failed to get interface addresses"), err)
+	})
+
+	t.Run("no matching mac address to map into os ipaddress", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:11:22:33:44:55", testNetEnumerator1)
+		assert.Equal(t, "Not Found", osIpAddress)
+		assert.NoError(t, err)
+	})
 }

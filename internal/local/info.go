@@ -6,10 +6,14 @@
 package local
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"rpc/internal/amt"
+	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
@@ -23,6 +27,63 @@ import (
 type PrivateKeyPairReference struct {
 	KeyPair         publicprivate.KeyPair
 	AssociatedCerts []string
+}
+
+func GetOSIPAddress(mac_addr string, netEnumerator flags.NetEnumerator) (string, error) {
+	mac_in_byte := make([]uint8, 6)
+
+	mac_str := strings.Split(mac_addr, ":")
+
+	for i, v := range mac_str {
+		value, _ := strconv.ParseUint(v, 16, 8)
+		mac_in_byte[i] = uint8(value)
+	}
+	interfaces, err := netEnumerator.Interfaces()
+	if err != nil {
+		return "0.0.0.0", errors.New("Failed to get net interfaces")
+	}
+
+	if bytes.Equal(mac_in_byte, make([]byte, 6)) {
+		return "0.0.0.0", nil
+	}
+
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue // interface down || loopback interface
+		}
+
+		hwaddr := iface.HardwareAddr
+
+		if bytes.Equal(hwaddr, mac_in_byte) {
+			addrs, err := netEnumerator.InterfaceAddrs(&iface)
+			if err != nil {
+				return "0.0.0.0", errors.New("Failed to get interface addresses")
+			}
+
+			for _, addr := range addrs {
+				var ip net.IP
+
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				// Check if the IP address is not nil and is an IPv4 address
+				if ip == nil || ip.IsLoopback() {
+					continue
+				}
+				ip = ip.To4()
+				if ip == nil {
+					continue // not an ipv4 address
+				}
+
+				return ip.String(), nil
+			}
+		}
+	}
+	return "Not Found", nil
 }
 
 func (service *ProvisioningService) DisplayAMTInfo() (err error) {
@@ -158,6 +219,22 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		if err != nil {
 			log.Error(err)
 		}
+
+		netEnumerator := flags.NetEnumerator{
+			Interfaces: func() ([]net.Interface, error) {
+				return net.Interfaces()
+			},
+			InterfaceAddrs: func(iface *net.Interface) ([]net.Addr, error) {
+				return iface.Addrs()
+			},
+		}
+
+		wired_osIpAddress, err := GetOSIPAddress(wired.MACAddress, netEnumerator)
+		if err != nil {
+			log.Error(err)
+		}
+		wired.OsIPAddress = wired_osIpAddress
+
 		dataStruct["wiredAdapter"] = wired
 
 		if wired.MACAddress != "00:00:00:00:00:00" {
@@ -165,7 +242,8 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 			service.PrintOutput("DHCP Enabled 		: " + strconv.FormatBool(wired.DHCPEnabled))
 			service.PrintOutput("DHCP Mode    		: " + wired.DHCPMode)
 			service.PrintOutput("Link Status  		: " + wired.LinkStatus)
-			service.PrintOutput("IP Address   		: " + wired.IPAddress)
+			service.PrintOutput("AMT IP Address		: " + wired.IPAddress)
+			service.PrintOutput("OS  IP Address		: " + wired.OsIPAddress)
 			service.PrintOutput("MAC Address  		: " + wired.MACAddress)
 		}
 
@@ -173,13 +251,21 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		if err != nil {
 			log.Error(err)
 		}
+
+		wireless_osIpAddress, err := GetOSIPAddress(wireless.MACAddress, netEnumerator)
+		if err != nil {
+			log.Error(err)
+		}
+		wireless.OsIPAddress = wireless_osIpAddress
+
 		dataStruct["wirelessAdapter"] = wireless
 
 		service.PrintOutput("---Wireless Adapter---")
 		service.PrintOutput("DHCP Enabled 		: " + strconv.FormatBool(wireless.DHCPEnabled))
 		service.PrintOutput("DHCP Mode    		: " + wireless.DHCPMode)
 		service.PrintOutput("Link Status  		: " + wireless.LinkStatus)
-		service.PrintOutput("IP Address   		: " + wireless.IPAddress)
+		service.PrintOutput("AMT IP Address		: " + wireless.IPAddress)
+		service.PrintOutput("OS  IP Address		: " + wireless.OsIPAddress)
 		service.PrintOutput("MAC Address  		: " + wireless.MACAddress)
 
 	}
