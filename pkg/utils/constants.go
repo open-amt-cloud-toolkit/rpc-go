@@ -109,6 +109,8 @@ var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee
 var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
 var ChangeAMTPasswordFailed = CustomError{Code: 119, Message: "ChangeAMTPasswordFailed"}
 var UnableToConfigure = CustomError{Code: 120, Message: "UnableToConfigure"}
+var DeleteWiredConfigFailed = CustomError{Code: 121, Message: "DeleteWiredConfigFailed"}
+var DeleteTLSConfigFailed = CustomError{Code: 122, Message: "DeleteTLSConfigFailed"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}

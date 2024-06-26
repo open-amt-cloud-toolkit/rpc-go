@@ -87,6 +87,36 @@ func (service *ProvisioningService) AddEthernetSettings() (err error) {
 	return nil
 }
 
+func (service *ProvisioningService) PruneEthernetConfigs() (err error) {
+	certHandles, keyPairHandles, err := service.GetWifiIeee8021xCerts() // CRAIG - change this
+	if err != nil {
+		return err
+	}
+	ethernetEndpointSettings, err := service.interfacedWsmanMessage.GetEthernetSettings()
+	if err != nil {
+		return err
+	}
+
+	for _, ethernetSetting := range ethernetEndpointSettings {
+		if ethernetSetting.InstanceID == "" {
+			continue
+		}
+		log.Infof("deleting wiredSetting: %s", ethernetSetting.InstanceID)
+		err := service.interfacedWsmanMessage.DeleteEthernetSettings(ethernetSetting.InstanceID)
+		if err != nil {
+			log.Infof("unable to delete: %s %s", ethernetSetting.InstanceID, err)
+			err = utils.DeleteWiredConfigFailed
+			continue
+		}
+
+		log.Infof("successfully deleted wiredSetting: %s", ethernetSetting.InstanceID)
+	}
+
+	err = service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles) // CRAIG - change this
+
+	return err
+}
+
 func (service *ProvisioningService) verifyInput() error {
 	if service.config.WiredConfig.DHCP == service.config.WiredConfig.Static || (service.config.WiredConfig.DHCP && !service.config.WiredConfig.IpSync) {
 		return utils.InvalidParameterCombination

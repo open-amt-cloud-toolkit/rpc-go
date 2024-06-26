@@ -63,12 +63,14 @@ type WSMANer interface {
 	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
 	// Wired
 	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
+	DeleteEthernetSettings(instanceID string) error // CRAIG - Need to add this function for pruning ethernet settings
 	PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error)
 	GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error)
 	PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error)
 	SetIPSIEEE8021xCertificates(serverCertificateIssuer, clientCertificate string) (response ieee8021x.Response, err error)
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
+	DeleteTLSSettings(instanceId string) error // CRAIG - Need to add this function for pruning ethernet settings
 	EnumerateTLSSettingData() (response tls.Response, err error)
 	PullTLSSettingData(enumerationContext string) (response tls.Response, err error)
 	PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error)
@@ -208,6 +210,10 @@ func (g *GoWSMANMessages) GetEthernetSettings() ([]ethernetport.SettingsResponse
 		return nil, err
 	}
 	return response.Body.PullResponse.EthernetPortItems, nil
+}
+func (g *GoWSMANMessages) DeleteEthernetSettings(instanceID string) error {
+	_, err := g.wsmanMessages.AMT.EthernetPortSettings.Delete(instanceID) // CRAIG - Need to a add delete function to wsman
+	return err
 }
 func (g *GoWSMANMessages) PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error) {
 	return g.wsmanMessages.AMT.EthernetPortSettings.Put(instanceId, ethernetPortSettings)
