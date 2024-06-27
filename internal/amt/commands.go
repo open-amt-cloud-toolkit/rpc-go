@@ -42,6 +42,7 @@ type InterfaceSettings struct {
 	DHCPEnabled bool   `json:"dhcpEnabled"`
 	DHCPMode    string `json:"dhcpMode"`
 	IPAddress   string `json:"ipAddress"` //net.IP
+	OsIPAddress string `json:"osIpAddress"`
 	MACAddress  string `json:"macAddress"`
 }
 
@@ -351,6 +352,7 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 
 	settings := InterfaceSettings{
 		IPAddress:   "0.0.0.0",
+		OsIPAddress: "0.0.0.0",
 		IsEnabled:   result.Enabled == 1,
 		DHCPEnabled: result.DhcpEnabled == 1,
 		LinkStatus:  "down",
