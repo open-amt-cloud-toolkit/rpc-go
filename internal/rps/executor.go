@@ -10,6 +10,7 @@ import (
 	"rpc/internal/flags"
 	"rpc/internal/lm"
 	"rpc/pkg/utils"
+	"sync"
 	"syscall"
 
 	log "github.com/sirupsen/logrus"
@@ -22,7 +23,7 @@ type Executor struct {
 	payload         Payload
 	data            chan []byte
 	errors          chan error
-	status          chan bool
+	waitGroup       *sync.WaitGroup
 }
 
 func NewExecutor(flags flags.Flags) (Executor, error) {
@@ -35,6 +36,7 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 		localManagement: lm.NewLMSConnection(utils.LMSAddress, utils.LMSPort, lmDataChannel, lmErrorChannel),
 		data:            lmDataChannel,
 		errors:          lmErrorChannel,
+		waitGroup:       &sync.WaitGroup{},
 	}
 
 	// TEST CONNECTION TO SEE IF LMS EXISTS
@@ -43,8 +45,7 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	if err != nil {
 		// client.localManagement.Close()
 		log.Trace("LMS not running.  Using LME Connection\n")
-		client.status = make(chan bool)
-		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.status)
+		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.waitGroup)
 		client.isLME = true
 		client.localManagement.Initialize()
 	} else {
@@ -74,17 +75,14 @@ func (e Executor) MakeItSo(messageRequest Message) {
 		return
 	}
 	defer e.localManagement.Close()
-	defer close(e.data)
-	defer close(e.errors)
-	if e.status != nil {
-		defer close(e.status)
-	}
 
 	for {
 		select {
 		case dataFromServer := <-rpsDataChannel:
 			shallIReturn := e.HandleDataFromRPS(dataFromServer)
 			if shallIReturn { //quits the loop -- we're either done or reached a point where we need to stop
+				close(e.data)
+				close(e.errors)
 				return
 			}
 		case <-interrupt:
@@ -105,6 +103,8 @@ func (e Executor) HandleInterrupt() {
 	// 	log.Error("Connection close failed", err)
 	// 	return
 	// }
+	close(e.data)
+	close(e.errors)
 
 	err := e.server.Close()
 	if err != nil {
@@ -131,7 +131,7 @@ func (e Executor) HandleDataFromRPS(dataFromServer []byte) bool {
 	}
 	if e.isLME {
 		// wait for channel open confirmation
-		<-e.status
+		e.waitGroup.Wait()
 		log.Trace("Channel open confirmation received")
 	} else {
 		//with LMS we open/close websocket on every request, so setup close for when we're done handling LMS data
@@ -150,7 +150,7 @@ func (e Executor) HandleDataFromRPS(dataFromServer []byte) bool {
 		case dataFromLM := <-e.data:
 			e.HandleDataFromLM(dataFromLM)
 			if e.isLME {
-				<-e.status
+				e.waitGroup.Wait()
 			}
 			return false
 		case errFromLMS := <-e.errors:
