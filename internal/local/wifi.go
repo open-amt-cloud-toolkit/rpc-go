@@ -32,7 +32,10 @@ func (service *ProvisioningService) AddWifiSettings() (err error) {
 
 	// PruneWifiConfigs is best effort
 	// it will log error messages, but doesn't stop the configuration flow
-	service.PruneWifiConfigs()
+	err = service.PruneWifiConfigs()
+	if err != nil {
+		return err
+	}
 	err = service.EnableWifiPort()
 	if err != nil {
 		return err
@@ -98,14 +101,14 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPai
 	if err != nil {
 		return []string{}, []string{}, err
 	}
-	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
+	items, err := service.interfacedWsmanMessage.GetCredentialRelationships()
 	if err != nil {
 		return []string{}, []string{}, err
 	}
 	certHandleMap := make(map[string]bool)
-	for i := range credentials {
-		inParams := &credentials[i].ElementInContext.ReferenceParameters
-		providesPrams := &credentials[i].ElementProvidingContext.ReferenceParameters
+	for i := range items.CredentialContext {
+		inParams := &items.CredentialContext[i].ElementInContext.ReferenceParameters
+		providesPrams := &items.CredentialContext[i].ElementProvidingContext.ReferenceParameters
 		if providesPrams.ResourceURI == `http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings` {
 			id := inParams.GetSelectorValue("InstanceID")
 			certHandleMap[id] = true

@@ -46,7 +46,7 @@ type WSMANer interface {
 	GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error)
 	DeletePublicPrivateKeyPair(instanceId string) error
 	DeletePublicCert(instanceId string) error
-	GetCredentialRelationships() ([]credential.CredentialContext, error)
+	GetCredentialRelationships() (credential.Items, error)
 	GetConcreteDependencies() ([]concrete.ConcreteDependency, error)
 	AddTrustedRootCert(caCert string) (string, error)
 	AddClientCert(clientCert string) (string, error)
@@ -63,14 +63,12 @@ type WSMANer interface {
 	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
 	// Wired
 	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
-	DeleteEthernetSettings(instanceID string) error // CRAIG - Need to add this function for pruning ethernet settings
 	PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error)
 	GetIPSIEEE8021xSettings() (response ieee8021x.Response, err error)
 	PutIPSIEEE8021xSettings(ieee8021xSettings ieee8021x.IEEE8021xSettingsRequest) (response ieee8021x.Response, err error)
 	SetIPSIEEE8021xCertificates(serverCertificateIssuer, clientCertificate string) (response ieee8021x.Response, err error)
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
-	DeleteTLSSettings(instanceId string) error // CRAIG - Need to add this function for pruning ethernet settings
 	EnumerateTLSSettingData() (response tls.Response, err error)
 	PullTLSSettingData(enumerationContext string) (response tls.Response, err error)
 	PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error)
@@ -211,10 +209,6 @@ func (g *GoWSMANMessages) GetEthernetSettings() ([]ethernetport.SettingsResponse
 	}
 	return response.Body.PullResponse.EthernetPortItems, nil
 }
-func (g *GoWSMANMessages) DeleteEthernetSettings(instanceID string) error {
-	_, err := g.wsmanMessages.AMT.EthernetPortSettings.Delete(instanceID) // CRAIG - Need to a add delete function to wsman
-	return err
-}
 func (g *GoWSMANMessages) PutEthernetSettings(ethernetPortSettings ethernetport.SettingsRequest, instanceId string) (ethernetport.Response, error) {
 	return g.wsmanMessages.AMT.EthernetPortSettings.Put(instanceId, ethernetPortSettings)
 }
@@ -226,16 +220,16 @@ func (g *GoWSMANMessages) DeletePublicCert(instanceId string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
 	return err
 }
-func (g *GoWSMANMessages) GetCredentialRelationships() ([]credential.CredentialContext, error) {
+func (g *GoWSMANMessages) GetCredentialRelationships() (credential.Items, error) {
 	response, err := g.wsmanMessages.CIM.CredentialContext.Enumerate()
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
 	response, err = g.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
-	return response.Body.PullResponse.Items.CredentialContext, nil
+	return response.Body.PullResponse.Items, nil
 }
 func (g *GoWSMANMessages) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
 	response, err := g.wsmanMessages.CIM.ConcreteDependency.Enumerate()
