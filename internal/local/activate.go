@@ -70,21 +70,25 @@ func (service *ProvisioningService) ActivateACM() error {
 
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
-		return utils.ActivationFailed
+		log.Error("failed to get general settings")
+		return utils.WSMANMessageError
 	}
 
 	getHostBasedSetupResponse, err := service.interfacedWsmanMessage.GetHostBasedSetupService()
 	if err != nil {
-		return utils.ActivationFailed
+		log.Error("failed to get host based setup service response")
+		return utils.WSMANMessageError
 	}
 	decodedNonce := getHostBasedSetupResponse.Body.GetResponse.ConfigurationNonce
 	fwNonce, err := base64.StdEncoding.DecodeString(decodedNonce)
 	if err != nil {
+		log.Error(err)
 		return utils.ActivationFailed
 	}
 
 	err = service.injectCertificate(certObject.certChain)
 	if err != nil {
+		log.Error(err)
 		return utils.ActivationFailed
 	}
 
@@ -105,6 +109,7 @@ func (service *ProvisioningService) ActivateACM() error {
 			return utils.AMTConnectionFailed
 		}
 		if controlMode != 2 {
+			log.Error("amt returned invalid control mode")
 			return utils.ActivationFailed
 		}
 		return nil
@@ -115,11 +120,13 @@ func (service *ProvisioningService) ActivateACM() error {
 func (service *ProvisioningService) ActivateCCM() error {
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
-		return utils.ActivationFailed
+		log.Error("failed to get general settings")
+		return utils.WSMANMessageError
 	}
 	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
 	if err != nil {
-		return utils.ActivationFailed
+		log.Error("host based setup service failed")
+		return utils.WSMANMessageError
 	}
 	log.Info("Status: Device activated in Client Control Mode")
 	return nil
@@ -151,10 +158,12 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 	config := service.config.ACMSettings
 	certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
 	if err != nil {
+		log.Error(err)
 		return ProvisioningCertObj{}, "", err
 	}
 	result, fingerprint, err := dumpPfx(certsAndKeys)
 	if err != nil {
+		log.Error(err)
 		return ProvisioningCertObj{}, "", err
 	}
 	return result, fingerprint, nil
@@ -163,11 +172,15 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
 	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
 	if err != nil {
-		return CertsAndKeys{}, err
+		return CertsAndKeys{}, errors.New("failed to decode the certificate from Base64 format")
 	}
 	privateKey, certificate, extraCerts, err := pkcs12.DecodeChain(pfx, passphrase)
 	if err != nil {
-		return CertsAndKeys{}, errors.New("decrypting provisioning certificate failed")
+		if strings.Contains(err.Error(), "decryption password incorrect") {
+			return CertsAndKeys{}, errors.New("provisioning cert password incorrect")
+		}
+
+		return CertsAndKeys{}, errors.New("invalid provisioning certificate")
 	}
 	certs := append([]*x509.Certificate{certificate}, extraCerts...)
 	pfxOut := CertsAndKeys{certs: certs, keys: []interface{}{privateKey}}
@@ -204,6 +217,10 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 
 		// Put all the certificateObjects into a single un-ordered list
 		certificateList = append(certificateList, &certificateObject)
+	}
+
+	if fingerprint == "" {
+		return provisioningCertificateObj, "", errors.New("root certificate not found in the pfx")
 	}
 
 	// Order the certificates from leaf to root
@@ -261,7 +278,9 @@ func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error 
 			return nil
 		}
 	}
-	return errors.New("the root of the provisioning certificate does not match any of the trusted roots in AMT")
+	err = errors.New("the root of the provisioning certificate does not match any of the trusted roots in AMT")
+	log.Error(err)
+	return err
 }
 
 func (service *ProvisioningService) injectCertificate(certChain []string) error {
