@@ -26,7 +26,7 @@ func (service *ProvisioningService) Activate() error {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		return utils.AMTConnectionFailed
+		return utils.ActivationFailedGetControlMode
 	}
 	if controlMode != 0 {
 		log.Error("Device is already activated")
@@ -60,52 +60,52 @@ func (service *ProvisioningService) ActivateACM() error {
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
 	if err != nil {
-		return utils.ActivationFailed
+		return err
 	}
 	// Check provisioning certificate is accepted by AMT
 	err = service.CompareCertHashes(fingerPrint)
 	if err != nil {
-		return utils.ActivationFailed
+		return err
 	}
 
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
-		return utils.ActivationFailed
+		return utils.ActivationFailedGeneralSettings
 	}
 
 	getHostBasedSetupResponse, err := service.interfacedWsmanMessage.GetHostBasedSetupService()
 	if err != nil {
-		return utils.ActivationFailed
+		return utils.ActivationFailedSetupService
 	}
 	decodedNonce := getHostBasedSetupResponse.Body.GetResponse.ConfigurationNonce
 	fwNonce, err := base64.StdEncoding.DecodeString(decodedNonce)
 	if err != nil {
-		return utils.ActivationFailed
+		return utils.ActivationFailedDecode64
 	}
 
 	err = service.injectCertificate(certObject.certChain)
 	if err != nil {
-		return utils.ActivationFailed
+		return err
 	}
 
 	nonce, err := service.generateNonce()
 	if err != nil {
-		return utils.ActivationFailed
+		return err
 	}
 
 	signedSignature, err := service.createSignedString(nonce, fwNonce, certObject.privateKey)
 	if err != nil {
-		return utils.ActivationFailed
+		return err
 	}
 
 	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.ACMSettings.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
 	if err != nil {
 		controlMode, err := service.amtCommand.GetControlMode()
 		if err != nil {
-			return utils.AMTConnectionFailed
+			return utils.ActivationFailedGetControlMode
 		}
 		if controlMode != 2 {
-			return utils.ActivationFailed
+			return utils.ActivationFailedControlMode
 		}
 		return nil
 	}
@@ -115,11 +115,11 @@ func (service *ProvisioningService) ActivateACM() error {
 func (service *ProvisioningService) ActivateCCM() error {
 	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
-		return utils.ActivationFailed
+		return utils.ActivationFailedGeneralSettings
 	}
 	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
 	if err != nil {
-		return utils.ActivationFailed
+		return utils.ActivationFailedSetupService
 	}
 	log.Info("Status: Device activated in Client Control Mode")
 	return nil
@@ -163,11 +163,15 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
 	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
 	if err != nil {
-		return CertsAndKeys{}, err
+		return CertsAndKeys{}, utils.ActivationFailedDecode64
 	}
 	privateKey, certificate, extraCerts, err := pkcs12.DecodeChain(pfx, passphrase)
 	if err != nil {
-		return CertsAndKeys{}, errors.New("decrypting provisioning certificate failed")
+		if strings.Contains(err.Error(), "decryption password incorrect") {
+			return CertsAndKeys{}, utils.ActivationFailedWrongCertPass
+		}
+
+		return CertsAndKeys{}, utils.ActivationFailedInvalidProvCert
 	}
 	certs := append([]*x509.Certificate{certificate}, extraCerts...)
 	pfxOut := CertsAndKeys{certs: certs, keys: []interface{}{privateKey}}
@@ -177,10 +181,10 @@ func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) 
 
 func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 	if len(pfxobj.certs) == 0 {
-		return ProvisioningCertObj{}, "", errors.New("no certificates found")
+		return ProvisioningCertObj{}, "", utils.ActivationFailedNoCertFound
 	}
 	if len(pfxobj.keys) == 0 {
-		return ProvisioningCertObj{}, "", errors.New("no private keys found")
+		return ProvisioningCertObj{}, "", utils.ActivationFailedNoPrivKeys
 	}
 	var provisioningCertificateObj ProvisioningCertObj
 	var certificateList []*CertificateObject
@@ -204,6 +208,10 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 
 		// Put all the certificateObjects into a single un-ordered list
 		certificateList = append(certificateList, &certificateObject)
+	}
+
+	if fingerprint == "" {
+		return provisioningCertificateObj, "", utils.ActivationFailedNoRootCertFound
 	}
 
 	// Order the certificates from leaf to root
@@ -254,14 +262,14 @@ func orderCertificates(certificates []*CertificateObject) []*CertificateObject {
 func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error {
 	result, err := service.amtCommand.GetCertificateHashes()
 	if err != nil {
-		log.Error(err)
+		return utils.ActivationFailedGetCertHash
 	}
 	for _, v := range result {
 		if v.Hash == fingerPrint {
 			return nil
 		}
 	}
-	return errors.New("the root of the provisioning certificate does not match any of the trusted roots in AMT")
+	return utils.ActivationFailedProvCertNoMatch
 }
 
 func (service *ProvisioningService) injectCertificate(certChain []string) error {
@@ -273,9 +281,7 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 
 		_, err := service.interfacedWsmanMessage.AddNextCertInChain(cert, isLeaf, isRoot)
 		if err != nil {
-			log.Error(err)
-			// TODO: check if this is the correct error to return
-			return errors.New("failed to add certificate to AMT")
+			return utils.ActivationFailedAddCert
 		}
 	}
 	return nil
@@ -285,8 +291,7 @@ func (service *ProvisioningService) generateNonce() ([]byte, error) {
 	nonce := make([]byte, 20)
 	// fills nonce with 20 random bytes
 	if _, err := rand.Read(nonce); err != nil {
-		log.Error("Error generating nonce:", err)
-		return nil, err
+		return nil, utils.ActivationFailedGenerateNonce
 	}
 	return nonce, nil
 }
@@ -327,8 +332,7 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 	arr := append(fwNonce, nonce...)
 	signature, err := service.signString(arr, privateKey)
 	if err != nil {
-		log.Error("Error signing string:", err)
-		return "", err
+		return "", utils.ActivationFailedSignString
 	}
 	return signature, nil
 }

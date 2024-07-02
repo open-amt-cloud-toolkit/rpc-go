@@ -11,9 +11,14 @@ import "fmt"
 type CustomError struct {
 	Code    int
 	Message string
+	Details string
 }
 
 // Error implements the error interface for CustomError.
 func (e CustomError) Error() string {
-	return fmt.Sprintf("Error %d: %s", e.Code, e.Message)
+	if e.Details != "" {
+		return fmt.Sprintf("Error %d: %s - Details: %s", e.Code, e.Message, e.Details)
+	} else {
+		return fmt.Sprintf("Error %d: %s", e.Code, e.Message)
+	}
 }

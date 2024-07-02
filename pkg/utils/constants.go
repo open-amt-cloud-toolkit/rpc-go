@@ -109,6 +109,21 @@ var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee
 var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
 var ChangeAMTPasswordFailed = CustomError{Code: 119, Message: "ChangeAMTPasswordFailed"}
 var UnableToConfigure = CustomError{Code: 120, Message: "UnableToConfigure"}
+var ActivationFailedDecode64 = CustomError{Code: 121, Message: "ActivationFailed", Details: "failed to decode the certificate from Base64 format"}
+var ActivationFailedWrongCertPass = CustomError{Code: 122, Message: "ActivationFailed", Details: "provisioning cert password incorrect"}
+var ActivationFailedInvalidProvCert = CustomError{Code: 123, Message: "ActivationFailed", Details: "invalid provisioning certificate"}
+var ActivationFailedNoCertFound = CustomError{Code: 124, Message: "ActivationFailed", Details: "no certificates found"}
+var ActivationFailedNoPrivKeys = CustomError{Code: 125, Message: "ActivationFailed", Details: "no private keys found"}
+var ActivationFailedNoRootCertFound = CustomError{Code: 126, Message: "ActivationFailed", Details: "root certificate not found in the pfx"}
+var ActivationFailedGetCertHash = CustomError{Code: 127, Message: "ActivationFailed", Details: "failed to get certificate hashes"}
+var ActivationFailedProvCertNoMatch = CustomError{Code: 128, Message: "ActivationFailed", Details: "the root of the provisioning certificate does not match any of the trusted roots in AMT"}
+var ActivationFailedGeneralSettings = CustomError{Code: 129, Message: "ActivationFailed", Details: "wsman message error, failed to get general settings"}
+var ActivationFailedSetupService = CustomError{Code: 130, Message: "ActivationFailed", Details: "wsman message error, failed to get host based setup service response"}
+var ActivationFailedAddCert = CustomError{Code: 131, Message: "ActivationFailed", Details: "wsman message error, failed to add certificate to AMT"}
+var ActivationFailedGenerateNonce = CustomError{Code: 132, Message: "ActivationFailed", Details: "failed to generate nonce"}
+var ActivationFailedSignString = CustomError{Code: 133, Message: "ActivationFailed", Details: "failed to create signed string"}
+var ActivationFailedGetControlMode = CustomError{Code: 134, Message: "ActivationFailed", Details: "failed to get control mode"}
+var ActivationFailedControlMode = CustomError{Code: 135, Message: "ActivationFailed", Details: "recieved invalid control mode"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}
