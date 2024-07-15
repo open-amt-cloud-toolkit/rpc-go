@@ -1,3 +1,10 @@
+# [2.36.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.35.0...v2.36.0) (2024-07-15)
+
+
+### Features
+
+* **cli:** amtinfo command add amt ipaddr and osipaddr ([#560](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/560)) ([77b42aa](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/77b42aad1f7b95e546eb17640f7981933a5bf999)), closes [#467](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/467)
+
 # [2.35.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.2...v2.35.0) (2024-06-20)
 
 
