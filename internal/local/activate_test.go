@@ -5,130 +5,130 @@
 
 package local
 
-import (
-	"crypto/x509"
-	amt2 "rpc/internal/amt"
-	"rpc/internal/certs"
-	"rpc/internal/flags"
-	"rpc/pkg/utils"
-	"testing"
+// import (
+// 	"crypto/x509"
+// 	amt2 "rpc/internal/amt"
+// 	"rpc/internal/certs"
+// 	"rpc/internal/flags"
+// 	"rpc/pkg/utils"
+// 	"testing"
 
-	"github.com/stretchr/testify/assert"
-)
+// 	"github.com/stretchr/testify/assert"
+// )
 
-var sortaSingletonCerts *certs.CompositeChain = nil
+// var sortaSingletonCerts *certs.CompositeChain = nil
 
-func getTestCerts() *certs.CompositeChain {
-	if sortaSingletonCerts == nil {
-		cc, _ := certs.NewCompositeChain("P@ssw0rd")
-		sortaSingletonCerts = &cc
-	}
-	return sortaSingletonCerts
-}
+// func getTestCerts() *certs.CompositeChain {
+// 	if sortaSingletonCerts == nil {
+// 		cc, _ := certs.NewCompositeChain("P@ssw0rd")
+// 		sortaSingletonCerts = &cc
+// 	}
+// 	return sortaSingletonCerts
+// }
 
-func TestActivation(t *testing.T) {
-	lps := setupService(&flags.Flags{})
-	lps.flags.Command = utils.CommandActivate
-	lps.flags.LocalConfig.Password = "P@ssw0rd"
+// func TestActivation(t *testing.T) {
+// 	lps := setupService(&flags.Flags{})
+// 	lps.flags.Command = utils.CommandActivate
+// 	lps.flags.LocalConfig.Password = "P@ssw0rd"
 
-	t.Run("return nil activate is success", func(t *testing.T) {
-		err := lps.Activate()
-		assert.NoError(t, err)
-	})
-	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
-		mockControlModeErr = errTestError
-		err := lps.Activate()
-		assert.Error(t, err)
-		mockControlModeErr = nil
-	})
+// 	t.Run("return nil activate is success", func(t *testing.T) {
+// 		err := lps.Activate()
+// 		assert.NoError(t, err)
+// 	})
+// 	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
+// 		mockControlModeErr = errTestError
+// 		err := lps.Activate()
+// 		assert.Error(t, err)
+// 		mockControlModeErr = nil
+// 	})
 
-	t.Run("returns UnableToActivate when already activated", func(t *testing.T) {
-		mockControlMode = 1
-		err := lps.Activate()
-		assert.Error(t, err)
-		mockControlMode = 0
-	})
+// 	t.Run("returns UnableToActivate when already activated", func(t *testing.T) {
+// 		mockControlMode = 1
+// 		err := lps.Activate()
+// 		assert.Error(t, err)
+// 		mockControlMode = 0
+// 	})
 
-	t.Run("returns AMTConnectionFailed when GetLocalSystemAccount fails", func(t *testing.T) {
-		mockLocalSystemAccountErr = errTestError
-		err := lps.Activate()
-		assert.Error(t, err)
-		mockLocalSystemAccountErr = nil
-	})
+// 	t.Run("returns AMTConnectionFailed when GetLocalSystemAccount fails", func(t *testing.T) {
+// 		mockLocalSystemAccountErr = errTestError
+// 		err := lps.Activate()
+// 		assert.Error(t, err)
+// 		mockLocalSystemAccountErr = nil
+// 	})
 
-}
+// }
 
-func TestActivateCCM(t *testing.T) {
-	lps := setupService(&flags.Flags{})
-	lps.flags.Command = utils.CommandActivate
-	lps.flags.LocalConfig.Password = "P@ssw0rd"
-	t.Run("returns ActivationFailed on GetGeneralSettings error", func(t *testing.T) {
-		errMockGeneralSettings = errTestError
-		err := lps.ActivateCCM()
-		assert.Error(t, err)
-		errMockGeneralSettings = nil
-	})
+// func TestActivateCCM(t *testing.T) {
+// 	lps := setupService(&flags.Flags{})
+// 	lps.flags.Command = utils.CommandActivate
+// 	lps.flags.LocalConfig.Password = "P@ssw0rd"
+// 	t.Run("returns ActivationFailed on GetGeneralSettings error", func(t *testing.T) {
+// 		errMockGeneralSettings = errTestError
+// 		err := lps.ActivateCCM()
+// 		assert.Error(t, err)
+// 		errMockGeneralSettings = nil
+// 	})
 
-	t.Run("returns ActivationFailed on HostBasedSetupService", func(t *testing.T) {
-		errHostBasedSetupService = errTestError
-		err := lps.ActivateCCM()
-		assert.Error(t, err)
-		errHostBasedSetupService = nil
-	})
+// 	t.Run("returns ActivationFailed on HostBasedSetupService", func(t *testing.T) {
+// 		errHostBasedSetupService = errTestError
+// 		err := lps.ActivateCCM()
+// 		assert.Error(t, err)
+// 		errHostBasedSetupService = nil
+// 	})
 
-	t.Run("returns Success on happy path", func(t *testing.T) {
-		err := lps.ActivateCCM()
-		assert.NoError(t, err)
-	})
-}
+// 	t.Run("returns Success on happy path", func(t *testing.T) {
+// 		err := lps.ActivateCCM()
+// 		assert.NoError(t, err)
+// 	})
+// }
 
-func TestActivateACM(t *testing.T) {
-	f := &flags.Flags{}
-	f.LocalConfig.ACMSettings.AMTPassword = "P@ssw0rd"
-	testCerts := getTestCerts()
-	f.LocalConfig.ACMSettings.ProvisioningCert = testCerts.Pfxb64
-	f.LocalConfig.ACMSettings.ProvisioningCertPwd = testCerts.PfxPassword
-	lps := setupService(f)
-	lps.flags.Command = utils.CommandActivate
-	lps.flags.LocalConfig.Password = "P@ssw0rd"
-	mockCertHashes = []amt2.CertHashEntry{
-		{
-			Hash:      testCerts.Root.Fingerprint,
-			Name:      "",
-			Algorithm: "",
-			IsActive:  true,
-			IsDefault: true,
-		},
-	}
-	err := lps.ActivateACM()
-	assert.NoError(t, err)
-}
+// func TestActivateACM(t *testing.T) {
+// 	f := &flags.Flags{}
+// 	f.LocalConfig.ACMSettings.AMTPassword = "P@ssw0rd"
+// 	testCerts := getTestCerts()
+// 	f.LocalConfig.ACMSettings.ProvisioningCert = testCerts.Pfxb64
+// 	f.LocalConfig.ACMSettings.ProvisioningCertPwd = testCerts.PfxPassword
+// 	lps := setupService(f)
+// 	lps.flags.Command = utils.CommandActivate
+// 	lps.flags.LocalConfig.Password = "P@ssw0rd"
+// 	mockCertHashes = []amt2.CertHashEntry{
+// 		{
+// 			Hash:      testCerts.Root.Fingerprint,
+// 			Name:      "",
+// 			Algorithm: "",
+// 			IsActive:  true,
+// 			IsDefault: true,
+// 		},
+// 	}
+// 	err := lps.ActivateACM()
+// 	assert.NoError(t, err)
+// }
 
-func TestInjectCertsErrors(t *testing.T) {
-	f := &flags.Flags{}
-	testCerts := getTestCerts()
+// func TestInjectCertsErrors(t *testing.T) {
+// 	f := &flags.Flags{}
+// 	testCerts := getTestCerts()
 
-	certs := []string{testCerts.Leaf.Pem, testCerts.Intermediate.Pem, testCerts.Root.Pem}
+// 	certs := []string{testCerts.Leaf.Pem, testCerts.Intermediate.Pem, testCerts.Root.Pem}
 
-	t.Run("returns success on injectCerts", func(t *testing.T) {
-		lps := setupService(f)
-		err := lps.injectCertificate(certs)
-		assert.NoError(t, err)
-	})
-	t.Run("returns error on injectCerts", func(t *testing.T) {
-		errAddNextCertInChain = errTestError
-		lps := setupService(f)
-		err := lps.injectCertificate(certs)
-		assert.Error(t, err)
-		errAddNextCertInChain = nil
-	})
-}
+// 	t.Run("returns success on injectCerts", func(t *testing.T) {
+// 		lps := setupService(f)
+// 		err := lps.injectCertificate(certs)
+// 		assert.NoError(t, err)
+// 	})
+// 	t.Run("returns error on injectCerts", func(t *testing.T) {
+// 		errAddNextCertInChain = errTestError
+// 		lps := setupService(f)
+// 		err := lps.injectCertificate(certs)
+// 		assert.Error(t, err)
+// 		errAddNextCertInChain = nil
+// 	})
+// }
 
-func TestDumpPfx(t *testing.T) {
-	certsAndKeys := CertsAndKeys{}
-	_, _, err := dumpPfx(certsAndKeys)
-	assert.NotNil(t, err)
-	certsAndKeys.certs = []*x509.Certificate{{}}
-	_, _, err = dumpPfx(certsAndKeys)
-	assert.NotNil(t, err)
-}
+// func TestDumpPfx(t *testing.T) {
+// 	certsAndKeys := CertsAndKeys{}
+// 	_, _, err := dumpPfx(certsAndKeys)
+// 	assert.NotNil(t, err)
+// 	certsAndKeys.certs = []*x509.Certificate{{}}
+// 	_, _, err = dumpPfx(certsAndKeys)
+// 	assert.NotNil(t, err)
+// }

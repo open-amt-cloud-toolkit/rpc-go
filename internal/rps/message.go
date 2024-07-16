@@ -10,7 +10,7 @@ import (
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
-	"rpc/internal/local"
+	// "rpc/internal/local"
 	"rpc/pkg/utils"
 	"time"
 
@@ -91,7 +91,7 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 		return payload, err
 	}
 
-	payload.Features = local.DecodeAMT(payload.Version, payload.SKU)
+	// payload.Features = local.DecodeAMT(payload.Version, payload.SKU)
 
 	payload.UUID, err = p.AMT.GetUUID()
 	if err != nil {

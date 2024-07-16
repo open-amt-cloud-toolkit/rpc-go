@@ -13,7 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"rpc/internal/amt"
-	"rpc/internal/config"
+	"rpc/internal/confignew"
 	"rpc/internal/smb"
 	"rpc/pkg/utils"
 	"strconv"

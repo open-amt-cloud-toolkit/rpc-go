@@ -39,13 +39,8 @@ func (service *ProvisioningService) Deactivate() (err error) {
 }
 
 func (service *ProvisioningService) DeactivateACM() (err error) {
-	if service.flags.Password == "" {
-		err := service.flags.ReadPasswordFromUser()
-		if err != nil {
-			return utils.MissingOrIncorrectPassword
-		}
-	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	amtPassword := service.config.DeactivationProfile.AMTPassword
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", amtPassword, logrus.GetLevel() == logrus.TraceLevel)
 	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
@@ -55,7 +50,8 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 }
 
 func (service *ProvisioningService) DeactivateCCM() (err error) {
-	if service.flags.Password != "" {
+	amtPassword := service.config.DeactivationProfile.AMTPassword
+	if amtPassword != "" {
 		log.Warn("Password not required for CCM deactivation")
 	}
 	status, err := service.amtCommand.Unprovision()

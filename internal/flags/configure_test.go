@@ -8,7 +8,7 @@ package flags
 import (
 	"fmt"
 	"os"
-	"rpc/internal/config"
+	"rpc/internal/confignew"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"

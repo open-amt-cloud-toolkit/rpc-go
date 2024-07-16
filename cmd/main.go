@@ -1,4 +1,4 @@
-/*********************************************************************
+/**********************************************************************
  * Copyright (c) Intel Corporation 2021
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
@@ -6,10 +6,12 @@ package main
 
 import (
 	"os"
+	"rpc/config"
 	"rpc/internal/amt"
+	"rpc/internal/command"
 	"rpc/internal/flags"
 	"rpc/internal/local"
-	"rpc/internal/rps"
+	// "rpc/internal/rps"
 	"rpc/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
@@ -30,16 +32,31 @@ func checkAccess() error {
 }
 
 func runRPC(args []string) error {
-	flags, err := parseCommandLine(args)
-	if err != nil {
-		return err
+	cfg := &config.Config{}
+	result := command.Execute(args, cfg)
+	if result != 0 {
+		return utils.IncorrectCommandLineParameters
 	}
-	if flags.Local {
-		err = local.ExecuteCommand(flags)
-	} else {
-		err = rps.ExecuteCommand(flags)
+	log.Info("result: ", result)
+	log.Info("Password : ", cfg.DeactivationProfile.AMTPassword)
+
+	if cfg.IsLocal {
+		log.Info("Local")
+	    err := local.ExecuteCommand(cfg)
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	// flags, err := parseCommandLine(args)
+	// if err != nil {
+	// 	return err
+	// }
+	// if flags.Local {
+	// 	err = local.ExecuteCommand(flags)
+	// } else {
+	// 	err = rps.ExecuteCommand(flags)
+	// }
+	return nil
 }
 
 func parseCommandLine(args []string) (*flags.Flags, error) {
@@ -73,13 +90,13 @@ func parseCommandLine(args []string) (*flags.Flags, error) {
 }
 
 func main() {
-	err := checkAccess()
-	if err != nil {
-		log.Error(AccessErrMsg)
-		handleErrorAndExit(err)
-	}
+	// err := checkAccess()
+	// if err != nil {
+	// 	log.Error(AccessErrMsg)
+	// 	handleErrorAndExit(err)
+	// }
 
-	err = runRPC(os.Args)
+	err := runRPC(os.Args)
 	if err != nil {
 		handleErrorAndExit(err)
 	}

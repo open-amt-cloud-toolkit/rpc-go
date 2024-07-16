@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rpc/internal/config"
+	"rpc/internal/confignew"
 	"rpc/pkg/utils"
 	"strings"
 

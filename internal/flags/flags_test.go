@@ -12,7 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"rpc/internal/config"
+	"rpc/internal/confignew"
 	"rpc/internal/smb"
 	"rpc/pkg/pthi"
 	"rpc/pkg/utils"
