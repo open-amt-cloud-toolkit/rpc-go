@@ -1,3 +1,10 @@
+## [2.36.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.0...v2.36.1) (2024-07-17)
+
+
+### Bug Fixes
+
+* attempt to address false positive virus on zipped go binary artifacts on windows ([#591](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/591)) ([6957954](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/695795411e30615e4206efc8945abaa9ce2ce22d))
+
 # [2.36.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.35.0...v2.36.0) (2024-07-15)
 
 
