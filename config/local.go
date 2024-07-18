@@ -6,11 +6,17 @@ type Config struct {
 	Command             string              `mapstructure:"command"`
 	LMSConfig           LMSConfig           `mapstructure:"lmsConfig"`
 	Password            string              `mapstructure:"password"`
-	WifiProfiles        []WifiProfile       `mapstructure:"wifiProfiles"`
-	Ieee8021xProfiles   []Ieee8021xProfile  `mapstructure:"ieee8021xProfiles"`
 	ACMSettings         ACMSettings         `mapstructure:"acmSettings"`
 	ActivationProfile   ActivationProfile   `mapstructure:"activationProfile"`
 	DeactivationProfile DeactivationProfile `mapstructure:"deactivationProfile"`
+	AMTConfiguration    AMTConfiguration    `mapstructure:"amtConfiguration"`
+}
+
+type AMTConfiguration struct {
+	AMTPassword       string             `mapstructure:"AMTPassword"`
+	AMTFeatures       AMTFeatures        `mapstructure:"amtFeatures"`
+	WifiProfiles      []WifiProfile      `mapstructure:"wifiProfiles"`
+	Ieee8021xProfiles []Ieee8021xProfile `mapstructure:"ieee8021xProfiles"`
 }
 
 type LMSConfig struct {
@@ -104,4 +110,11 @@ type AmtInfo struct {
 	Lan         bool
 	Hostname    bool
 	AMTPassword string
+}
+
+type AMTFeatures struct {
+	KVM         bool
+	SOL         bool
+	IDER        bool
+	UserConsent string
 }
