@@ -45,6 +45,7 @@ func runLocalDeactivate(cmd *cobra.Command, args []string, cfg *config.Config) e
 	} 
 	
 	cfg.DeactivationProfile.AMTPassword = amtPassword
+	cfg.Command = utils.CommandDeactivate 
 	cfg.IsLocal = true
 
 	return nil

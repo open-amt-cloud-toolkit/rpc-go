@@ -37,8 +37,6 @@ func runRPC(args []string) error {
 	if result != 0 {
 		return utils.IncorrectCommandLineParameters
 	}
-	log.Info("result: ", result)
-	log.Info("Password : ", cfg.DeactivationProfile.AMTPassword)
 
 	if cfg.IsLocal {
 		log.Info("Local")

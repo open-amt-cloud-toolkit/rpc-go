@@ -6,7 +6,7 @@ type Config struct {
 	Command             string              `mapstructure:"command"`
 	LMSConfig           LMSConfig           `mapstructure:"lmsConfig"`
 	Password            string              `mapstructure:"password"`
-	ACMSettings         ACMSettings         `mapstructure:"acmSettings"`
+	// ACMSettings         ACMSettings         `mapstructure:"acmSettings"`
 	ActivationProfile   ActivationProfile   `mapstructure:"activationProfile"`
 	DeactivationProfile DeactivationProfile `mapstructure:"deactivationProfile"`
 	AMTConfiguration    AMTConfiguration    `mapstructure:"amtConfiguration"`
@@ -83,11 +83,11 @@ type Ieee8021xProfile struct {
 }
 
 // ACMSettings holds the settings for ACM (Active Configuration Management).
-type ACMSettings struct {
-	AMTPassword         string `yaml:"amtPassword"`
-	ProvisioningCert    string `yaml:"provisioningCert"`
-	ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
-}
+// type ACMSettings struct {
+// 	AMTPassword         string `yaml:"amtPassword"`
+// 	ProvisioningCert    string `yaml:"provisioningCert"`
+// 	ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
+// }
 
 type IPConfiguration struct {
 	IPAddress    string `mapstructure:"ipAddress"`

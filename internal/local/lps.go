@@ -69,19 +69,18 @@ func NewProvisioningService(config *config.Config) ProvisioningService {
 func ExecuteCommand(config *config.Config) error {
 	var err error
 	service := NewProvisioningService(config)
-	err = service.Deactivate()
-	// switch config.Command {
-	// case utils.CommandActivate:
-	// 	err = service.Activate()
+	switch config.Command {
+	case utils.CommandActivate:
+		err = service.Activate()
 	// case utils.CommandAMTInfo:
 	// 	err = service.DisplayAMTInfo()
-	// case utils.CommandDeactivate:
-	// 	err = service.Deactivate()
+	case utils.CommandDeactivate:
+		err = service.Deactivate()
 	// case utils.CommandConfigure:
 	// 	err = service.Configure()
 	// case utils.CommandVersion:
 	// 	err = service.DisplayVersion()
-	// }
+	}
 	if err != nil {
 		return err
 	}
