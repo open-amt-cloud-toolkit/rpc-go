@@ -39,7 +39,6 @@ func runRPC(args []string) error {
 	}
 
 	if cfg.IsLocal {
-		log.Info("Local")
 	    err := local.ExecuteCommand(cfg)
 		if err != nil {
 			return err

@@ -35,17 +35,17 @@ func ActivateRemoteCmd(cfg *config.Config) *cobra.Command {
     return activateRemoteCmd
 }
 
-func runRemoteActivate(cmd *cobra.Command, args []string, cfg *config.Config) error {
+func runRemoteActivate(cmd *cobra.Command, _ []string, cfg *config.Config) error {
 	var err error
 	cfg.IsLocal = false
 	// Map to hold string flags and their associated destinations
 	remoteActivationFlags := map[string]*string{
-		"url":      &cfg.ActivationProfile.URL,
-		"profile":  &cfg.ActivationProfile.Profile,
-		"uuid":     &cfg.ActivationProfile.UUID,
-		"name":     &cfg.ActivationProfile.Name,
-		"dns":      &cfg.ActivationProfile.DNS,
-		"hostname": &cfg.ActivationProfile.Hostname,
+		"url":      &cfg.Activate.URL,
+		"profile":  &cfg.Activate.Profile,
+		"uuid":     &cfg.Activate.UUID,
+		"name":     &cfg.Activate.Name,
+		"dns":      &cfg.Activate.DNS,
+		"hostname": &cfg.Activate.Hostname,
 	}
 
 	// Retrieve string flags
@@ -57,26 +57,26 @@ func runRemoteActivate(cmd *cobra.Command, args []string, cfg *config.Config) er
 		*dest = val
 	}
 
-	if cfg.ActivationProfile.URL == "" {
+	if cfg.Activate.URL == "" {
 		log.Error("-u flag is required and cannot be empty")
 		return errors.New("-u flag is required and cannot be empty")
 	}
 
-	if cfg.ActivationProfile.Profile == "" {
+	if cfg.Activate.Profile == "" {
 		log.Error("-profile flag is required and cannot be empty")
 		return errors.New("-profile flag is required and cannot be empty")
 	}
 
-	if cfg.ActivationProfile.UUID != "" {
+	if cfg.Activate.UUID != "" {
 		uuidPattern := regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-		if matched := uuidPattern.MatchString(cfg.ActivationProfile.UUID); !matched {
+		if matched := uuidPattern.MatchString(cfg.Activate.UUID); !matched {
 			log.Error("uuid provided does not follow proper uuid format")
 			return errors.New("uuid provided does not follow proper uuid format")
 		}
 		log.Warn("Warning: Overriding UUID prevents device from connecting to MPS")
 	}
 
-	cfg.ActivationProfile.NoCertverification, err = cmd.Flags().GetBool("nocertverification")
+	cfg.Activate.NoCertverification, err = cmd.Flags().GetBool("nocertverification")
 	if err != nil {
 		log.WithError(err).Error("Failed to get 'nocertverification' flag")
 		return err

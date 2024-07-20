@@ -11,8 +11,9 @@ func ActivateCmd(cfg *config.Config) *cobra.Command {
         Use:   "activate",
         Short: "Activate AMT device",
     }
+
     // Pass the configuration to the activateRemoteCmd
-    // activateCmd.AddCommand(ActivateRemoteCmd(cfg))
+    activateCmd.AddCommand(ActivateRemoteCmd(cfg))
 	activateCmd.AddCommand(ActivateLocalCmd(cfg))
 
     return activateCmd

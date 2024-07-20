@@ -1,44 +1,62 @@
-acmactivate:
+activate: 
+  mode: 'acm'
   amtPassword: 'test'
   provisioningCert: 'your provisioning certificate'
   provisioningCertPwd: 'test'
-wiredConfig:
-  dhcp: true
-  ipsync: true
-enterpriseAssistant:
-  eaAddress: '' # Address of the EA server (example: https://<your EA Address>:8000)
-  eaUsername: '' # Username for the EA server given in EA Settings
-  eaPassword: '' # Password for the EA server given in EA Settings
-wifiConfigs:
-  - profileName: 'exampleWifiWPA2' # friendly name, alphanumeric only
-    ssid: 'exampleSSID'
-    priority: 1 # must be unique across profiles
-    authenticationMethod: 6
-    encryptionMethod: 4
-    pskPassphrase: 'example123!@#'  # SECRET: can be in this file, a secrets file, or user prompt
-  - profileName: 'exampleWifiWPA' # friendly name
-    ssid: 'exampleSSID'
-    priority: 2 # must be unique across profiles
-    authenticationMethod: 4
-    encryptionMethod: 4
-    pskPassphrase: ''  # SECRET: can be in this file, a secrets file, or user prompt
-  - profileName: 'exampleWifi8021xTLS' # friendly name, alphanumeric only
-    ssid: 'ssid'
-    priority: 3 # must be unique across profiles
-    authenticationMethod: 7
-    encryptionMethod: 4
-    ieee8021xProfileName: 'exampleIeee8021xEAP-TLS'
-ieee8021xConfigs:
-  - profileName: 'exampleIeee8021xEAP-TLS'
-    username: "exampleUserName"
-    authenticationProtocol: 0 # Extensible Authentication Protocol (ex. EAP-TLS(0))
-    clientCert: 'testClientCertString'
-    caCert: 'testCaCertString'
-    privateKey: '' # SECRET: can be in this file, a secrets file, or user prompt
-  - profileName: 'exampleIeee8021xMSCHAPv2'
-    username: "exampleUserName"
-    password: "" # SECRET: can be in this file, a secrets file, or user prompt
-    authenticationProtocol: 2 # Extensible Authentication Protocol (ex. EAP-TLS(0))
-    caCert: 'testCaCertString'
-tlsConfig:
-  mode: 'Server' # Supported modes are: Server and ServerAndNonTLS
+deactivate: 
+  amtPassword: 'test'
+configure:
+  mebxPassword: 'mebxPassword'
+  newAMTPassword: 'newAMTPassword'
+  connection:
+    tls:
+      mode: 'Server' # Supported modes are: Server and ServerAndNonTLS
+    cira: 
+      mpsaddress: 'http://localhost:4433'
+      username: 'admin',
+      password: 'password'
+  amtFeatures:
+    kvm: true
+    sol: true
+    ider: false
+    userConsent: 'all'
+  enterpriseAssistant:
+      eaaddress: 'http://localhost:8080' # Address of the EA server (example: https://<your EA Address>:8000)
+      eausername: 'username' # Username for the EA server given in EA Settings
+      eapassword: 'password' # Password for the EA server given in EA Settings
+  network:
+    wire:
+      dhcp: true
+      ipsync: true
+    wifi:
+      - profileName: 'exampleWifiWPA2' # friendly name, alphanumeric only
+        ssid: 'exampleSSID'
+        priority: 1 # must be unique across profiles
+        authenticationMethod: 6
+        encryptionMethod: 4
+        pskPassphrase: 'example123!@#'  # SECRET: can be in this file, a secrets file, or user prompt
+      - profileName: 'exampleWifiWPA' # friendly name
+        ssid: 'exampleSSID'
+        priority: 2 # must be unique across profiles
+        authenticationMethod: 4
+        encryptionMethod: 4
+        pskPassphrase: ''  # SECRET: can be in this file, a secrets file, or user prompt
+      - profileName: 'exampleWifi8021xTLS' # friendly name, alphanumeric only
+        ssid: 'ssid'
+        priority: 3 # must be unique across profiles
+        authenticationMethod: 7
+        encryptionMethod: 4
+        ieee8021xProfileName: 'exampleIeee8021xEAP-TLS'
+    ieee8021x:
+      - profileName: 'exampleIeee8021xEAP-TLS'
+        username: "exampleUserName"
+        authenticationProtocol: 0 # Extensible Authentication Protocol (ex. EAP-TLS(0))
+        clientCert: 'testClientCertString'
+        caCert: 'testCaCertString'
+        privateKey: '' # SECRET: can be in this file, a secrets file, or user prompt
+      - profileName: 'exampleIeee8021xMSCHAPv2'
+        username: "exampleUserName"
+        password: "" # SECRET: can be in this file, a secrets file, or user prompt
+        authenticationProtocol: 2 # Extensible Authentication Protocol (ex. EAP-TLS(0))
+        caCert: 'testCaCertString
+  

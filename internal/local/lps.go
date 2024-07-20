@@ -76,8 +76,8 @@ func ExecuteCommand(config *config.Config) error {
 	// 	err = service.DisplayAMTInfo()
 	case utils.CommandDeactivate:
 		err = service.Deactivate()
-	// case utils.CommandConfigure:
-	// 	err = service.Configure()
+	case utils.CommandConfigure:
+		err = service.Configure()
 	// case utils.CommandVersion:
 	// 	err = service.DisplayVersion()
 	}

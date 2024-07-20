@@ -2,21 +2,30 @@ package config
 
 // Config holds the overall configuration.
 type Config struct {
-	IsLocal             bool                `mapstructure:"isLocal"`
-	Command             string              `mapstructure:"command"`
-	LMSConfig           LMSConfig           `mapstructure:"lmsConfig"`
-	Password            string              `mapstructure:"password"`
-	// ACMSettings         ACMSettings         `mapstructure:"acmSettings"`
-	ActivationProfile   ActivationProfile   `mapstructure:"activationProfile"`
-	DeactivationProfile DeactivationProfile `mapstructure:"deactivationProfile"`
-	AMTConfiguration    AMTConfiguration    `mapstructure:"amtConfiguration"`
+	IsLocal    bool       `mapstructure:"isLocal"`
+	Command    string     `mapstructure:"command"`
+	LMSConfig  LMSConfig  `mapstructure:"lmsConfig"`
+	Activate   Activate   `mapstructure:"activation"`
+	Deactivate Deactivate `mapstructure:"deactivation"`
+	Configure  Configure  `mapstructure:"configure"`
+	Provision  Provision  `mapstructure:"provision"`
 }
 
-type AMTConfiguration struct {
-	AMTPassword       string             `mapstructure:"AMTPassword"`
-	AMTFeatures       AMTFeatures        `mapstructure:"amtFeatures"`
-	WifiProfiles      []WifiProfile      `mapstructure:"wifiProfiles"`
-	Ieee8021xProfiles []Ieee8021xProfile `mapstructure:"ieee8021xProfiles"`
+type Provision struct {
+	Activation    Activate  `mapstructure:"activation"`
+	Configuration Configure `mapstructure:"amtConfiguration"`
+}
+
+type Configure struct {
+	Subcommand        string              `mapstructure:"subcommand"`
+	AMTPassword       string              `mapstructure:"amtPassword"`
+	NewAMTPassword    string              `mapstructure:"newAMTPassword"`
+	MEBxPassword      string              `mapstructure:"mebxPassword"`
+	AMTFeatures       AMTFeatures         `mapstructure:"amtFeatures"`
+	TLS               TLS                 `mapstructure:"tls"`
+	EA                EnterpriseAssistant `mapstructure:"enterpriseAssistant"`
+	WifiProfiles      []WifiProfile       `mapstructure:"wifiProfiles"`
+	Ieee8021xProfiles []Ieee8021xProfile  `mapstructure:"ieee8021xProfiles"`
 }
 
 type LMSConfig struct {
@@ -24,27 +33,26 @@ type LMSConfig struct {
 	LMSPort    string `mapstructure:"LMSPort"`
 }
 
-type DeactivationProfile struct {
-	URL         string `mapstructure:"URL"`
-	AMTPassword string `mapstructure:"AMTPassword"`
+type Deactivate struct {
+	URL         string `mapstructure:"url"`
+	AMTPassword string `mapstructure:"amtPassword"`
 }
 
-type ActivationProfile struct {
-	URL                 string `mapstructure:"URL"`
-	Profile             string `mapstructure:"Profile"`
-	UUID                string `mapstructure:"UUID"`
-	Name                string `mapstructure:"Name"`
-	DNS                 string `mapstructure:"DNS"`
-	Hostname            string `mapstructure:"Hostname"`
-	CCMMode             bool   `mapstructure:"CCMMode"`
-	ACMMode             bool   `mapstructure:"ACMMode"`
-	ConfigPathOrString  string `mapstructure:"ConfigPathOrString"`
-	ConfigJSONString    string `mapstructure:"ConfigJSONString"`
-	ConfigYAMLString    string `mapstructure:"ConfigYAMLString"`
-	AMTPassword         string `mapstructure:"AMTPassword"`
-	ProvisioningCert    string `mapstructure:"ProvisioningCert"`
-	ProvisioningCertPwd string `mapstructure:"ProvisioningCertPwd"`
-	NoCertverification  bool   `mapstructure:"NoCertverification"`
+type Activate struct {
+	URL                 string `mapstructure:"url"`
+	Profile             string `mapstructure:"profile"`
+	UUID                string `mapstructure:"uuid"`
+	Name                string `mapstructure:"name"`
+	DNS                 string `mapstructure:"dns"`
+	Hostname            string `mapstructure:"hostname"`
+	Mode                string `mapstructure:"mode"`
+	ConfigPathOrString  string `mapstructure:"config"`
+	ConfigJSONString    string `mapstructure:"configjson"`
+	ConfigYAMLString    string `mapstructure:"configyaml"`
+	AMTPassword         string `mapstructure:"amtPassword"`
+	ProvisioningCert    string `mapstructure:"provisioningCert"`
+	ProvisioningCertPwd string `mapstructure:"provisioningCertPwd"`
+	NoCertverification  bool   `mapstructure:"noCertverification"`
 }
 
 // WifiConfig holds the configuration for a Wi-Fi network.
@@ -82,13 +90,6 @@ type Ieee8021xProfile struct {
 	Password               string `mapstructure:"password"`
 }
 
-// ACMSettings holds the settings for ACM (Active Configuration Management).
-// type ACMSettings struct {
-// 	AMTPassword         string `yaml:"amtPassword"`
-// 	ProvisioningCert    string `yaml:"provisioningCert"`
-// 	ProvisioningCertPwd string `yaml:"provisioningCertPwd"`
-// }
-
 type IPConfiguration struct {
 	IPAddress    string `mapstructure:"ipAddress"`
 	Netmask      string `mapstructure:"netmask"`
@@ -117,4 +118,31 @@ type AMTFeatures struct {
 	SOL         bool
 	IDER        bool
 	UserConsent string
+}
+
+type EnterpriseAssistant struct {
+	Address    string `mapstructure:"eaAddress"`
+	Username   string `mapstructure:"eaUsername"`
+	Password   string `mapstructure:"eaPassword"`
+	Configured bool   `mapstructure:"eaConfigured"`
+}
+
+type TLS struct {
+	Delay              int    `mapstructure:"delay" env-default:"3"`
+	Mode               string `mapstructure:"mode"`
+	ConfigPathOrString string `mapstructure:"config"`
+	ConfigJSONString   string `mapstructure:"configjson"`
+	ConfigYAMLString   string `mapstructure:"configyaml"`
+}
+
+type Ethernet struct {
+	DHCP                 bool   `yaml:"dhcp"`
+	Static               bool   `yaml:"static"`
+	IpSync               bool   `yaml:"ipsync"`
+	IpAddress            string `yaml:"ipaddress"`
+	Subnetmask           string `yaml:"subnetmask"`
+	Gateway              string `yaml:"gateway"`
+	PrimaryDNS           string `yaml:"primarydns"`
+	SecondaryDNS         string `yaml:"secondarydns"`
+	Ieee8021xProfileName string `yaml:"ieee8021xProfileName"`
 }

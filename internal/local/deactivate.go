@@ -39,7 +39,7 @@ func (service *ProvisioningService) Deactivate() (err error) {
 }
 
 func (service *ProvisioningService) DeactivateACM() (err error) {
-	amtPassword := service.config.DeactivationProfile.AMTPassword
+	amtPassword := service.config.Deactivate.AMTPassword
 	service.interfacedWsmanMessage.SetupWsmanClient("admin", amtPassword, logrus.GetLevel() == logrus.TraceLevel)
 	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
@@ -50,9 +50,9 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 }
 
 func (service *ProvisioningService) DeactivateCCM() (err error) {
-	amtPassword := service.config.DeactivationProfile.AMTPassword
+	amtPassword := service.config.Deactivate.AMTPassword
 	if amtPassword != "" {
-		log.Warn("Password not required for CCM deactivation")
+		log.Info("Password not required for CCM deactivation")
 	}
 	status, err := service.amtCommand.Unprovision()
 	if err != nil || status != 0 {

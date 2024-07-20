@@ -3,7 +3,6 @@ package activate
 import (
 	"errors"
 	"fmt"
-	"os"
 	"rpc/config"
 	"rpc/pkg/utils"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/term"
 )
 
 func ActivateLocalCmd(cfg *config.Config) *cobra.Command {
@@ -25,148 +23,42 @@ func ActivateLocalCmd(cfg *config.Config) *cobra.Command {
 		},
 	}
 	// Add flags specific to each activateRemote
-	activateLocalCmd.Flags().BoolP("ccm", "", false, "Activate in CCM mode")
-	activateLocalCmd.Flags().BoolP("acm", "", false, "Activate in ACM mode")
-	activateLocalCmd.Flags().StringP("config", "", "", "Path to the configuration file or JSON/YAML string (required for ACM mode if no -amtPassword and -provisioningCert and -provisioningCertPwd are provided)")
-	activateLocalCmd.Flags().StringP("configJSON", "", "", "Configuration as a JSON string")
-	activateLocalCmd.Flags().StringP("configYAML", "", "", "Configuration as a YAML string")
-	activateLocalCmd.Flags().StringP("amtPassword", "", "", "AMT Password (required for CCM and ACM mode or if no -config is provided)")
-	activateLocalCmd.Flags().StringP("provisioningCert", "", "", "Provisioning Certificate (required for ACM mode or if no -config is provided)")
-	activateLocalCmd.Flags().StringP("provisioningCertPwd", "", "", "Provisioning Certificate Password (required for CCM mode or if no -config is provided)")
-	activateLocalCmd.Flags().BoolP("nocertverification", "n", false, "Disable certificate verification")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.Mode, "mode", "", "ccm(client control mode) or acm(admin control mode)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigPathOrString, "config", "", "Path to the configuration file or JSON/YAML string (required for ACM mode if no -amtPassword and -provisioningCert and -provisioningCertPwd are provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigJSONString, "configjson", "", "Configuration as a JSON string")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigYAMLString, "configyaml", "", "Configuration as a YAML string")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.AMTPassword, "amtpassword", "", "AMT Password (required for CCM and ACM mode or if no -config is provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCert, "provisioningcert", "", "Provisioning Certificate (required for ACM mode or if no -config is provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCertPwd, "provisioningcertpwd", "", "Provisioning Certificate Password (required for CCM mode or if no -config is provided)")
 
 	return activateLocalCmd
 }
 
-func getFlagsFromCommand(cmd *cobra.Command, cfg *config.Config) error {
-	// Map to hold string flags and their associated destinations
-	stringFlags := map[string]*string{
-		"config":              &cfg.ActivationProfile.ConfigPathOrString,
-		"configJSON":          &cfg.ActivationProfile.ConfigJSONString,
-		"configYAML":          &cfg.ActivationProfile.ConfigYAMLString,
-		"amtPassword":         &cfg.ActivationProfile.AMTPassword,
-		"provisioningCert":    &cfg.ActivationProfile.ProvisioningCert,
-		"provisioningCertPwd": &cfg.ActivationProfile.ProvisioningCertPwd,
-	}
-
-	// Retrieve string flags
-	for flag, dest := range stringFlags {
-		val, err := cmd.Flags().GetString(flag)
-		if err != nil {
-			return err
-		}
-		*dest = val
-	}
-
-	// Retrieve boolean flags
-	boolFlags := map[string]*bool{
-		"ccm":                &cfg.ActivationProfile.CCMMode,
-		"acm":                &cfg.ActivationProfile.ACMMode,
-		"nocertverification": &cfg.ActivationProfile.NoCertverification,
-	}
-	for flag, dest := range boolFlags {
-		val, err := cmd.Flags().GetBool(flag)
-		if err != nil {
-			return err
-		}
-		*dest = val
-	}
-
+func runLocalActivate(_ *cobra.Command, _ []string, cfg *config.Config) error {
 	cfg.IsLocal = true
 	cfg.Command = utils.CommandActivate
 
-	return nil
+	if cfg.Activate.ConfigPathOrString != "" {
+		return readConfigFile(cfg)
+	}
+	if cfg.Activate.ConfigJSONString != "" {
+		return readConfig(cfg, "json")
+	}
+	if cfg.Activate.ConfigYAMLString != "" {
+		return readConfig(cfg, "yaml")
+	}
+
+	return validateConfig(cfg)
 }
 
-func runLocalActivate(cmd *cobra.Command, _ []string, cfg *config.Config) error {
-	err := getFlagsFromCommand(cmd, cfg)
-	if err != nil {
-		return err
-	}
-
-	if cfg.ActivationProfile.CCMMode && cfg.ActivationProfile.ACMMode {
-		return errors.New("You cannot activate in both CCM and ACM modes simultaneously.")
-	}
-
-	if !cfg.ActivationProfile.CCMMode && !cfg.ActivationProfile.ACMMode {
-		return errors.New("Please specify a mode for activation (either --ccm or --acm).")
-	}
-
-	if cfg.ActivationProfile.CCMMode {
-		return activateCCM(cfg)
-	}
-
-	if cfg.ActivationProfile.ACMMode {
-		return activateACM(cfg)
-	}
-
-	return nil
-}
-
-func activateCCM(cfg *config.Config) error {
-	// If password is missing, prompt the user to enter it
-	if cfg.ActivationProfile.AMTPassword == "" {
-		log.Infoln("Please enter AMT Password: ")
-		bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-		if err != nil {
-			log.Infoln("Error reading password:", err)
-			return utils.MissingOrIncorrectPassword
-		}
-		cfg.ActivationProfile.AMTPassword = string(bytePassword)
-		if cfg.ActivationProfile.AMTPassword == "" {
-			log.Error("Missing or incorrect password")
-			return utils.MissingOrIncorrectPassword
-		}
-	}
-
-	return nil
-}
-
-func activateACM(cfg *config.Config) error {
-
-	if cfg.ActivationProfile.ConfigPathOrString != "" {
-		return readACMSettingsConfigFile(cfg.ActivationProfile.ConfigPathOrString, &cfg.ActivationProfile)
-	}
-
-	if cfg.ActivationProfile.ConfigJSONString != "" {
-		viper.SetConfigType("json")
-		return readACMSettings(cfg.ActivationProfile.ConfigJSONString, &cfg.ActivationProfile)
-	}
-
-	if cfg.ActivationProfile.ConfigYAMLString != "" {
-		viper.SetConfigType("yaml")
-		return readACMSettings(cfg.ActivationProfile.ConfigYAMLString, &cfg.ActivationProfile)
-	}
-
-	missingFields := []string{}
-	if cfg.ActivationProfile.AMTPassword == "" {
-		missingFields = append(missingFields, "-amtPassword")
-	}
-	if cfg.ActivationProfile.ProvisioningCert == "" {
-		missingFields = append(missingFields, "-provisioningCert")
-	}
-	if cfg.ActivationProfile.ProvisioningCertPwd == "" {
-		missingFields = append(missingFields, "-provisioningCertPwd")
-	}
-
-	if len(missingFields) > 0 {
-		missingFieldsStr := strings.Join(missingFields, ", ")
-		errMsg := fmt.Sprintf("Missing required flags for ACM activation: %s. Alternatively, provide a configuration using -config, -configJSON, or -configYAML", missingFieldsStr)
-		log.Error(errMsg)
-		return errors.New(errMsg)
-	}
-
-	return nil
-}
-
-func readACMSettingsConfigFile(configPathOrString string, config *config.ActivationProfile) error {
-	viper.SetConfigFile(configPathOrString)
+func readConfigFile(config *config.Config) error {
+	viper.SetConfigFile(config.Activate.ConfigPathOrString)
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
-	acmConfig := viper.Sub("acmactivate")
+	acmConfig := viper.Sub("activate")
 	if acmConfig == nil {
-		return errors.New("acmactivate settings not found in config")
+		return errors.New("activate settings not found in config")
 	}
 	if err := acmConfig.Unmarshal(config); err != nil {
 		return err
@@ -174,28 +66,63 @@ func readACMSettingsConfigFile(configPathOrString string, config *config.Activat
 	return validateConfig(config)
 }
 
-func readACMSettings(configString string, config *config.ActivationProfile) error {
+func readConfig(config *config.Config, configType string) error {
+	var configString string
+	viper.SetConfigType(configType)
+	if configType == "json" {
+		configString = config.Activate.ConfigJSONString
+	} else if configType == "yaml" {
+		configString = config.Activate.ConfigYAMLString
+	}
 	if err := viper.ReadConfig(strings.NewReader(configString)); err != nil {
 		return err
 	}
-
-	acmConfig := viper.Sub("acmactivate")
+	acmConfig := viper.Sub("activate")
 	if acmConfig != nil {
 		if err := acmConfig.Unmarshal(config); err != nil {
 			return err
 		}
 	}
-
 	if err := viper.Unmarshal(config); err != nil {
 		return err
 	}
-
 	return validateConfig(config)
 }
 
-func validateConfig(config *config.ActivationProfile) error {
-	if config.AMTPassword == "" || config.ProvisioningCert == "" || config.ProvisioningCertPwd == "" {
-		return errors.New("One or more required configurations are missing")
+func validateConfig(config *config.Config) error {
+	missingFields := []string{}
+
+	// Check if mode is provided and valid
+	switch config.Activate.Mode {
+	case "":
+		missingFields = append(missingFields, "--mode")
+	case "ccm":
+		// For CCM, AMT password is required
+		if config.Activate.AMTPassword == "" {
+			missingFields = append(missingFields, "--amtpassword")
+		}
+	case "acm":
+		// For ACM, AMT password, provisioning cert, and cert password are required
+		if config.Activate.AMTPassword == "" {
+			missingFields = append(missingFields, "--amtpassword")
+		}
+		if config.Activate.ProvisioningCert == "" {
+			missingFields = append(missingFields, "--provisioningcert")
+		}
+		if config.Activate.ProvisioningCertPwd == "" {
+			missingFields = append(missingFields, "--provisioningcertpwd")
+		}
+	default:
+		return fmt.Errorf("invalid mode: %s, must be 'ccm' (client control mode) or 'acm' (admin control mode)", config.Activate.Mode)
 	}
+
+	// Report any missing fields
+	if len(missingFields) > 0 {
+		missingFieldsStr := strings.Join(missingFields, ", ")
+		errMsg := fmt.Sprintf("Missing required flags for %s mode activation: %s", config.Activate.Mode, missingFieldsStr)
+		log.Error(errMsg)
+		return errors.New(errMsg)
+	}
+
 	return nil
 }

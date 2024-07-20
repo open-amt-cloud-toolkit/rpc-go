@@ -9,28 +9,9 @@ import (
 
 	// "rpc/internal/command/maintenance"
 	// "rpc/internal/command/info"
-	"rpc/config"
-
 	"github.com/spf13/cobra"
+	"rpc/config"
 )
-
-type activationFlags struct {
-	url                string
-	profile            string
-	uuid               string
-	name               string
-	dns                string
-	hostname           string
-	ccmMode            bool
-	acmMode            bool
-	configPathOrString string
-	configJSONString   string
-	configYAMLString   string
-	amtPassword        string
-	provisioningCert   string
-	provisioningCertPwd string
-	nocertverification bool
-}
 
 var (
 	// Root command with common flags
@@ -40,8 +21,8 @@ var (
 	}
 
 	// Global flags
-	verbose bool
-	logLevel string
+	verbose    bool
+	logLevel   string
 	jsonOutput bool
 )
 

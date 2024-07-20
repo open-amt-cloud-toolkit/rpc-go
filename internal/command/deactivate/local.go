@@ -21,13 +21,13 @@ func DeactivateLocalCmd(cfg *config.Config) *cobra.Command {
 	deactivateLocalCmd.Flags().StringP("amtPassword", "", "", "AMT Password (required to deactivate from ACM mode)")
 
 	// Mark flags as mandatory
-	deactivateLocalCmd.MarkFlagRequired("amtPassword")
+	// deactivateLocalCmd.MarkFlagRequired("amtPassword")
 
 	return deactivateLocalCmd
 
 }
 
-func runLocalDeactivate(cmd *cobra.Command, args []string, cfg *config.Config) error {
+func runLocalDeactivate(cmd *cobra.Command, _ []string, cfg *config.Config) error {
 	amtPassword, err := cmd.Flags().GetString("amtPassword")
 	// If password is missing, prompt the user to enter it
 	if err != nil || amtPassword == "" {
@@ -37,14 +37,14 @@ func runLocalDeactivate(cmd *cobra.Command, args []string, cfg *config.Config) e
 			log.Infoln("Error reading password:", err)
 			return utils.MissingOrIncorrectPassword
 		}
-		cfg.DeactivationProfile.AMTPassword = string(bytePassword)
-		if cfg.DeactivationProfile.AMTPassword == "" {
+		cfg.Deactivate.AMTPassword = string(bytePassword)
+		if cfg.Deactivate.AMTPassword == "" {
 			log.Error("Missing or incorrect password")
 			return utils.MissingOrIncorrectPassword
 		}
 	} 
 	
-	cfg.DeactivationProfile.AMTPassword = amtPassword
+	cfg.Deactivate.AMTPassword = amtPassword
 	cfg.Command = utils.CommandDeactivate 
 	cfg.IsLocal = true
 

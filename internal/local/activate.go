@@ -29,7 +29,7 @@ func (service *ProvisioningService) Activate() error {
 		return utils.ActivationFailedGetControlMode
 	}
 	if controlMode != 0 {
-		log.Error("Device is already activated")
+		log.Error("Device is already activated") // TODO: Print the mode
 		return utils.UnableToActivate
 	}
 
@@ -43,12 +43,12 @@ func (service *ProvisioningService) Activate() error {
 	}
 	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
 
-	if service.config.ActivationProfile.ACMMode {
+	if service.config.Activate.Mode == "acm" {
 		err = service.ActivateACM()
 		if err == nil {
 			log.Info("Status: Device activated in Admin Control Mode")
 		}
-	} else if service.config.ActivationProfile.CCMMode {
+	} else if service.config.Activate.Mode == "ccm" {
 		err = service.ActivateCCM()
 	}
 
@@ -98,7 +98,7 @@ func (service *ProvisioningService) ActivateACM() error {
 		return err
 	}
 
-	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.ActivationProfile.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
+	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.Activate.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
 	if err != nil {
 		controlMode, err := service.amtCommand.GetControlMode()
 		if err != nil {
@@ -117,7 +117,7 @@ func (service *ProvisioningService) ActivateCCM() error {
 	if err != nil {
 		return utils.ActivationFailedGeneralSettings
 	}
-	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.ActivationProfile.AMTPassword)
+	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Activate.AMTPassword)
 	if err != nil {
 		return utils.ActivationFailedSetupService
 	}
@@ -148,7 +148,7 @@ func cleanPEM(pem string) string {
 }
 
 func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertObj, string, error) {
-	config := service.config.ActivationProfile
+	config := service.config.Activate
 	certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
 	if err != nil {
 		return ProvisioningCertObj{}, "", err

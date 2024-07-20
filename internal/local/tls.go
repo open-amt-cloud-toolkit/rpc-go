@@ -23,8 +23,9 @@ package local
 
 // func (service *ProvisioningService) ConfigureTLS() error {
 // 	var err error
-// 	if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
-// 		err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
+// 	ea := service.config.Configure.EA
+// 	if ea.Address != "" && ea.Username != "" && ea.Password != "" {
+// 		err = service.ValidateURL(ea.Address)
 // 		if err != nil {
 // 			log.Error("url validation failed: ", err)
 // 			return utils.TLSConfigurationFailed
@@ -51,6 +52,7 @@ package local
 
 // func (service *ProvisioningService) ConfigureTLSWithEA() error {
 // 	log.Info("configuring TLS with Microsoft EA")
+// 	ea := service.config.Configure.EA
 // 	var handles Handles
 // 	var err error
 // 	defer func() {
@@ -59,13 +61,13 @@ package local
 // 		}
 // 	}()
 // 	credentials := AuthRequest{
-// 		Username: service.flags.ConfigTLSInfo.EAUsername,
-// 		Password: service.flags.ConfigTLSInfo.EAPassword,
+// 		Username: ea.Username,
+// 		Password: ea.Password,
 // 	}
 // 	guid, err := service.amtCommand.GetUUID()
 
 // 	// Call GetAuthToken
-// 	url := service.flags.ConfigTLSInfo.EAAddress + "/api/authenticate/" + guid
+// 	url := ea.Address + "/api/authenticate/" + guid
 // 	token, err := service.GetAuthToken(url, credentials)
 // 	if err != nil {
 // 		log.Errorf("error getting auth token: %v", err)
@@ -79,7 +81,7 @@ package local
 // 	reqProfile := EAProfile{NodeID: guid, Domain: "", ReqID: "", AuthProtocol: 0, OSName: "win11", DevName: devName, Icon: 1, Ver: ""}
 
 // 	//Request Profile from Microsoft EA
-// 	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/profile/" + guid
+// 	url = ea.Address + "/api/configure/profile/" + guid
 // 	_, err = service.EAConfigureRequest(url, token, reqProfile)
 // 	if err != nil {
 // 		log.Errorf("error while requesting EA: %v", err)
@@ -103,7 +105,7 @@ package local
 // 	//Request Profile from Microsoft EA
 // 	reqProfile.DERKey = derKey
 // 	reqProfile.KeyInstanceId = handles.keyPairHandle
-// 	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/keypair/" + guid
+// 	url = ea.Address + "/api/configure/keypair/" + guid
 // 	KeyPairResponse, err := service.EAConfigureRequest(url, token, reqProfile)
 // 	if err != nil {
 // 		log.Errorf("error generating 802.1x keypair: %v", err)
@@ -116,7 +118,7 @@ package local
 // 	}
 
 // 	reqProfile.SignedCSR = response.Body.GeneratePKCS10RequestEx_OUTPUT.SignedCertificateRequest
-// 	url = service.flags.ConfigTLSInfo.EAAddress + "/api/configure/csr/" + guid
+// 	url = ea.Address + "/api/configure/csr/" + guid
 // 	eaResponse, err := service.EAConfigureRequest(url, token, reqProfile)
 // 	if err != nil {
 // 		log.Errorf("error signing the certificate: %v", err)
@@ -264,7 +266,7 @@ package local
 // }
 
 // func (service *ProvisioningService) ConfigureTLSSettings(setting tls.SettingDataResponse) error {
-// 	data := getTLSSettings(setting, service.flags.ConfigTLSInfo.TLSMode)
+// 	data := getTLSSettings(setting, service.config.Configure.TLS.Mode)
 // 	_, err := service.interfacedWsmanMessage.PUTTLSSettings(data.InstanceID, data)
 // 	if err != nil {
 // 		log.Errorf("failed to configure remote TLS Settings (%s)\n", data.InstanceID)
