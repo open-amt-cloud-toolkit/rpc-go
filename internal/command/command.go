@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"rpc/internal/command/activate"
 	"rpc/internal/command/configure"
 	"rpc/internal/command/deactivate"
@@ -33,7 +32,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&jsonOutput, "json", false, "JSON output")
 }
 
-func Execute(args []string, cfg *config.Config) utils.ReturnCode {
+func Execute(args []string, cfg *config.Config) error {
 	// Add all subcommands to the root command
 	// RootCmd.AddCommand(amtInfoCmd)
 	RootCmd.AddCommand(activate.ActivateCmd(cfg))
@@ -42,8 +41,8 @@ func Execute(args []string, cfg *config.Config) utils.ReturnCode {
 
 	// Execute the root command
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		return utils.FailedReadingConfiguration
 	}
 
-	return utils.Success
+	return nil
 }

@@ -47,9 +47,9 @@ func ConfigureTLSCmd(cfg *config.Config) *cobra.Command {
 
 	tlsModeUsage := fmt.Sprintf("TLS authentication usage model (%s) (default %s)", TLSModesToString(), cfg.Configure.TLS.Mode)
 	configureTLSCmd.Flags().StringVar(&cfg.Configure.TLS.Mode, "mode", string(TLSModeServer), tlsModeUsage)
-	configureTLSCmd.Flags().StringVar(&cfg.Configure.TLS.ConfigPathOrString, "config", "", "Path to the configuration file or JSON/YAML string")
-	configureTLSCmd.Flags().StringVar(&cfg.Configure.TLS.ConfigJSONString, "configjson", "", "Configuration as a JSON string")
-	configureTLSCmd.Flags().StringVar(&cfg.Configure.TLS.ConfigYAMLString, "configyaml", "", "Configuration as a YAML string")
+	configureTLSCmd.Flags().StringVar(&cfg.Configure.ConfigPathOrString, "config", "", "Path to the configuration file or JSON/YAML string")
+	configureTLSCmd.Flags().StringVar(&cfg.Configure.ConfigJSONString, "configjson", "", "Configuration as a JSON string")
+	configureTLSCmd.Flags().StringVar(&cfg.Configure.ConfigYAMLString, "configyaml", "", "Configuration as a YAML string")
 	configureTLSCmd.Flags().IntVar(&cfg.Configure.TLS.Delay, "delay", 3, "Delay time in seconds after putting remote TLS settings") //ToDo: Check if we can remove
 	configureTLSCmd.Flags().StringVar(&cfg.Configure.EA.Address, "eaaddress", "", "Enterprise Assistant address")
 	configureTLSCmd.Flags().StringVar(&cfg.Configure.EA.Username, "eausername", "", "Enterprise Assistant username")
@@ -61,18 +61,30 @@ func ConfigureTLSCmd(cfg *config.Config) *cobra.Command {
 func runTLSConfig(_ *cobra.Command, _ []string, cfg *config.Config) error {
 	cfg.Configure.Subcommand = utils.SubCommandConfigureTLS
 
-	if cfg.Configure.TLS.ConfigPathOrString != "" {
-		return readConfigFile(cfg.Configure.TLS.ConfigPathOrString, cfg)
+	if cfg.Configure.ConfigPathOrString != "" {
+		err := ReadConfigFile(cfg.Configure.ConfigPathOrString, cfg)
+		if err != nil {
+			return err
+		}
+		return validateConfig(cfg)
 	}
 
-	if cfg.Configure.TLS.ConfigJSONString != "" {
+	if cfg.Configure.ConfigJSONString != "" {
 		viper.SetConfigType("json")
-		return readConfigString(cfg.Configure.TLS.ConfigJSONString, cfg)
+		err := ReadConfigString(cfg.Configure.ConfigJSONString, cfg)
+		if err != nil {
+			return err
+		}
+		return validateConfig(cfg)
 	}
 
-	if cfg.Configure.TLS.ConfigYAMLString != "" {
+	if cfg.Configure.ConfigYAMLString != "" {
 		viper.SetConfigType("yaml")
-		return readConfigString(cfg.Configure.TLS.ConfigYAMLString, cfg)
+		err := ReadConfigString(cfg.Configure.ConfigYAMLString, cfg)
+		if err != nil {
+			return err
+		}
+		return validateConfig(cfg)
 	}
 	
 	if cfg.Configure.AMTPassword == "" {
@@ -86,39 +98,6 @@ func runTLSConfig(_ *cobra.Command, _ []string, cfg *config.Config) error {
 	return validateConfig(cfg)
 }
 
-func readConfigFile(configPathOrString string, config *config.Config) error {
-	viper.SetConfigFile(configPathOrString)
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-	// acmConfig := viper.Sub("acmactivate")
-	// if acmConfig == nil {
-	// 	return errors.New("acmactivate settings not found in config")
-	// }
-	if err := viper.Unmarshal(config); err != nil {
-		return err
-	}
-	return validateConfig(config)
-}
-
-func readConfigString(configString string, config *config.Config) error {
-	if err := viper.ReadConfig(strings.NewReader(configString)); err != nil {
-		return err
-	}
-
-	// acmConfig := viper.Sub("acmactivate")
-	// if acmConfig != nil {
-	// 	if err := acmConfig.Unmarshal(config); err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	if err := viper.Unmarshal(config); err != nil {
-		return err
-	}
-
-	return validateConfig(config)
-}
 
 func validateConfig(cfg *config.Config) error {
 	missingFields := []string{}

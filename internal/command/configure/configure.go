@@ -4,9 +4,11 @@ import (
 	"os"
 	"rpc/config"
 	"rpc/pkg/utils"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
 
@@ -57,4 +59,26 @@ func PromptForPassword() (password string, err error) {
 		return "", utils.MissingOrIncorrectPassword
 	}
 	return password, nil
+}
+
+func ReadConfigFile(configPathOrString string, config *config.Config) error {
+	viper.SetConfigFile(configPathOrString)
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+	if err := viper.Unmarshal(config); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadConfigString(configString string, config *config.Config) error {
+	if err := viper.ReadConfig(strings.NewReader(configString)); err != nil {
+		return err
+	}
+	if err := viper.Unmarshal(config); err != nil {
+		return err
+	}
+
+	return nil
 }

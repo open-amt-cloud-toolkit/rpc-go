@@ -17,15 +17,18 @@ type Provision struct {
 }
 
 type Configure struct {
-	Subcommand        string              `mapstructure:"subcommand"`
-	AMTPassword       string              `mapstructure:"amtPassword"`
-	NewAMTPassword    string              `mapstructure:"newAMTPassword"`
-	MEBxPassword      string              `mapstructure:"mebxPassword"`
-	AMTFeatures       AMTFeatures         `mapstructure:"amtFeatures"`
-	TLS               TLS                 `mapstructure:"tls"`
-	EA                EnterpriseAssistant `mapstructure:"enterpriseAssistant"`
-	WifiProfiles      []WifiProfile       `mapstructure:"wifiProfiles"`
-	Ieee8021xProfiles []Ieee8021xProfile  `mapstructure:"ieee8021xProfiles"`
+	Subcommand         string              `mapstructure:"subcommand"`
+	ConfigPathOrString string              `mapstructure:"config"`
+	ConfigJSONString   string              `mapstructure:"configjson"`
+	ConfigYAMLString   string              `mapstructure:"configyaml"`
+	AMTPassword        string              `mapstructure:"amtPassword"`
+	NewAMTPassword     string              `mapstructure:"newAMTPassword"`
+	MEBxPassword       string              `mapstructure:"mebxPassword"`
+	AMTFeatures        AMTFeatures         `mapstructure:"amtFeatures"`
+	TLS                TLS                 `mapstructure:"tls"`
+	EA                 EnterpriseAssistant `mapstructure:"enterpriseAssistant"`
+	WifiProfiles       []WifiProfile       `mapstructure:"wifiProfiles"`
+	Ieee8021xProfiles  []Ieee8021xProfile  `mapstructure:"ieee8021xProfiles"`
 }
 
 type LMSConfig struct {
@@ -128,11 +131,8 @@ type EnterpriseAssistant struct {
 }
 
 type TLS struct {
-	Delay              int    `mapstructure:"delay" env-default:"3"`
-	Mode               string `mapstructure:"mode"`
-	ConfigPathOrString string `mapstructure:"config"`
-	ConfigJSONString   string `mapstructure:"configjson"`
-	ConfigYAMLString   string `mapstructure:"configyaml"`
+	Delay int    `mapstructure:"delay" env-default:"3"`
+	Mode  string `mapstructure:"mode"`
 }
 
 type Ethernet struct {

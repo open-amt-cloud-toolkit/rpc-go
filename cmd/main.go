@@ -33,8 +33,8 @@ func checkAccess() error {
 
 func runRPC(args []string) error {
 	cfg := &config.Config{}
-	result := command.Execute(args, cfg)
-	if result != 0 {
+	err := command.Execute(args, cfg)
+	if err != nil {
 		return utils.IncorrectCommandLineParameters
 	}
 
