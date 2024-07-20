@@ -47,8 +47,8 @@ type Activate struct {
 	Hostname            string `mapstructure:"hostname"`
 	Mode                string `mapstructure:"mode"`
 	ConfigPathOrString  string `mapstructure:"config"`
-	ConfigJSONString    string `mapstructure:"configjson"`
-	ConfigYAMLString    string `mapstructure:"configyaml"`
+	ConfigJSONString    string `mapstructure:"configJSON"`
+	ConfigYAMLString    string `mapstructure:"configYAML"`
 	AMTPassword         string `mapstructure:"amtPassword"`
 	ProvisioningCert    string `mapstructure:"provisioningCert"`
 	ProvisioningCertPwd string `mapstructure:"provisioningCertPwd"`

@@ -13,7 +13,7 @@ configure:
       mode: 'Server' # Supported modes are: Server and ServerAndNonTLS
     cira: 
       mpsaddress: 'http://localhost:4433'
-      username: 'admin',
+      username: 'admin'
       password: 'password'
   amtFeatures:
     kvm: true
@@ -58,5 +58,4 @@ configure:
         username: "exampleUserName"
         password: "" # SECRET: can be in this file, a secrets file, or user prompt
         authenticationProtocol: 2 # Extensible Authentication Protocol (ex. EAP-TLS(0))
-        caCert: 'testCaCertString
-  
+        caCert: 'testCaCertString'

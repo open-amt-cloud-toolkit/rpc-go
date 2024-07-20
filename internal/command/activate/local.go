@@ -25,11 +25,11 @@ func ActivateLocalCmd(cfg *config.Config) *cobra.Command {
 	// Add flags specific to each activateRemote
 	activateLocalCmd.Flags().StringVar(&cfg.Activate.Mode, "mode", "", "ccm(client control mode) or acm(admin control mode)")
 	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigPathOrString, "config", "", "Path to the configuration file or JSON/YAML string (required for ACM mode if no -amtPassword and -provisioningCert and -provisioningCertPwd are provided)")
-	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigJSONString, "configjson", "", "Configuration as a JSON string")
-	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigYAMLString, "configyaml", "", "Configuration as a YAML string")
-	activateLocalCmd.Flags().StringVar(&cfg.Activate.AMTPassword, "amtpassword", "", "AMT Password (required for CCM and ACM mode or if no -config is provided)")
-	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCert, "provisioningcert", "", "Provisioning Certificate (required for ACM mode or if no -config is provided)")
-	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCertPwd, "provisioningcertpwd", "", "Provisioning Certificate Password (required for CCM mode or if no -config is provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigJSONString, "configJSON", "", "Configuration as a JSON string")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ConfigYAMLString, "configYAML", "", "Configuration as a YAML string")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.AMTPassword, "amtPassword", "", "AMT Password (required for CCM and ACM mode or if no -config is provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCert, "provisioningCert", "", "Provisioning Certificate (required for ACM mode or if no -config is provided)")
+	activateLocalCmd.Flags().StringVar(&cfg.Activate.ProvisioningCertPwd, "provisioningCertPwd", "", "Provisioning Certificate Password (required for CCM mode or if no -config is provided)")
 
 	return activateLocalCmd
 }
@@ -60,7 +60,7 @@ func readConfigFile(config *config.Config) error {
 	if acmConfig == nil {
 		return errors.New("activate settings not found in config")
 	}
-	if err := acmConfig.Unmarshal(config); err != nil {
+	if err := acmConfig.Unmarshal(&config.Activate); err != nil {
 		return err
 	}
 	return validateConfig(config)
@@ -79,13 +79,15 @@ func readConfig(config *config.Config, configType string) error {
 	}
 	acmConfig := viper.Sub("activate")
 	if acmConfig != nil {
-		if err := acmConfig.Unmarshal(config); err != nil {
+		if err := acmConfig.Unmarshal(&config.Activate); err != nil {
+			return err
+		}
+	} else {
+		if err := viper.Unmarshal(&config.Activate); err != nil {
 			return err
 		}
 	}
-	if err := viper.Unmarshal(config); err != nil {
-		return err
-	}
+
 	return validateConfig(config)
 }
 
