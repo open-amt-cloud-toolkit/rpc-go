@@ -23,6 +23,10 @@ const LocalTLSInstanceId = `Intel(r) AMT LMS TLS Settings`
 
 func (service *ProvisioningService) ConfigureTLS() error {
 	var err error
+	err = service.PruneTLSCerts()
+	if err != nil {
+		return err
+	}
 	if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
 		err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
 		if err != nil {
@@ -250,6 +254,45 @@ func (service *ProvisioningService) EnableTLS() error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	service.Pause(service.flags.ConfigTLSInfo.DelayInSeconds)
+
+	_, err = service.interfacedWsmanMessage.CommitChanges()
+	if err != nil {
+		log.Error("commit changes failed")
+		return err
+	}
+	return nil
+}
+
+func (service *ProvisioningService) DisableTLS() error {
+	log.Info("disabling tls")
+	enumerateRsp, err := service.interfacedWsmanMessage.EnumerateTLSSettingData()
+	if err != nil {
+		return utils.WSMANMessageError
+	}
+	pullRsp, err := service.interfacedWsmanMessage.PullTLSSettingData(enumerateRsp.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return utils.WSMANMessageError
+	}
+
+	for _, item := range pullRsp.Body.PullResponse.SettingDataItems {
+		tlsSettingsData := tls.SettingDataRequest{
+			XMLName:                       item.XMLName,
+			ElementName:                   item.ElementName,
+			InstanceID:                    item.InstanceID,
+			MutualAuthentication:          item.MutualAuthentication,
+			Enabled:                       false,
+			TrustedCN:                     item.TrustedCN,
+			AcceptNonSecureConnections:    item.AcceptNonSecureConnections,
+			NonSecureConnectionsSupported: *item.NonSecureConnectionsSupported,
+		}
+
+		_, err = service.interfacedWsmanMessage.PUTTLSSettings(item.InstanceID, tlsSettingsData)
+		if err != nil {
+			return err
 		}
 	}
 

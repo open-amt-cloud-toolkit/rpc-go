@@ -46,7 +46,7 @@ type WSMANer interface {
 	GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error)
 	DeletePublicPrivateKeyPair(instanceId string) error
 	DeletePublicCert(instanceId string) error
-	GetCredentialRelationships() ([]credential.CredentialContext, error)
+	GetCredentialRelationships() (credential.Items, error)
 	GetConcreteDependencies() ([]concrete.ConcreteDependency, error)
 	AddTrustedRootCert(caCert string) (string, error)
 	AddClientCert(clientCert string) (string, error)
@@ -220,16 +220,16 @@ func (g *GoWSMANMessages) DeletePublicCert(instanceId string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
 	return err
 }
-func (g *GoWSMANMessages) GetCredentialRelationships() ([]credential.CredentialContext, error) {
+func (g *GoWSMANMessages) GetCredentialRelationships() (credential.Items, error) {
 	response, err := g.wsmanMessages.CIM.CredentialContext.Enumerate()
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
 	response, err = g.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
-	return response.Body.PullResponse.Items.CredentialContext, nil
+	return response.Body.PullResponse.Items, nil
 }
 func (g *GoWSMANMessages) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
 	response, err := g.wsmanMessages.CIM.ConcreteDependency.Enumerate()
@@ -268,14 +268,18 @@ func (g *GoWSMANMessages) AddClientCert(clientCert string) (handle string, err e
 }
 func (g *GoWSMANMessages) AddPrivateKey(privateKey string) (handle string, err error) {
 	response, err := g.wsmanMessages.AMT.PublicKeyManagementService.AddKey(privateKey)
-	if err != nil {
+	if err != nil && response.Body.AddKey_OUTPUT.ReturnValue == 2058 {
+		return "", utils.DuplicateKey
+	} else if err != nil {
 		return "", err
 	}
+
 	if len(response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors) > 0 {
 		handle = response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors[0].Text
 	}
 	return handle, nil
 }
+
 func (g *GoWSMANMessages) DeleteKeyPair(instanceID string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyManagementService.Delete(instanceID)
 	return err

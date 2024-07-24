@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
+	"strings"
 	"time"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/cim/models"
@@ -32,7 +33,10 @@ func (service *ProvisioningService) AddWifiSettings() (err error) {
 
 	// PruneWifiConfigs is best effort
 	// it will log error messages, but doesn't stop the configuration flow
-	service.PruneWifiConfigs()
+	err = service.PruneWifiConfigs()
+	if err != nil {
+		return err
+	}
 	err = service.EnableWifiPort()
 	if err != nil {
 		return err
@@ -61,35 +65,15 @@ func (service *ProvisioningService) PruneWifiConfigs() (err error) {
 		err := service.interfacedWsmanMessage.DeleteWiFiSetting(wifiSetting.InstanceID)
 		if err != nil {
 			log.Infof("unable to delete: %s %s", wifiSetting.InstanceID, err)
-			err = utils.DeleteWifiConfigFailed
+			err = utils.DeleteConfigsFailed
 			continue
 		}
 
 		log.Infof("successfully deleted wifiSetting: %s", wifiSetting.InstanceID)
 	}
 
-	err = service.PruneWifiIeee8021xCerts(certHandles, keyPairHandles)
+	service.PruneCerts(certHandles, keyPairHandles)
 
-	return err
-}
-
-func (service *ProvisioningService) PruneWifiIeee8021xCerts(certHandles []string, keyPairHandles []string) (err error) {
-	for _, handle := range certHandles {
-		err := service.interfacedWsmanMessage.DeletePublicCert(handle)
-		if err != nil {
-			log.Infof("unable to delete: %s %s", handle, err)
-			err = utils.DeleteWifiConfigFailed
-		} else {
-			delete(service.handlesWithCerts, handle)
-		}
-	}
-	for _, handle := range keyPairHandles {
-		err := service.interfacedWsmanMessage.DeletePublicPrivateKeyPair(handle)
-		if err != nil {
-			log.Infof("unable to delete: %s %s", handle, err)
-			err = utils.DeleteWifiConfigFailed
-		}
-	}
 	return err
 }
 
@@ -98,14 +82,14 @@ func (service *ProvisioningService) GetWifiIeee8021xCerts() (certHandles, keyPai
 	if err != nil {
 		return []string{}, []string{}, err
 	}
-	credentials, err := service.interfacedWsmanMessage.GetCredentialRelationships()
+	credentialRelationships, err := service.interfacedWsmanMessage.GetCredentialRelationships()
 	if err != nil {
 		return []string{}, []string{}, err
 	}
 	certHandleMap := make(map[string]bool)
-	for i := range credentials {
-		inParams := &credentials[i].ElementInContext.ReferenceParameters
-		providesPrams := &credentials[i].ElementProvidingContext.ReferenceParameters
+	for _, credentialContext := range credentialRelationships.CredentialContext {
+		inParams := credentialContext.ElementInContext.ReferenceParameters
+		providesPrams := credentialContext.ElementProvidingContext.ReferenceParameters
 		if providesPrams.ResourceURI == `http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings` {
 			id := inParams.GetSelectorValue("InstanceID")
 			certHandleMap[id] = true
@@ -257,20 +241,24 @@ func (service *ProvisioningService) setIeee8021xConfig(ieee8021xConfig *config.I
 		handles.privateKeyHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.PrivateKey)
 		if handles.privateKeyHandle == "" {
 			handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
-			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
-			if err != nil {
+			if err != nil && strings.Contains(err.Error(), "already exists") {
+				handles.privateKeyHandle, _ = service.GetPrivKeyHandle(ieee8021xConfig.PrivateKey)
+			} else if err != nil {
 				return ieee8021xSettings, handles, err
 			}
+			service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
 		}
 	}
 	if ieee8021xConfig.ClientCert != "" {
 		handles.clientCertHandle = checkHandleExists(service.handlesWithCerts, ieee8021xConfig.ClientCert)
 		if handles.clientCertHandle == "" {
 			handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
-			service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
-			if err != nil {
+			if err != nil && strings.Contains(err.Error(), "already exists") {
+				handles.clientCertHandle, _ = service.GetCertHandle(ieee8021xConfig.ClientCert)
+			} else if err != nil {
 				return ieee8021xSettings, handles, err
 			}
+			service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
 		}
 	}
 	if ieee8021xConfig.CACert != "" {

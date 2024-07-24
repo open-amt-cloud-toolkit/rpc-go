@@ -6,10 +6,11 @@
 package local
 
 import (
-	log "github.com/sirupsen/logrus"
 	"reflect"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func reflectObjectName(v any) string {

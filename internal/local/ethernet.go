@@ -5,6 +5,7 @@ import (
 	"os"
 	"rpc/internal/config"
 	"rpc/pkg/utils"
+	"strings"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/ethernetport"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/ips/ieee8021x"
@@ -12,6 +13,11 @@ import (
 )
 
 func (service *ProvisioningService) AddEthernetSettings() (err error) {
+	err = service.PruneEthernetConfigs()
+	if err != nil {
+		return err
+	}
+
 	var handles Handles
 	defer func() {
 		if err != nil {
@@ -54,7 +60,8 @@ func (service *ProvisioningService) AddEthernetSettings() (err error) {
 	}
 	// Get the current 802.1x settings on AMT
 	getIEEESettings, err := service.interfacedWsmanMessage.GetIPSIEEE8021xSettings()
-	log.Info("IEEE8021x settings retrieved successfully", getIEEESettings.JSON())
+	log.Info("IEEE8021x settings retrieved successfully")
+	log.Debug("IEEE8021x settings: ", getIEEESettings.JSON())
 	if err != nil {
 		return utils.NetworkConfigurationFailed
 	}
@@ -85,6 +92,107 @@ func (service *ProvisioningService) AddEthernetSettings() (err error) {
 	}
 	log.Info("Wired settings configured with 802.1x successfully")
 	return nil
+}
+
+func (service *ProvisioningService) PruneEthernetConfigs() (err error) {
+	certHandles, keyPairHandles, err := service.GetEthernetIeee8021xCerts()
+	if err != nil {
+		return err
+	}
+
+	for _, handle := range certHandles {
+		err := service.Disable8021xProfile(handle)
+		if err != nil {
+			return err
+		}
+	}
+
+	service.PruneCerts(certHandles, keyPairHandles)
+
+	return err
+}
+
+func (service *ProvisioningService) Disable8021xProfile(handle string) (err error) {
+
+	response, err := service.interfacedWsmanMessage.GetIPSIEEE8021xSettings()
+	if err != nil {
+		return err
+	}
+
+	enabled := 0
+
+	request := ieee8021x.IEEE8021xSettingsRequest{
+		ElementName: response.Body.IEEE8021xSettingsResponse.ElementName,
+		InstanceID:  response.Body.IEEE8021xSettingsResponse.InstanceID,
+		Enabled:     &enabled,
+	}
+
+	_, err = service.interfacedWsmanMessage.PutIPSIEEE8021xSettings(request)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (service *ProvisioningService) GetEthernetIeee8021xCerts() (certHandles, keyPairHandles []string, err error) {
+	publicCerts, err := service.interfacedWsmanMessage.GetPublicKeyCerts()
+	if err != nil {
+		return []string{}, []string{}, err
+	}
+	credentialRelationships, err := service.interfacedWsmanMessage.GetCredentialRelationships()
+	if err != nil {
+		return []string{}, []string{}, err
+	}
+	certHandleMap := make(map[string]bool)
+	for _, credentialContext := range credentialRelationships.CredentialContext8021x {
+		inParams := credentialContext.ElementInContext.ReferenceParameters
+		providesPrams := credentialContext.ElementProvidingContext.ReferenceParameters
+		if providesPrams.ResourceURI == `http://intel.com/wbem/wscim/1/ips-schema/1/IPS_IEEE8021xSettings` {
+			id := inParams.GetSelectorValue("InstanceID")
+			certHandleMap[id] = true
+			for j := range publicCerts {
+				if publicCerts[j].InstanceID == id {
+					service.handlesWithCerts[id] = publicCerts[j].X509Certificate
+				}
+			}
+		}
+	}
+	for k := range certHandleMap {
+		if k != "" {
+			certHandles = append(certHandles, k)
+		}
+	}
+	if len(certHandles) == 0 {
+		return certHandles, keyPairHandles, err
+	}
+
+	keyPairHandleMap := make(map[string]bool)
+	dependencies, _ := service.interfacedWsmanMessage.GetConcreteDependencies()
+	for i := range dependencies {
+		antecedent := &dependencies[i].Antecedent.ReferenceParameters
+		if antecedent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate` {
+			continue
+		}
+		dependent := &dependencies[i].Dependent.ReferenceParameters
+		if dependent.ResourceURI != `http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicPrivateKeyPair` {
+			continue
+		}
+		for _, certHandle := range certHandles {
+			if !antecedent.HasSelector("InstanceID", certHandle) {
+				continue
+			}
+			id := dependent.GetSelectorValue("InstanceID")
+			keyPairHandleMap[id] = true
+		}
+	}
+	for k := range keyPairHandleMap {
+		if k != "" {
+			keyPairHandles = append(keyPairHandles, k)
+		}
+	}
+
+	return certHandles, keyPairHandles, err
 }
 
 func (service *ProvisioningService) verifyInput() error {
@@ -171,23 +279,29 @@ func (service *ProvisioningService) AddCerts(handles Handles, ieee8021xConfig co
 	if ieee8021xConfig.PrivateKey != "" {
 		handles.privateKeyHandle, err = service.interfacedWsmanMessage.AddPrivateKey(ieee8021xConfig.PrivateKey)
 		service.handlesWithCerts[handles.privateKeyHandle] = ieee8021xConfig.PrivateKey
-		if err != nil {
+		if err != nil && strings.Contains(err.Error(), "already exists") {
+			// handles.privateKeyHandle, _ = service.GetPrivKeyHandle(ieee8021xConfig.PrivateKey)
+		} else if err != nil {
 			return handles, err
 		}
 	}
 	if ieee8021xConfig.ClientCert != "" {
 		handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(ieee8021xConfig.ClientCert)
-		service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
-		if err != nil {
+		if err != nil && strings.Contains(err.Error(), "already exists") {
+			handles.clientCertHandle, _ = service.GetCertHandle(ieee8021xConfig.ClientCert)
+		} else if err != nil {
 			return handles, err
 		}
+		service.handlesWithCerts[handles.clientCertHandle] = ieee8021xConfig.ClientCert
 	}
 	if ieee8021xConfig.CACert != "" {
 		handles.rootCertHandle, err = service.interfacedWsmanMessage.AddTrustedRootCert(ieee8021xConfig.CACert)
-		service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
-		if err != nil {
+		if err != nil && strings.Contains(err.Error(), "already exists") {
+			handles.rootCertHandle, _ = service.GetCertHandle(ieee8021xConfig.CACert)
+		} else if err != nil {
 			return handles, err
 		}
+		service.handlesWithCerts[handles.rootCertHandle] = ieee8021xConfig.CACert
 	}
 	return handles, nil
 }
@@ -308,22 +422,39 @@ func (service *ProvisioningService) GetCertHandle(cert string) (string, error) {
 	return "", errors.New("certificate not found")
 }
 
+// func (service *ProvisioningService) GetPrivKeyHandle(cert string) (string, error) {
+// 	privateCerts, err := service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	for j := range privateCerts {
+// 		if privateCerts[j].DERKey == cert {
+// 			return privateCerts[j].InstanceID, nil
+// 		}
+// 	}
+// 	return "", errors.New("certificate not found")
+// }
+
 func (service *ProvisioningService) PutIEEESettings(getIEEESettings ieee8021x.Response, ieee802xCfg config.Ieee8021xConfig) error {
+	enabled := 2
+	pxeTimeout := 120
+
 	request := ieee8021x.IEEE8021xSettingsRequest{
 		AvailableInS0:          true,
 		ElementName:            getIEEESettings.Body.IEEE8021xSettingsResponse.ElementName,
-		Enabled:                2,
+		Enabled:                &enabled,
 		InstanceID:             getIEEESettings.Body.IEEE8021xSettingsResponse.InstanceID,
-		PxeTimeout:             120,
-		AuthenticationProtocol: ieee802xCfg.AuthenticationProtocol,
+		PxeTimeout:             &pxeTimeout,
+		AuthenticationProtocol: &ieee802xCfg.AuthenticationProtocol,
 		Username:               ieee802xCfg.Username,
 	}
-	if request.AuthenticationProtocol == 2 {
+	if *request.AuthenticationProtocol == 2 {
 		request.Password = ieee802xCfg.Password
 	}
 
 	putResponse, err := service.interfacedWsmanMessage.PutIPSIEEE8021xSettings(request)
-	log.Info("IEEE8021x settings updated successfully", putResponse.JSON())
+	log.Info("IEEE8021x settings updated successfully")
+	log.Debug("IEEE8021x settings: ", putResponse.JSON())
 	if err != nil {
 		return err
 	}
