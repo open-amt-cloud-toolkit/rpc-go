@@ -103,7 +103,7 @@ var DeactivationFailed = CustomError{Code: 110, Message: "DeactivationFailed"}
 var UnableToActivate = CustomError{Code: 111, Message: "UnableToActivate"}
 var WifiConfigurationWithWarnings = CustomError{Code: 112, Message: "WifiConfigurationWithWarnings"}
 var UnmarshalMessageFailed = CustomError{Code: 113, Message: "UnmarshalMessageFailed"}
-var DeleteWifiConfigFailed = CustomError{Code: 114, Message: "DeleteWifiConfigFailed"}
+var DeleteConfigsFailed = CustomError{Code: 114, Message: "DeleteConfigsFailed"}
 var MissingOrIncorrectWifiProfileName = CustomError{Code: 116, Message: "MissingOrIncorrectWifiProfileName"}
 var MissingIeee8021xConfiguration = CustomError{Code: 117, Message: "MissingIeee8021xConfiguration"}
 var SetMEBXPasswordFailed = CustomError{Code: 118, Message: "SetMEBXPasswordFailed"}
@@ -124,6 +124,8 @@ var ActivationFailedGenerateNonce = CustomError{Code: 132, Message: "ActivationF
 var ActivationFailedSignString = CustomError{Code: 133, Message: "ActivationFailed", Details: "failed to create signed string"}
 var ActivationFailedGetControlMode = CustomError{Code: 134, Message: "ActivationFailed", Details: "failed to get control mode"}
 var ActivationFailedControlMode = CustomError{Code: 135, Message: "ActivationFailed", Details: "recieved invalid control mode"}
+var DuplicateKey = CustomError{Code: 136, Message: "DuplicateKey", Details: "Key pair already exists"}
+var WiredConfigurationFailed = CustomError{Code: 137, Message: "WiredConfigurationFailed"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}

@@ -36,16 +36,26 @@ func (service *ProvisioningService) ConfigureTLS() error {
 	if err != nil {
 		return err
 	}
+
 	err = service.SynchronizeTime()
 	if err != nil {
 		return err
 	}
+
 	err = service.EnableTLS()
 	if err != nil {
 		log.Error("Failed to configure TLS")
 		return utils.TLSConfigurationFailed
 	}
+
+	service.Pause(service.flags.ConfigTLSInfo.DelayInSeconds)
+	err = service.PruneCerts()
+	if err != nil {
+		return err
+	}
+
 	log.Info("configuring TLS completed successfully")
+
 	return nil
 }
 
@@ -55,9 +65,14 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 	var err error
 	defer func() {
 		if err != nil {
-			service.RollbackAddedItems(&handles)
+			service.PruneCerts()
 		}
 	}()
+	securitySettings, err := service.GetCertificates()
+	if err != nil {
+		return utils.TLSConfigurationFailed
+	}
+
 	credentials := AuthRequest{
 		Username: service.flags.ConfigTLSInfo.EAUsername,
 		Password: service.flags.ConfigTLSInfo.EAPassword,
@@ -123,14 +138,14 @@ func (service *ProvisioningService) ConfigureTLSWithEA() error {
 		return utils.TLSConfigurationFailed
 	}
 
-	handles.clientCertHandle, err = service.interfacedWsmanMessage.AddClientCert(eaResponse.Response.Certificate)
+	handles.clientCertHandle, err = service.GetClientCertHandle(securitySettings, eaResponse.Response.Certificate)
 	if err != nil {
 		return utils.TLSConfigurationFailed
 	}
 
-	err = service.CreateTLSCredentialContext(handles.clientCertHandle)
+	err = service.updateTLSCredentialContext(handles)
 	if err != nil {
-		return err
+		return utils.TLSConfigurationFailed
 	}
 	return nil
 }
@@ -141,7 +156,7 @@ func (service *ProvisioningService) ConfigureTLSWithSelfSignedCert() error {
 	var err error
 	defer func() {
 		if err != nil {
-			service.RollbackAddedItems(&handles)
+			service.PruneCerts()
 		}
 	}()
 
@@ -175,19 +190,21 @@ func (service *ProvisioningService) ConfigureTLSWithSelfSignedCert() error {
 	if err != nil {
 		return err
 	}
+
 	log.Debug("TLS rootCertHandle:", handles.rootCertHandle)
 	log.Debug("TLS clientCertHandle:", handles.clientCertHandle)
 	log.Debug("TLS keyPairHandle:", handles.keyPairHandle)
 
-	err = service.CreateTLSCredentialContext(handles.clientCertHandle)
+	err = service.updateTLSCredentialContext(handles)
 	if err != nil {
-		return err
+		return utils.TLSConfigurationFailed
 	}
+
 	return nil
 }
 
 func (service *ProvisioningService) GetDERKey(handles Handles) (derKey string, err error) {
-	var keyPairs []publicprivate.PublicPrivateKeyPair
+	var keyPairs []publicprivate.RefinedPublicPrivateKeyPair
 	keyPairs, err = service.interfacedWsmanMessage.GetPublicPrivateKeyPairs()
 	if err != nil {
 		return "", err
@@ -236,14 +253,17 @@ func (service *ProvisioningService) CreateTLSCredentialContext(certHandle string
 
 func (service *ProvisioningService) EnableTLS() error {
 	log.Info("enabling tls")
+
 	enumerateRsp, err := service.interfacedWsmanMessage.EnumerateTLSSettingData()
 	if err != nil {
 		return utils.WSMANMessageError
 	}
+
 	pullRsp, err := service.interfacedWsmanMessage.PullTLSSettingData(enumerateRsp.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
 		return utils.WSMANMessageError
 	}
+
 	for _, item := range pullRsp.Body.PullResponse.SettingDataItems {
 		if item.InstanceID == RemoteTLSInstanceId || item.InstanceID == LocalTLSInstanceId {
 			err = service.ConfigureTLSSettings(item)
@@ -291,4 +311,44 @@ func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) tls.
 		log.Info("configuring local TLS settings")
 	}
 	return data
+}
+
+func (service *ProvisioningService) updateTLSCredentialContext(handles Handles) error {
+	enumerateRsp, err := service.interfacedWsmanMessage.EnumerateTLSSettingData()
+	if err != nil {
+		return utils.WSMANMessageError
+	}
+	pullRsp, err := service.interfacedWsmanMessage.PullTLSSettingData(enumerateRsp.Body.EnumerateResponse.EnumerationContext)
+	if err != nil {
+		return utils.WSMANMessageError
+	}
+	var isRemoteTLSEnabled bool
+	var isLocalTLSEnabled bool
+	for _, item := range pullRsp.Body.PullResponse.SettingDataItems {
+		if item.InstanceID == RemoteTLSInstanceId && item.Enabled {
+			isRemoteTLSEnabled = true
+		}
+		if item.InstanceID == LocalTLSInstanceId && item.Enabled {
+			isLocalTLSEnabled = true
+		}
+	}
+
+	if isRemoteTLSEnabled || isLocalTLSEnabled {
+		_, err := service.interfacedWsmanMessage.PutTLSCredentialContext(handles.clientCertHandle)
+		if err != nil {
+			return err
+		}
+		_, err = service.interfacedWsmanMessage.CommitChanges()
+		if err != nil {
+			log.Error("commit changes failed")
+			return err
+		}
+	} else {
+		err = service.CreateTLSCredentialContext(handles.clientCertHandle)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

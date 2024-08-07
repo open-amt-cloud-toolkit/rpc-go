@@ -157,6 +157,13 @@ func (m MockWSMAN) CreateTLSCredentialContext(certHandle string) (response tls.R
 	return mockCreateTLSCredentialContextResponse, mockCreateTLSCredentialContextErr
 }
 
+var mockPutTLSCredentialContextErr error = nil
+var mockPutTLSCredentialContextResponse tls.Response
+
+func (m MockWSMAN) PutTLSCredentialContext(certHandle string) (response tls.Response, err error) {
+	return mockPutTLSCredentialContextResponse, mockPutTLSCredentialContextErr
+}
+
 var mockEnumerateTLSSettingDataErr error = nil
 var mockTLSSettingDataContext string
 
@@ -306,21 +313,17 @@ func (m MockWSMAN) HostBasedSetupServiceAdmin(password string, digestRealm strin
 	return mockHostBasedSetupServiceAdmin, errHostBasedSetupServiceAdmin
 }
 
+var mockGetPublicKeyCertsResponse = []publickey.RefinedPublicKeyCertificateResponse{}
 var errGetPublicKeyCerts error = nil
 
-func (m MockWSMAN) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
-	certs := []publickey.PublicKeyCertificateResponse{
-		mpsCert,
-		clientCert,
-		caCert,
-	}
-	return certs, errGetPublicKeyCerts
+func (m MockWSMAN) GetPublicKeyCerts() ([]publickey.RefinedPublicKeyCertificateResponse, error) {
+	return mockGetPublicKeyCertsResponse, errGetPublicKeyCerts
 }
 
 var errGetPublicPrivateKeyPairs error = nil
-var PublicPrivateKeyPairResponse []publicprivate.PublicPrivateKeyPair = nil
+var PublicPrivateKeyPairResponse []publicprivate.RefinedPublicPrivateKeyPair = nil
 
-func (m MockWSMAN) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
+func (m MockWSMAN) GetPublicPrivateKeyPairs() ([]publicprivate.RefinedPublicPrivateKeyPair, error) {
 	return PublicPrivateKeyPairResponse, errGetPublicPrivateKeyPairs
 }
 
@@ -338,79 +341,83 @@ func (m MockWSMAN) DeletePublicCert(instanceId string) error {
 
 var errGetCredentialRelationships error = nil
 
-func (m MockWSMAN) GetCredentialRelationships() ([]credential.CredentialContext, error) {
-	return []credential.CredentialContext{
-		{
-			ElementInContext: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParametersNoNamespace{
-					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
-					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-					SelectorSet: models.SelectorNoNamespace{
-						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
-						Selectors: []models.SelectorResponse{
-							{
-								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
-								Name:    "InstanceID",
-								Text:    "Intel(r) AMT Certificate: Handle: 2",
+func (m MockWSMAN) GetCredentialRelationships() (credential.Items, error) {
+	return credential.Items{
+		CredentialContext: []credential.CredentialContext{
+			{
+				ElementInContext: models.AssociationReference{
+					Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+					ReferenceParameters: models.ReferenceParametersNoNamespace{
+						XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+						ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+						SelectorSet: models.SelectorNoNamespace{
+							XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+							Selectors: []models.SelectorResponse{
+								{
+									XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+									Name:    "InstanceID",
+									Text:    "Intel(r) AMT Certificate: Handle: 2",
+								},
 							},
 						},
 					},
 				},
-			},
-			ElementProvidingContext: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParametersNoNamespace{
-					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
-					ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
-					SelectorSet: models.SelectorNoNamespace{
-						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
-						Selectors: []models.SelectorResponse{
-							{
-								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
-								Name:    "InstanceID",
-								Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+				ElementProvidingContext: models.AssociationReference{
+					Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+					ReferenceParameters: models.ReferenceParametersNoNamespace{
+						XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+						ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+						SelectorSet: models.SelectorNoNamespace{
+							XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+							Selectors: []models.SelectorResponse{
+								{
+									XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+									Name:    "InstanceID",
+									Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+								},
 							},
 						},
 					},
 				},
-			},
-		}, {
-			ElementInContext: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParametersNoNamespace{
-					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
-					ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
-					SelectorSet: models.SelectorNoNamespace{
-						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
-						Selectors: []models.SelectorResponse{
-							{
-								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
-								Name:    "InstanceID",
-								Text:    "Intel(r) AMT Certificate: Handle: 1",
+			}, {
+				ElementInContext: models.AssociationReference{
+					Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+					ReferenceParameters: models.ReferenceParametersNoNamespace{
+						XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+						ResourceURI: "http://intel.com/wbem/wscim/1/amt-schema/1/AMT_PublicKeyCertificate",
+						SelectorSet: models.SelectorNoNamespace{
+							XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+							Selectors: []models.SelectorResponse{
+								{
+									XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+									Name:    "InstanceID",
+									Text:    "Intel(r) AMT Certificate: Handle: 1",
+								},
 							},
 						},
 					},
 				},
-			},
-			ElementProvidingContext: models.AssociationReference{
-				Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
-				ReferenceParameters: models.ReferenceParametersNoNamespace{
-					XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
-					ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
-					SelectorSet: models.SelectorNoNamespace{
-						XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
-						Selectors: []models.SelectorResponse{
-							{
-								XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
-								Name:    "InstanceID",
-								Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+				ElementProvidingContext: models.AssociationReference{
+					Address: "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous",
+					ReferenceParameters: models.ReferenceParametersNoNamespace{
+						XMLName:     xml.Name{Space: "http://schemas.xmlsoap.org/ws/2004/08/addressing", Local: "ReferenceParameters"},
+						ResourceURI: "http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_IEEE8021xSettings",
+						SelectorSet: models.SelectorNoNamespace{
+							XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "SelectorSet"},
+							Selectors: []models.SelectorResponse{
+								{
+									XMLName: xml.Name{Space: "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd", Local: "Selector"},
+									Name:    "InstanceID",
+									Text:    "Intel(r) AMT:IEEE 802.1x Settings wifi8021x",
+								},
 							},
 						},
 					},
 				},
 			},
 		},
+		CredentialContextTLS:   []credential.CredentialContext{},
+		CredentialContext8021x: []credential.CredentialContext{},
 	}, errGetCredentialRelationships
 }
 
