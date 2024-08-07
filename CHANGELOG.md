@@ -1,3 +1,10 @@
+# [2.37.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.2...v2.37.0) (2024-08-07)
+
+
+### Features
+
+* prunes wired and tls configs when adding new ones ([93553d2](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/93553d244543490b6e534a520bb1f3c1dd391ad3))
+
 ## [2.36.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.1...v2.36.2) (2024-08-06)
 
 
