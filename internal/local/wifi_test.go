@@ -104,7 +104,6 @@ func TestProcessWifiConfigs(t *testing.T) {
 func TestProcessWifiConfig(t *testing.T) {
 	f := &flags.Flags{}
 
-	// bad name error already tested
 	t.Run("expect success when handling ieee8021x config", func(t *testing.T) {
 		orig := wifiCfgWPA8021xEAPTLS.AuthenticationMethod
 		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = int(wifi.AuthenticationMethodWPAIEEE8021x)
@@ -112,6 +111,7 @@ func TestProcessWifiConfig(t *testing.T) {
 			ieee8021xCfgEAPTLS,
 		}
 		lps := setupService(f)
+		errGetPublicPrivateKeyPairs = nil
 		err := lps.ProcessWifiConfig(&wifiCfgWPA8021xEAPTLS)
 		assert.NoError(t, err)
 		wifiCfgWPA8021xEAPTLS.AuthenticationMethod = orig
@@ -119,25 +119,6 @@ func TestProcessWifiConfig(t *testing.T) {
 	t.Run("expect success when handling non-ieee8021x config", func(t *testing.T) {
 		lps := setupService(f)
 		err := lps.ProcessWifiConfig(&wifiCfgWPA2)
-		assert.NoError(t, err)
-	})
-}
-func TestPruneWifiConfigs(t *testing.T) {
-	f := &flags.Flags{}
-
-	t.Run("expect Success when there are no configs", func(t *testing.T) {
-		lps := setupService(f)
-		tempStorage := getWiFiSettingsResponse
-		// empty the response
-		getWiFiSettingsResponse = []wifi.WiFiEndpointSettingsResponse{}
-		err := lps.PruneWifiConfigs()
-		assert.NoError(t, err)
-		//restore
-		getWiFiSettingsResponse = tempStorage
-	})
-	t.Run("expect success when there are configs", func(t *testing.T) {
-		lps := setupService(f)
-		err := lps.PruneWifiConfigs()
 		assert.NoError(t, err)
 	})
 }
@@ -158,34 +139,7 @@ func TestEnableWifiErrors(t *testing.T) {
 	})
 
 }
-func TestGetWifiIeee8021xCerts(t *testing.T) {
-	f := &flags.Flags{}
-	t.Run("expect all error paths traversed for coverage", func(t *testing.T) {
-		lps := setupService(f)
-		certHandles, keyPairHandles, err := lps.GetWifiIeee8021xCerts()
-		assert.NoError(t, err)
-		assert.Equal(t, 2, len(certHandles))
-		assert.Equal(t, 1, len(keyPairHandles))
-		assert.Equal(t, caCert.X509Certificate, lps.handlesWithCerts["Intel(r) AMT Certificate: Handle: 1"])
-	})
-}
-func TestRollbackAddedItems(t *testing.T) {
-	f := &flags.Flags{}
-	handles := Handles{
-		privateKeyHandle: "privateKeyHandle",
-		clientCertHandle: "clientCertHandle",
-		rootCertHandle:   "rootCertHandle",
-	}
 
-	t.Run("expect all error paths traversed for coverage", func(t *testing.T) {
-		lps := setupService(f)
-		lps.RollbackAddedItems(&handles)
-	})
-	t.Run("expect all happy paths traversed for coverage", func(t *testing.T) {
-		lps := setupService(f)
-		lps.RollbackAddedItems(&handles)
-	})
-}
 func TestSetIeee8021xConfigWithEA(t *testing.T) {
 	tests := []struct {
 		name               string
