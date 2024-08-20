@@ -300,7 +300,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, false, logrus.GetLevel() == logrus.TraceLevel)
 		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.RefinedPublicKeyCertificateResponse{}
 		for i := range userCerts {

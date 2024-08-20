@@ -112,6 +112,10 @@ func (c MockPTHICommands) Unprovision() (mode int, err error) {
 	return result, nil
 }
 
+func (c MockPTHICommands) StartConfigurationHBased(serverHashAlgorithm uint8, serverCertHash [64]byte, hostVPNEnable bool, suffixListLen int32, networkDNSSuffixList [320]byte) (response pthi.StartConfigurationHBasedResponse, err error) {
+	return pthi.StartConfigurationHBasedResponse{}, nil
+}
+
 var testNetEnumerator = NetEnumerator{
 	Interfaces: func() ([]net.Interface, error) {
 		return []net.Interface{

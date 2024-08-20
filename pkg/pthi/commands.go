@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"rpc/pkg/heci"
 )
 
@@ -31,6 +32,7 @@ type Interface interface {
 	GetLANInterfaceSettings(useWireless bool) (LANInterface GetLANInterfaceSettingsResponse, err error)
 	GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error)
 	Unprovision() (mode int, err error)
+	StartConfigurationHBased(serverHashAlgorithm uint8, serverCertHash [64]byte, hostVPNEnable bool, suffixListLen int32, networkDNSSuffixList [320]byte) (StartConfigurationHBasedResponse, error)
 }
 
 func NewCommand() Command {
@@ -410,6 +412,63 @@ func (pthi Command) GetLocalSystemAccount() (localAccount GetLocalSystemAccountR
 
 	binary.Read(buf2, binary.LittleEndian, &response.Account.Username)
 	binary.Read(buf2, binary.LittleEndian, &response.Account.Password)
+
+	return response, nil
+}
+
+func (pthi Command) StartConfigurationHBased(serverHashAlgorithm uint8, serverCertHash [64]byte, hostVPNEnable bool, suffixListLen int32, networkDNSSuffixList [320]byte) (response StartConfigurationHBasedResponse, err error) {
+	if serverHashAlgorithm != CERT_HASH_ALGORITHM_SHA256 && serverHashAlgorithm != CERT_HASH_ALGORITHM_SHA384 {
+		return StartConfigurationHBasedResponse{}, errors.New("unsupported serverHashAlgorithm")
+	}
+
+	commandSize := (uint32)(402)
+	command := StartConfigurationHBasedRequest{
+		Header:               CreateRequestHeader(START_CONFIGURATION_HBASED_REQUEST, 390),
+		ServerHashAlgorithm:  serverHashAlgorithm,
+		ServerCertHash:       serverCertHash,
+		HostVPNEnable:        hostVPNEnable,
+		SuffixListLen:        uint32(suffixListLen),
+		NetworkDNSSuffixList: networkDNSSuffixList,
+	}
+
+	var bin_buf bytes.Buffer
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.Header)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.ServerHashAlgorithm)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.ServerCertHash)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.HostVPNEnable)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.SuffixListLen)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = binary.Write(&bin_buf, binary.LittleEndian, command.NetworkDNSSuffixList)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	result, err := pthi.Call(bin_buf.Bytes(), commandSize)
+	if err != nil {
+		return StartConfigurationHBasedResponse{}, err
+	}
+
+	buf2 := bytes.NewBuffer(result)
+	response = StartConfigurationHBasedResponse{
+		Header: readHeaderResponse(buf2),
+	}
+
+	binary.Read(buf2, binary.LittleEndian, &response.HashAlgorithm)
+	binary.Read(buf2, binary.LittleEndian, &response.AMTCertHash)
 
 	return response, nil
 }

@@ -276,7 +276,7 @@ func (m MockWSMAN) SetupMEBX(password string) (setupandconfiguration.Response, e
 	}, mockSetupAndConfigurationErr
 }
 
-func (m MockWSMAN) SetupWsmanClient(username string, password string, logAMTMessages bool) {}
+func (m MockWSMAN) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool) {}
 
 var mockGeneralSettings = general.Response{}
 var errMockGeneralSettings error = nil
@@ -739,6 +739,10 @@ var mockUnprovisionCode = 0
 var mockUnprovisionErr error = nil
 
 func (c MockAMT) Unprovision() (int, error) { return mockUnprovisionCode, mockUnprovisionErr }
+
+func (c MockAMT) StartConfigurationHBased(amt2.SecureHBasedParameters) (amt2.SecureHBasedResponse, error) {
+	return amt2.SecureHBasedResponse{}, nil
+}
 
 type ResponseFuncArray []func(w http.ResponseWriter, r *http.Request)
 

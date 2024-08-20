@@ -15,7 +15,10 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"rpc/internal/amt"
+	"rpc/pkg/certificate"
 	"rpc/pkg/utils"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -41,9 +44,39 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
 
-	if service.flags.UseACM {
+	// Get AMT version to determine what activation flow to use
+	versionStr, err := service.amtCommand.GetVersionDataFromME("AMT", service.flags.AMTTimeoutDuration)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	// Split the version string into major, minor, patch components
+	versionParts := strings.Split(versionStr, ".")
+	if len(versionParts) != 3 {
+		log.Error("Invalid version format")
+		return utils.GenericFailure
+	}
+
+	// Parse the major, minor, and patch versions
+	major, err := strconv.Atoi(versionParts[0])
+	if err != nil {
+		log.Error("Error parsing major version:", err)
+		return err
+	}
+
+	// If AMT Major version is greater than 15, use TLS for activation
+	useTLS := major > 15
+
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, useTLS, log.GetLevel() == log.TraceLevel)
+
+	if service.flags.UseACM && major > 15 {
+		err = service.ActivateSecureACM()
+		if err == nil {
+			log.Info("Status: Device activated in Admin Control Mode")
+		}
+	} else if service.flags.UseACM && major < 16 {
 		err = service.ActivateACM()
 		if err == nil {
 			log.Info("Status: Device activated in Admin Control Mode")
@@ -53,6 +86,35 @@ func (service *ProvisioningService) Activate() error {
 	}
 
 	return err
+}
+
+func (service *ProvisioningService) ActivateSecureACM() error {
+
+	// Create self-signed certificate for TLS
+	h := certificate.NewHandler()
+	certificate, err := h.CreateCertificatePackage()
+	if err != nil {
+		return err
+	}
+
+	// Call StartConfigurationHBased
+	params := amt.SecureHBasedParameters{
+		CertAlgorithm: 3,
+	}
+
+	copy(params.CertHash[:], certificate.PublicCert)
+	response, err := service.amtCommand.StartConfigurationHBased(params)
+	if err != nil {
+		return err
+	}
+
+	log.Trace(response)
+
+	//Initiate TLS connection to AMT
+
+	// Perform Activation Flows
+
+	return nil
 }
 
 func (service *ProvisioningService) ActivateACM() error {
