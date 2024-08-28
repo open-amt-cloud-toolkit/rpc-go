@@ -14,6 +14,7 @@ type (
 		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
 		ACMSettings         ACMSettings         `yaml:"acmactivate"`
 		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
+		CCMSettings         CCMSettings         `yaml:"ccmactivate"`
 	}
 	TlsConfig struct {
 		Delay int    `yaml:"delay" env-default:"3"`
@@ -68,5 +69,8 @@ type (
 		EAUsername   string `yaml:"eaUsername"`
 		EAPassword   string `yaml:"eaPassword"`
 		EAConfigured bool   `yaml:"eaConfigured"`
+	}
+	CCMSettings struct {
+		AMTPassword string `yaml:"amtPassword"`
 	}
 )
