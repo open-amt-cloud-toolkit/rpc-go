@@ -1,3 +1,10 @@
+# [2.38.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.37.0...v2.38.0) (2024-09-05)
+
+
+### Features
+
+* adds ccm activation using config ([abd02bc](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/abd02bcbb05b88e44378c81962f8b89bf115327a))
+
 # [2.37.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.2...v2.37.0) (2024-08-07)
 
 
