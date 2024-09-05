@@ -88,7 +88,12 @@ func (f *Flags) handleActivateCommand() error {
 			return utils.FailedReadingConfiguration
 		}
 
-		if f.LocalConfig.ACMSettings.AMTPassword == "" && f.Password == "" {
+		// Gets optimized in rpc-go version 3
+		if f.LocalConfig.CCMSettings.AMTPassword != "" {
+			f.LocalConfig.Password = f.LocalConfig.CCMSettings.AMTPassword
+		}
+
+		if (f.LocalConfig.ACMSettings.AMTPassword == "" || f.LocalConfig.CCMSettings.AMTPassword == "") && f.Password == "" {
 			if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
 				return rc
 			}
