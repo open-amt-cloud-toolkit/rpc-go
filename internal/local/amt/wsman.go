@@ -8,6 +8,7 @@ package amt
 import (
 	goTLS "crypto/tls"
 	"encoding/base64"
+	"net"
 	"rpc/pkg/utils"
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman"
@@ -34,7 +35,7 @@ import (
 )
 
 type WSMANer interface {
-	SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool)
+	SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *goTLS.Config)
 	Unprovision(int) (setupandconfiguration.Response, error)
 	GetGeneralSettings() (general.Response, error)
 	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
@@ -96,7 +97,7 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 	}
 }
 
-func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool) {
+func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *goTLS.Config) {
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
@@ -109,16 +110,28 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, use
 	port := utils.LMSPort
 	if clientParams.UseTLS {
 		port = client.TLSPort
-	}
-	con, err := goTLS.Dial("tcp4", utils.LMSAddress+":"+port, &goTLS.Config{})
-	// con, err := net.Dial("tcp4", utils.LMSAddress+":"+port)
-	if err != nil {
-		logrus.Info("Failed to connect to LMS, using local transport instead.")
-		clientParams.Transport = NewLocalTransport()
+		con, err := goTLS.Dial("tcp4", utils.LMSAddress+":"+port, tlsConfig)
+		if err != nil {
+			logrus.Info("Failed to connect to LMS, using local transport instead.")
+			clientParams.Transport = NewLocalTransport()
+		} else {
+			logrus.Info("Successfully connected to LMS.")
+			state := con.ConnectionState()
+			cert := state.PeerCertificates[0]
+			logrus.Trace("Server certificate: ", cert)
+			con.Close()
+		}
 	} else {
-		logrus.Info("Successfully connected to LMS.")
-		con.Close()
+		con, err := net.Dial("tcp4", utils.LMSAddress+":"+port)
+		if err != nil {
+			logrus.Info("Failed to connect to LMS, using local transport instead.")
+			clientParams.Transport = NewLocalTransport()
+		} else {
+			logrus.Info("Successfully connected to LMS.")
+			con.Close()
+		}
 	}
+
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 }
 

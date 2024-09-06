@@ -6,6 +6,7 @@
 package local
 
 import (
+	"crypto/tls"
 	"errors"
 	"net/url"
 	"rpc/pkg/utils"
@@ -24,7 +25,7 @@ func (service *ProvisioningService) Configure() (err error) {
 		log.Error("Device is not activated to configure. Please activate the device first.")
 		return utils.UnableToConfigure
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, false, logrus.GetLevel() == logrus.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, false, logrus.GetLevel() == logrus.TraceLevel, &tls.Config{})
 
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
