@@ -115,7 +115,6 @@ func (service *ProvisioningService) ActivateSecureACM() error {
 	}
 
 	//Initiate TLS connection to AMT
-	
 	log.Trace("Certificate Hash from AMT: %s", response.AMTCertHash)
 
 	// Perform Activation Flows
