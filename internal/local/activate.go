@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -68,8 +69,13 @@ func (service *ProvisioningService) Activate() error {
 
 	// If AMT Major version is greater than 15, use TLS for activation
 	useTLS := major > 15
+	tlsConfig := &tls.Config{}
+	if useTLS {
+		tlsConfig.InsecureSkipVerify = true
+		tlsConfig.MinVersion = tls.VersionTLS12
+	}
 
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, useTLS, log.GetLevel() == log.TraceLevel)
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, useTLS, log.GetLevel() == log.TraceLevel, tlsConfig)
 
 	if service.flags.UseACM && major > 15 {
 		err = service.ActivateSecureACM()
@@ -108,9 +114,8 @@ func (service *ProvisioningService) ActivateSecureACM() error {
 		return err
 	}
 
-	log.Trace(response)
-
 	//Initiate TLS connection to AMT
+	log.Trace("Certificate Hash from AMT: %s", response.AMTCertHash)
 
 	// Perform Activation Flows
 
