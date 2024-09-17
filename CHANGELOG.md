@@ -1,3 +1,10 @@
+# [2.39.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.38.0...v2.39.0) (2024-09-17)
+
+
+### Features
+
+* lib.go redirects stdout to Output ([#640](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/640)) ([8697c99](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8697c995f28e27631d26be291d711abdec1ad86d))
+
 # [2.38.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.37.0...v2.38.0) (2024-09-05)
 
 
