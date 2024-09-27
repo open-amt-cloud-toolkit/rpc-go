@@ -7,6 +7,8 @@ package local
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -16,8 +18,8 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"rpc/internal/amt"
-	"rpc/pkg/certificate"
 	"rpc/pkg/utils"
 	"strconv"
 	"strings"
@@ -71,6 +73,37 @@ func (service *ProvisioningService) Activate() error {
 	useTLS := major > 15
 	tlsConfig := &tls.Config{}
 	if useTLS {
+		config := service.config.ACMSettings
+		certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
+		if err != nil {
+			return err
+		}
+
+		for i := range certsAndKeys.certs {
+			certPEM := pem.EncodeToMemory(&pem.Block{
+				Type:  "CERTIFICATE",
+				Bytes: certsAndKeys.certs[i].Raw,
+			})
+
+			keyPEMBlock, err := marshalPrivateKeyToPEM(certsAndKeys.keys[i])
+			if err != nil {
+				return err
+			}
+
+			tlsCert := tls.Certificate{
+				Certificate: [][]byte{certPEM},
+				PrivateKey:  keyPEMBlock[i],
+				Leaf:        certsAndKeys.certs[i],
+			}
+
+			tlsConfig.Certificates = append(tlsConfig.Certificates, tlsCert)
+		}
+
+		// Use the AMT Certificate response to verify AMT device
+		_, err = service.StartSecureHostBasedConfiguration()
+		if err != nil {
+			return err
+		}
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.MinVersion = tls.VersionTLS12
 	}
@@ -94,30 +127,78 @@ func (service *ProvisioningService) Activate() error {
 	return err
 }
 
-func (service *ProvisioningService) ActivateSecureACM() error {
-
-	// Create self-signed certificate for TLS
-	h := certificate.NewHandler()
-	certificate, err := h.CreateCertificatePackage()
-	if err != nil {
-		return err
+func checkCertAlgoSupported(certAlgorithm x509.SignatureAlgorithm) (value uint8, err error) {
+	switch certAlgorithm {
+	case x509.MD5WithRSA:
+		value = 0
+		err = nil
+		break
+	case x509.SHA1WithRSA, x509.DSAWithSHA1, x509.ECDSAWithSHA1:
+		value = 1
+		err = nil
+		break
+	case x509.SHA256WithRSA, x509.DSAWithSHA256, x509.ECDSAWithSHA256, x509.SHA256WithRSAPSS:
+		value = 2
+		err = nil
+		break
+	case x509.SHA384WithRSA, x509.ECDSAWithSHA384, x509.SHA384WithRSAPSS:
+		value = 3
+		err = nil
+		break
+	case x509.SHA512WithRSA, x509.ECDSAWithSHA512, x509.SHA512WithRSAPSS:
+		value = 5
+		err = nil
+		break
+	default:
+		value = 99
+		err = errors.New("Unsupported certificate algorithm")
 	}
 
+	return value, err
+}
+
+func (service *ProvisioningService) StartSecureHostBasedConfiguration() (amt.SecureHBasedResponse, error) {
+	// Get the provisioning certificate
+	certObject, _, err := service.GetProvisioningCertObj()
+	if err != nil {
+		return amt.SecureHBasedResponse{}, err
+	}
+
+	// Check fingerPrint length
+	if len(certObject.certChain[0]) > 64 {
+		return amt.SecureHBasedResponse{}, utils.ActivationFailedCertHash
+	}
+
+	var certHashByteArray [64]byte
+	copy(certHashByteArray[:], certObject.certChain[0])
+
+	certAlgo, err := checkCertAlgoSupported(certObject.certificateAlgorithm)
+	if err != nil {
+		return amt.SecureHBasedResponse{}, utils.ActivationFailedCertHash
+	}
 	// Call StartConfigurationHBased
 	params := amt.SecureHBasedParameters{
-		CertAlgorithm: 3,
+		CertHash:      certHashByteArray,
+		CertAlgorithm: certAlgo,
 	}
 
-	copy(params.CertHash[:], certificate.PublicCert)
 	response, err := service.amtCommand.StartConfigurationHBased(params)
 	if err != nil {
-		return err
+		return amt.SecureHBasedResponse{}, err
 	}
 
-	//Initiate TLS connection to AMT
 	log.Trace("Certificate Hash from AMT: %s", response.AMTCertHash)
 
-	// Perform Activation Flows
+	return response, nil
+}
+
+func (service *ProvisioningService) ActivateSecureACM() error {
+	getSetupAndConfigurationService, err := service.interfacedWsmanMessage.GetSetupAndConfigurationService()
+	if err != nil {
+		return utils.ActivationFailedSetupService
+	}
+
+	log.Trace("GetSetupAndConfigurationService response: %v", getSetupAndConfigurationService)
 
 	return nil
 }
@@ -204,8 +285,35 @@ type CertificateObject struct {
 }
 
 type ProvisioningCertObj struct {
-	certChain  []string
-	privateKey crypto.PrivateKey
+	certChain            []string
+	privateKey           crypto.PrivateKey
+	certificateAlgorithm x509.SignatureAlgorithm
+}
+
+func marshalPrivateKeyToPEM(key interface{}) ([]byte, error) {
+	switch keyType := key.(type) {
+	case *rsa.PrivateKey:
+		return pem.EncodeToMemory(&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(keyType),
+		}), nil
+	case *ecdsa.PrivateKey:
+		keyBytes, err := x509.MarshalECPrivateKey(keyType)
+		if err != nil {
+			return nil, err
+		}
+		return pem.EncodeToMemory(&pem.Block{
+			Type:  "EC PRIVATE KEY",
+			Bytes: keyBytes,
+		}), nil
+	case ed25519.PrivateKey:
+		return pem.EncodeToMemory(&pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: keyType.Seed(),
+		}), nil
+	default:
+		return nil, fmt.Errorf("unsupported private key type")
+	}
 }
 
 func cleanPEM(pem string) string {
@@ -220,6 +328,7 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 	if err != nil {
 		return ProvisioningCertObj{}, "", err
 	}
+
 	result, fingerprint, err := dumpPfx(certsAndKeys)
 	if err != nil {
 		return ProvisioningCertObj{}, "", err
@@ -289,8 +398,11 @@ func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
 		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, cert.pem)
 	}
 
-	// Add the priviate key
+	// Add the private key
 	provisioningCertificateObj.privateKey = pfxobj.keys[0]
+
+	// Add the certificate algorithm
+	provisioningCertificateObj.certificateAlgorithm = pfxobj.certs[0].SignatureAlgorithm
 
 	return provisioningCertificateObj, fingerprint, nil
 }

@@ -74,6 +74,10 @@ type SecureHBasedResponse struct {
 	AMTCertHash   string `json:"amtCertHash"`
 }
 
+type StopConfigurationResponse struct {
+	Status string `json:"status"`
+}
+
 var HashAlgorithmToString = map[uint8]string{
 	0: "MD5",
 	1: "SHA1",
@@ -462,4 +466,24 @@ func (amt AMTCommand) StartConfigurationHBased(params SecureHBasedParameters) (S
 	}
 
 	return shbr, nil
+}
+
+func (amt AMTCommand) StopConfiguration() (response StopConfigurationResponse, err error) {
+	err = amt.PTHI.Open(false)
+	if err != nil {
+		return StopConfigurationResponse{}, err
+	}
+
+	defer amt.PTHI.Close()
+
+	result, err := amt.PTHI.StopConfiguration()
+	if err != nil {
+		return StopConfigurationResponse{}, err
+	}
+
+	response = StopConfigurationResponse{
+		Status: result.Header.Status.String(),
+	}
+
+	return response, nil
 }

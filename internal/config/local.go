@@ -14,6 +14,7 @@ type (
 		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
 		ACMSettings         ACMSettings         `yaml:"acmactivate"`
 		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`
+		StopConfiguration   bool                `yaml:"stopConfig"`
 	}
 	TlsConfig struct {
 		Delay int    `yaml:"delay" env-default:"3"`

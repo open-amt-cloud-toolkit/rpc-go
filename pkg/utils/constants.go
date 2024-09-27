@@ -126,6 +126,7 @@ var ActivationFailedGetControlMode = CustomError{Code: 134, Message: "Activation
 var ActivationFailedControlMode = CustomError{Code: 135, Message: "ActivationFailed", Details: "recieved invalid control mode"}
 var DuplicateKey = CustomError{Code: 136, Message: "DuplicateKey", Details: "Key pair already exists"}
 var WiredConfigurationFailed = CustomError{Code: 137, Message: "WiredConfigurationFailed"}
+var ActivationFailedCertHash = CustomError{Code: 138, Message: "ActivationFailed", Details: "leaf certificate hash too long"}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}

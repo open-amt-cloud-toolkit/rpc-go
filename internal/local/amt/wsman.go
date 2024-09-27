@@ -43,6 +43,7 @@ type WSMANer interface {
 	AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error)
 	HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error)
 	SetupMEBX(string) (response setupandconfiguration.Response, err error)
+	GetSetupAndConfigurationService() (setupandconfiguration.Response, error)
 	GetPublicKeyCerts() ([]publickey.RefinedPublicKeyCertificateResponse, error)
 	GetPublicPrivateKeyPairs() ([]publicprivate.RefinedPublicPrivateKeyPair, error)
 	DeletePublicPrivateKeyPair(instanceId string) error
@@ -161,6 +162,10 @@ func (g *GoWSMANMessages) Unprovision(int) (setupandconfiguration.Response, erro
 
 func (g *GoWSMANMessages) SetupMEBX(password string) (response setupandconfiguration.Response, err error) {
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.SetMEBXPassword(password)
+}
+
+func (g *GoWSMANMessages) GetSetupAndConfigurationService() (setupandconfiguration.Response, error) {
+	return g.wsmanMessages.AMT.SetupAndConfigurationService.Get()
 }
 
 func (g *GoWSMANMessages) GetPublicKeyCerts() ([]publickey.RefinedPublicKeyCertificateResponse, error) {

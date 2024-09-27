@@ -32,6 +32,7 @@ func (f *Flags) handleActivateCommand() error {
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.AMTPassword, "amtPassword", f.lookupEnvOrString("AMT_PASSWORD", ""), "amt password")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCert, "provisioningCert", f.lookupEnvOrString("PROVISIONING_CERT", ""), "provisioning certificate")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCertPwd, "provisioningCertPwd", f.lookupEnvOrString("PROVISIONING_CERT_PASSWORD", ""), "provisioning certificate password")
+	f.amtActivateCommand.BoolVar(&f.LocalConfig.StopConfiguration, "stopConfig", false, "transitions AMT from in-provisioning state back to pre-provisioning state")
 
 	if len(f.commandLineArgs) == 2 {
 		f.amtActivateCommand.PrintDefaults()
@@ -113,6 +114,10 @@ func (f *Flags) handleActivateCommand() error {
 			fmt.Println("-uuid cannot be use in local activation")
 			f.amtActivateCommand.Usage()
 			return utils.InvalidParameterCombination
+		}
+
+		if f.LocalConfig.StopConfiguration {
+			// response, err := .StopConfiguration()
 		}
 	}
 	return nil

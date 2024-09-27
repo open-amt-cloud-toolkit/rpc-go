@@ -33,6 +33,7 @@ type Interface interface {
 	GetLocalSystemAccount() (localAccount GetLocalSystemAccountResponse, err error)
 	Unprovision() (mode int, err error)
 	StartConfigurationHBased(serverHashAlgorithm uint8, serverCertHash [64]byte, hostVPNEnable bool, suffixListLen int32, networkDNSSuffixList [320]byte) (StartConfigurationHBasedResponse, error)
+	StopConfiguration() (response StopConfigurationResponse, err error)
 }
 
 func NewCommand() Command {
@@ -469,6 +470,24 @@ func (pthi Command) StartConfigurationHBased(serverHashAlgorithm uint8, serverCe
 
 	binary.Read(buf2, binary.LittleEndian, &response.HashAlgorithm)
 	binary.Read(buf2, binary.LittleEndian, &response.AMTCertHash)
+
+	return response, nil
+}
+
+func (pthi Command) StopConfiguration() (response StopConfigurationResponse, err error) {
+	command := StopConfigurationRequest{
+		Header: CreateRequestHeader(STOP_CONFIGURATION_REQUEST, 0),
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, command)
+	result, err := pthi.Call(bin_buf.Bytes(), GET_REQUEST_SIZE)
+	if err != nil {
+		return StopConfigurationResponse{}, err
+	}
+	buf2 := bytes.NewBuffer(result)
+	response = StopConfigurationResponse{
+		Header: readHeaderResponse(buf2),
+	}
 
 	return response, nil
 }

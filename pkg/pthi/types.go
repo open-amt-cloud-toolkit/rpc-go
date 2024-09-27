@@ -333,3 +333,11 @@ const (
 	CERT_HASH_ALGORITHM_SHA224
 	CERT_HASH_ALGORITHM_SHA512
 )
+
+type StopConfigurationRequest struct {
+	Header MessageHeader
+}
+
+type StopConfigurationResponse struct {
+	Header ResponseMessageHeader
+}
