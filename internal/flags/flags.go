@@ -7,6 +7,7 @@ package flags
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net"
@@ -19,6 +20,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	configv2 "github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/config"
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/security"
 
 	"github.com/google/uuid"
 	"github.com/ilyakaznacheev/cleanenv"
@@ -76,8 +80,11 @@ type Flags struct {
 	UseACM                              bool
 	EchoPass                            bool
 	configContent                       string
+	configContentV2                     string
+	configV2Key                         string
 	UUID                                string
 	LocalConfig                         config.Config
+	LocalConfigV2                       configv2.Configuration
 	amtInfoCommand                      *flag.FlagSet
 	amtActivateCommand                  *flag.FlagSet
 	amtDeactivateCommand                *flag.FlagSet
@@ -343,5 +350,23 @@ func (f *Flags) handleLocalConfig() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (f *Flags) handleLocalConfigV2() error {
+	security := security.Crypto{}
+	content, err := security.ReadAndDecryptFile(f.configContentV2, []byte(f.configV2Key))
+	if err != nil {
+		log.Error("config error: ", err)
+		return err
+	}
+
+	formattedContent, err := json.MarshalIndent(content, "", "  ")
+	if err != nil {
+		log.Error("error formatting config content: ", err)
+		return err
+	}
+	fmt.Println(string(formattedContent))
+	f.LocalConfigV2 = content
 	return nil
 }
