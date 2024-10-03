@@ -48,7 +48,7 @@ var tlsSettingDataItems = []tls.SettingDataResponse{
 	},
 }
 
-var publicPrivateKeyPair = []publicprivate.PublicPrivateKeyPair{
+var publicPrivateKeyPair = []publicprivate.RefinedPublicPrivateKeyPair{
 	{
 		ElementName: "SomeElement",
 		InstanceID:  "keyHandle",
@@ -208,7 +208,7 @@ func TestConfigureTLSWithSelfSignedCert(t *testing.T) {
 				PublicPrivateKeyPairResponse = publicPrivateKeyPair
 				mockCreateTLSCredentialContextErr = assert.AnError
 			},
-			expectedError: utils.WSMANMessageError,
+			expectedError: utils.TLSConfigurationFailed,
 		},
 	}
 
@@ -292,7 +292,7 @@ func TestGetDERKey(t *testing.T) {
 		{
 			name: "success - matching key pair found",
 			setupMocks: func(mock *MockWSMAN) {
-				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
+				PublicPrivateKeyPairResponse = []publicprivate.RefinedPublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
 			},
 			handles:        Handles{keyPairHandle: "keyPair1"},
 			expectedDERKey: "DERKey1",
@@ -301,7 +301,7 @@ func TestGetDERKey(t *testing.T) {
 		{
 			name: "failure - no matching key pair",
 			setupMocks: func(mock *MockWSMAN) {
-				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
+				PublicPrivateKeyPairResponse = []publicprivate.RefinedPublicPrivateKeyPair{{InstanceID: "keyPair1", DERKey: "DERKey1", ElementName: "keyPair1"}}
 			},
 			handles:        Handles{keyPairHandle: "keyPair2"},
 			expectedDERKey: "",
@@ -310,7 +310,7 @@ func TestGetDERKey(t *testing.T) {
 		{
 			name: "failure - error fetching key pairs",
 			setupMocks: func(mock *MockWSMAN) {
-				PublicPrivateKeyPairResponse = []publicprivate.PublicPrivateKeyPair{}
+				PublicPrivateKeyPairResponse = []publicprivate.RefinedPublicPrivateKeyPair{}
 				errGetPublicPrivateKeyPairs = assert.AnError
 			},
 			handles:        Handles{keyPairHandle: "keyPair1"},

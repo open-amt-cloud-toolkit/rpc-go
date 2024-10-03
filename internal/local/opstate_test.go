@@ -58,7 +58,7 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			expectedRC:       nil,
 			rsp:              ChangeEnabledResponseNewDisabled,
 			skipIPRenewal:    true,
-			renewDHCPLeaseRC: utils.NetworkConfigurationFailed,
+			renewDHCPLeaseRC: utils.WiredConfigurationFailed,
 		},
 	}
 
@@ -92,7 +92,7 @@ func TestRenewIP(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 	lps := setupService(f)
 	origRC := mockRenewDHCPLeaseerr
-	mockRenewDHCPLeaseerr = utils.NetworkConfigurationFailed
+	mockRenewDHCPLeaseerr = utils.WiredConfigurationFailed
 	err := lps.RenewIP()
 	assert.Equal(t, mockRenewDHCPLeaseerr, err)
 	mockRenewDHCPLeaseerr = origRC

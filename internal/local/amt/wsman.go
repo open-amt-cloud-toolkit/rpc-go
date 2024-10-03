@@ -42,11 +42,11 @@ type WSMANer interface {
 	AddNextCertInChain(cert string, isLeaf bool, isRoot bool) (hostbasedsetup.Response, error)
 	HostBasedSetupServiceAdmin(password string, digestRealm string, nonce []byte, signature string) (hostbasedsetup.Response, error)
 	SetupMEBX(string) (response setupandconfiguration.Response, err error)
-	GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error)
-	GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error)
+	GetPublicKeyCerts() ([]publickey.RefinedPublicKeyCertificateResponse, error)
+	GetPublicPrivateKeyPairs() ([]publicprivate.RefinedPublicPrivateKeyPair, error)
 	DeletePublicPrivateKeyPair(instanceId string) error
 	DeletePublicCert(instanceId string) error
-	GetCredentialRelationships() ([]credential.CredentialContext, error)
+	GetCredentialRelationships() (credential.Items, error)
 	GetConcreteDependencies() ([]concrete.ConcreteDependency, error)
 	AddTrustedRootCert(caCert string) (string, error)
 	AddClientCert(clientCert string) (string, error)
@@ -69,6 +69,7 @@ type WSMANer interface {
 	SetIPSIEEE8021xCertificates(serverCertificateIssuer, clientCertificate string) (response ieee8021x.Response, err error)
 	// TLS
 	CreateTLSCredentialContext(certHandle string) (response tls.Response, err error)
+	PutTLSCredentialContext(certHandle string) (response tls.Response, err error)
 	EnumerateTLSSettingData() (response tls.Response, err error)
 	PullTLSSettingData(enumerationContext string) (response tls.Response, err error)
 	PUTTLSSettings(instanceID string, tlsSettingData tls.SettingDataRequest) (response tls.Response, err error)
@@ -148,7 +149,7 @@ func (g *GoWSMANMessages) SetupMEBX(password string) (response setupandconfigura
 	return g.wsmanMessages.AMT.SetupAndConfigurationService.SetMEBXPassword(password)
 }
 
-func (g *GoWSMANMessages) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateResponse, error) {
+func (g *GoWSMANMessages) GetPublicKeyCerts() ([]publickey.RefinedPublicKeyCertificateResponse, error) {
 	response, err := g.wsmanMessages.AMT.PublicKeyCertificate.Enumerate()
 	if err != nil {
 		return nil, err
@@ -157,7 +158,7 @@ func (g *GoWSMANMessages) GetPublicKeyCerts() ([]publickey.PublicKeyCertificateR
 	if err != nil {
 		return nil, err
 	}
-	return response.Body.PullResponse.PublicKeyCertificateItems, nil
+	return response.Body.RefinedPullResponse.PublicKeyCertificateItems, nil
 }
 
 func (g *GoWSMANMessages) GenerateKeyPair(keyAlgorithm publickey.KeyAlgorithm, keyLength publickey.KeyLength) (response publickey.Response, err error) {
@@ -172,11 +173,15 @@ func (g *GoWSMANMessages) CreateTLSCredentialContext(certHandle string) (respons
 	return g.wsmanMessages.AMT.TLSCredentialContext.Create(certHandle)
 }
 
+func (g *GoWSMANMessages) PutTLSCredentialContext(certHandle string) (response tls.Response, err error) {
+	return g.wsmanMessages.AMT.TLSCredentialContext.Put(certHandle)
+}
+
 // GetPublicPrivateKeyPairs
 // NOTE: RSA Key encoded as DES PKCS#1. The Exponent (E) is 65537 (0x010001).
 // When this structure is used as an output parameter (GET or PULL method),
 // only the public section of the key is exported.
-func (g *GoWSMANMessages) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPrivateKeyPair, error) {
+func (g *GoWSMANMessages) GetPublicPrivateKeyPairs() ([]publicprivate.RefinedPublicPrivateKeyPair, error) {
 	response, err := g.wsmanMessages.AMT.PublicPrivateKeyPair.Enumerate()
 	if err != nil {
 		return nil, err
@@ -185,7 +190,7 @@ func (g *GoWSMANMessages) GetPublicPrivateKeyPairs() ([]publicprivate.PublicPriv
 	if err != nil {
 		return nil, err
 	}
-	return response.Body.PullResponse.PublicPrivateKeyPairItems, nil
+	return response.Body.RefinedPullResponse.PublicPrivateKeyPairItems, nil
 }
 func (g *GoWSMANMessages) GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error) {
 	response, err := g.wsmanMessages.CIM.WiFiEndpointSettings.Enumerate()
@@ -220,16 +225,16 @@ func (g *GoWSMANMessages) DeletePublicCert(instanceId string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyCertificate.Delete(instanceId)
 	return err
 }
-func (g *GoWSMANMessages) GetCredentialRelationships() ([]credential.CredentialContext, error) {
+func (g *GoWSMANMessages) GetCredentialRelationships() (credential.Items, error) {
 	response, err := g.wsmanMessages.CIM.CredentialContext.Enumerate()
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
 	response, err = g.wsmanMessages.CIM.CredentialContext.Pull(response.Body.EnumerateResponse.EnumerationContext)
 	if err != nil {
-		return nil, err
+		return credential.Items{}, err
 	}
-	return response.Body.PullResponse.Items.CredentialContext, nil
+	return response.Body.PullResponse.Items, nil
 }
 func (g *GoWSMANMessages) GetConcreteDependencies() ([]concrete.ConcreteDependency, error) {
 	response, err := g.wsmanMessages.CIM.ConcreteDependency.Enumerate()
@@ -268,14 +273,18 @@ func (g *GoWSMANMessages) AddClientCert(clientCert string) (handle string, err e
 }
 func (g *GoWSMANMessages) AddPrivateKey(privateKey string) (handle string, err error) {
 	response, err := g.wsmanMessages.AMT.PublicKeyManagementService.AddKey(privateKey)
-	if err != nil {
+	if err != nil && response.Body.AddKey_OUTPUT.ReturnValue == 2058 {
+		return "", utils.DuplicateKey
+	} else if err != nil {
 		return "", err
 	}
+
 	if len(response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors) > 0 {
 		handle = response.Body.AddKey_OUTPUT.CreatedKey.ReferenceParameters.SelectorSet.Selectors[0].Text
 	}
 	return handle, nil
 }
+
 func (g *GoWSMANMessages) DeleteKeyPair(instanceID string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyManagementService.Delete(instanceID)
 	return err

@@ -215,7 +215,7 @@ func TestWiredSettings(t *testing.T) {
 			setupMocks: func(mock *MockWSMAN) {
 				errPutEthernetSettings = utils.WSMANMessageError
 			},
-			expectedErr: utils.NetworkConfigurationFailed,
+			expectedErr: utils.WiredConfigurationFailed,
 		},
 		{
 			name: "Success - 802.1x Configuration Without EA",
@@ -343,7 +343,7 @@ func TestAddCertsUsingEnterpriseAssistant(t *testing.T) {
 			service.config.EnterpriseAssistant.EAUsername = "user"
 			service.config.EnterpriseAssistant.EAPassword = "pass"
 			var handles Handles
-			handles, _, err := service.AddCertsUsingEnterpriseAssistant(handles, Ieee8021xConfigs[0])
+			handles, _, err := service.AddCertsUsingEnterpriseAssistant(Ieee8021xConfigs[0])
 			if tt.expectError != nil {
 				assert.Error(t, err)
 			} else {

@@ -1,3 +1,5 @@
+ccmactivate:
+  amtPassword: 'test'
 acmactivate:
   amtPassword: 'test'
   provisioningCert: 'your provisioning certificate'

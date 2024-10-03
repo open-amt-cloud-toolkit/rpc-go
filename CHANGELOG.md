@@ -1,3 +1,45 @@
+# [2.39.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.38.0...v2.39.0) (2024-09-17)
+
+
+### Features
+
+* lib.go redirects stdout to Output ([#640](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/640)) ([8697c99](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8697c995f28e27631d26be291d711abdec1ad86d))
+
+# [2.38.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.37.0...v2.38.0) (2024-09-05)
+
+
+### Features
+
+* adds ccm activation using config ([abd02bc](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/abd02bcbb05b88e44378c81962f8b89bf115327a))
+
+# [2.37.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.2...v2.37.0) (2024-08-07)
+
+
+### Features
+
+* prunes wired and tls configs when adding new ones ([93553d2](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/93553d244543490b6e534a520bb1f3c1dd391ad3))
+
+## [2.36.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.1...v2.36.2) (2024-08-06).
+
+
+### Bug Fixes
+
+* **cli:** Resolve FQDN on Linux machines with short hostnames ([#600](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/600)) ([a2df614](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/a2df61462461028ce32e0270029bb54a725f66af)), closes [#189](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/189)
+
+## [2.36.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.36.0...v2.36.1) (2024-07-17)
+
+
+### Bug Fixes
+
+* attempt to address false positive virus on zipped go binary artifacts on windows ([#591](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/591)) ([6957954](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/695795411e30615e4206efc8945abaa9ce2ce22d))
+
+# [2.36.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.35.0...v2.36.0) (2024-07-15)
+
+
+### Features
+
+* **cli:** amtinfo command add amt ipaddr and osipaddr ([#560](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/560)) ([77b42aa](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/77b42aad1f7b95e546eb17640f7981933a5bf999)), closes [#467](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/467)
+
 # [2.35.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.34.2...v2.35.0) (2024-06-20)
 
 

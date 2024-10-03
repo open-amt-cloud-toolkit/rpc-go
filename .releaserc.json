@@ -1,5 +1,8 @@
 {
-  "branches": ["main", "next"],
+  "branches": [
+    "main",
+    "next"
+  ],
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
@@ -17,11 +20,11 @@
             "label": "Linux x86 RPC Executable"
           },
           {
-            "path": "rpc_windows_x64.zip",
+            "path": "rpc_windows_x64.exe",
             "label": "Windows x64 RPC Executable"
           },
           {
-            "path": "rpc_windows_x86.zip",
+            "path": "rpc_windows_x86.exe",
             "label": "Windows x86 RPC Executable"
           },
           {
