@@ -27,3 +27,9 @@ tar cvfpz rpc_so_x64.tar.gz rpc.so.$version
 # Add Windows build to a zip file
 zip rpc_windows_x64.zip rpc_windows_x64.exe
 zip rpc_windows_x86.zip rpc_windows_x86.exe
+
+# Generate license files
+go-licenses save ./... --include_tests --save_path=licensefiles
+
+# Create a zip file for license files
+zip -r licenses.zip licensefiles/
