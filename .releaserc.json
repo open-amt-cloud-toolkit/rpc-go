@@ -1,6 +1,10 @@
 {
   "branches": [
     "main",
+    {
+      "name": "addlicenses", 
+      "prerelease": true
+    },
     "next"
   ],
   "plugins": [
@@ -30,6 +34,10 @@
           {
             "path": "rpc_so_x64.tar.gz",
             "label": "Linux x64 RPC Library"
+          },
+          {
+            "path": "licenses.zip",
+            "label": "Third-party Licenses"
           }
         ]
       }
