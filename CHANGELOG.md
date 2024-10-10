@@ -1,3 +1,10 @@
+# [2.40.0-addlicenses.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.39.0...v2.40.0-addlicenses.1) (2024-10-10)
+
+
+### Features
+
+* generate third party licenses zip for every release ([67cfc15](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/67cfc1589d5aca0987b93a2af499abb0363a138b))
+
 # [2.39.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.38.0...v2.39.0) (2024-09-17)
 
 
