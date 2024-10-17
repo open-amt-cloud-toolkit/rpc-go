@@ -12,6 +12,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -79,25 +80,25 @@ func (service *ProvisioningService) Activate() error {
 			return err
 		}
 
+		tlsCert := tls.Certificate{}
+
 		for i := range certsAndKeys.certs {
 			certPEM := pem.EncodeToMemory(&pem.Block{
 				Type:  "CERTIFICATE",
 				Bytes: certsAndKeys.certs[i].Raw,
 			})
-
-			keyPEMBlock, err := marshalPrivateKeyToPEM(certsAndKeys.keys[i])
-			if err != nil {
-				return err
-			}
-
-			tlsCert := tls.Certificate{
-				Certificate: [][]byte{certPEM},
-				PrivateKey:  keyPEMBlock[i],
-				Leaf:        certsAndKeys.certs[i],
-			}
-
-			tlsConfig.Certificates = append(tlsConfig.Certificates, tlsCert)
+			tlsCert.Certificate = append(tlsCert.Certificate, certPEM)
 		}
+
+		keyPEMBlock, err := marshalPrivateKeyToPEM(certsAndKeys.keys[0])
+		if err != nil {
+			return err
+		}
+
+		tlsCert.PrivateKey = keyPEMBlock[0]
+		tlsCert.Leaf = certsAndKeys.certs[0]
+
+		tlsConfig.Certificates = append(tlsConfig.Certificates, tlsCert)
 
 		// Use the AMT Certificate response to verify AMT device
 		_, err = service.StartSecureHostBasedConfiguration()
@@ -164,13 +165,11 @@ func (service *ProvisioningService) StartSecureHostBasedConfiguration() (amt.Sec
 		return amt.SecureHBasedResponse{}, err
 	}
 
-	// Check fingerPrint length
-	if len(certObject.certChain[0]) > 64 {
-		return amt.SecureHBasedResponse{}, utils.ActivationFailedCertHash
-	}
+	// create leaf certificate hash
+	leafHash := sha512.Sum512([]byte(certObject.certChain[0]))
 
 	var certHashByteArray [64]byte
-	copy(certHashByteArray[:], certObject.certChain[0])
+	copy(certHashByteArray[:], leafHash[:])
 
 	certAlgo, err := checkCertAlgoSupported(certObject.certificateAlgorithm)
 	if err != nil {
