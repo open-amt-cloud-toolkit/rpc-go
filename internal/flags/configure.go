@@ -30,6 +30,7 @@ const (
 	TLSModeServerAndNonTLS
 	TLSModeMutual
 	TLSModeMutualAndNonTLS
+	TLSModeDisabled
 )
 
 func (m TLSMode) String() string {
@@ -42,13 +43,15 @@ func (m TLSMode) String() string {
 		return "Mutual"
 	case TLSModeMutualAndNonTLS:
 		return "MutualAndNonTLS"
+	case TLSModeDisabled:
+		return "None"
 	default:
 		return "Unknown"
 	}
 }
 
 func TLSModesToString() string {
-	return fmt.Sprintf("%s, %s, %s, %s", TLSModeServer, TLSModeServerAndNonTLS, TLSModeMutual, TLSModeMutualAndNonTLS)
+	return fmt.Sprintf("%s, %s, %s, %s, %s", TLSModeServer, TLSModeServerAndNonTLS, TLSModeMutual, TLSModeMutualAndNonTLS, TLSModeDisabled)
 }
 
 func ParseTLSMode(s string) (TLSMode, error) {
@@ -63,6 +66,8 @@ func ParseTLSMode(s string) (TLSMode, error) {
 		m = TLSModeMutual
 	case "MutualAndNonTLS":
 		m = TLSModeMutualAndNonTLS
+	case "None":
+		m = TLSModeDisabled
 	default:
 		// flags error handling already shows appropriate message
 		err = errors.New("")
@@ -76,6 +81,28 @@ type ConfigTLSInfo struct {
 	EAAddress      string
 	EAUsername     string
 	EAPassword     string
+}
+
+// authenticationMethodMap now maps strings directly to integer values
+var authenticationMethod = map[string]wifi.AuthenticationMethod{
+	"Other":         wifi.AuthenticationMethodOther,
+	"OpenSystem":    wifi.AuthenticationMethodOpenSystem,
+	"SharedKey":     wifi.AuthenticationMethodSharedKey,
+	"WPAPSK":        wifi.AuthenticationMethodWPAPSK,
+	"WPAIEEE8021x":  wifi.AuthenticationMethodWPAIEEE8021x,
+	"WPA2PSK":       wifi.AuthenticationMethodWPA2PSK,
+	"WPA2IEEE8021x": wifi.AuthenticationMethodWPA2IEEE8021x,
+	"WPA3SAE":       wifi.AuthenticationMethodWPA3SAE,
+	"WPA3OWE":       wifi.AuthenticationMethodWPA3OWE,
+}
+
+// encryptionMethod Map now maps strings directly to integer values
+var encryptionMethod = map[string]wifi.EncryptionMethod{
+	"Other": wifi.EncryptionMethod_Other,
+	"WEP":   wifi.EncryptionMethod_WEP,
+	"TKIP":  wifi.EncryptionMethod_TKIP,
+	"CCMP":  wifi.EncryptionMethod_CCMP,
+	"None":  wifi.EncryptionMethod_None,
 }
 
 func (f *Flags) printConfigurationUsage() string {
@@ -145,21 +172,23 @@ func (f *Flags) handleConfigureCommand() error {
 	}
 
 	f.Local = true
-	if f.Password == "" {
-		if f.LocalConfig.Password != "" {
-			f.Password = f.LocalConfig.Password
+	if f.SubCommand != utils.SubCommandSetAMTFeatures {
+		if f.Password == "" {
+			if f.LocalConfig.Password != "" {
+				f.Password = f.LocalConfig.Password
+			} else {
+				if err = f.ReadPasswordFromUser(); err != nil {
+					return utils.MissingOrIncorrectPassword
+				}
+				f.LocalConfig.Password = f.Password
+			}
 		} else {
-			if err = f.ReadPasswordFromUser(); err != nil {
+			if f.LocalConfig.Password == "" {
+				f.LocalConfig.Password = f.Password
+			} else if f.LocalConfig.Password != f.Password {
+				log.Error("password does not match config file password")
 				return utils.MissingOrIncorrectPassword
 			}
-			f.LocalConfig.Password = f.Password
-		}
-	} else {
-		if f.LocalConfig.Password == "" {
-			f.LocalConfig.Password = f.Password
-		} else if f.LocalConfig.Password != f.Password {
-			log.Error("password does not match config file password")
-			return utils.MissingOrIncorrectPassword
 		}
 	}
 	return nil
@@ -215,10 +244,31 @@ func (f *Flags) handleSetAMTFeatures() error {
 	f.flagSetAMTFeatures.BoolVar(&f.IDER, "ider", false, "Enables or Disables IDER (IDE Redirection)")
 	f.flagSetAMTFeatures.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 
+	// V2 features
+	f.flagSetAMTFeatures.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	f.flagSetAMTFeatures.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
+
 	if err = f.flagSetAMTFeatures.Parse(f.commandLineArgs[3:]); err != nil {
 		f.printConfigurationUsage()
 		return utils.IncorrectCommandLineParameters
 	}
+
+	if f.configContentV2 != "" {
+		err := f.handleLocalConfigV2()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+
+		// Set the values from the v2 config file.
+		if f.LocalConfigV2.Configuration.Redirection.UserConsent != "" {
+			f.UserConsent = f.LocalConfigV2.Configuration.Redirection.UserConsent
+		}
+		f.KVM = f.LocalConfigV2.Configuration.Redirection.Services.KVM
+		f.SOL = f.LocalConfigV2.Configuration.Redirection.Services.SOL
+		f.IDER = f.LocalConfigV2.Configuration.Redirection.Services.IDER
+		f.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+	}
+
 	// Validate UserConsent
 	if f.UserConsent != "" {
 		f.UserConsent = strings.ToLower(f.UserConsent)
@@ -241,12 +291,26 @@ func (f *Flags) handleMEBxPassword() error {
 	f.flagSetMEBx.BoolVar(&f.JsonOutput, "json", false, "JSON output")
 	f.flagSetMEBx.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT password")
 	f.flagSetMEBx.StringVar(&f.MEBxPassword, "mebxpassword", f.lookupEnvOrString("MEBX_PASSWORD", ""), "MEBX password")
+	// V2 features
+	f.flagSetMEBx.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	f.flagSetMEBx.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
 
 	if len(f.commandLineArgs) > 3 {
 		if err := f.flagSetMEBx.Parse(f.commandLineArgs[3:]); err != nil {
 			f.printConfigurationUsage()
 			return utils.IncorrectCommandLineParameters
 		}
+	}
+
+	if f.configContentV2 != "" {
+		err := f.handleLocalConfigV2()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+
+		// Set the values from the v2 config file.
+		f.MEBxPassword = f.LocalConfigV2.Configuration.AMTSpecific.MEBXPassword
+		f.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
 	}
 
 	if f.Password == "" {
@@ -308,6 +372,10 @@ func (f *Flags) handleConfigureTLS() error {
 	fs.StringVar(&f.ConfigTLSInfo.EAUsername, "eaUsername", "", "Enterprise Assistant username")
 	fs.StringVar(&f.ConfigTLSInfo.EAPassword, "eaPassword", "", "Enterprise Assistant password")
 
+	// V2 features
+	fs.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	fs.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
+
 	if len(f.commandLineArgs) < (3 + 0) {
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
@@ -320,6 +388,26 @@ func (f *Flags) handleConfigureTLS() error {
 		fs.Usage()
 		return utils.IncorrectCommandLineParameters
 	}
+
+	if f.configContentV2 != "" {
+		err := f.handleLocalConfigV2()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+		f.LocalConfig.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+		mutualAuth := f.LocalConfigV2.Configuration.TLS.MutualAuthentication
+		enabled := f.LocalConfigV2.Configuration.TLS.Enabled
+		allowNonTLS := f.LocalConfigV2.Configuration.TLS.AllowNonTLS
+		mode := f.DetermineTLSMode(mutualAuth, enabled, allowNonTLS)
+		f.ConfigTLSInfo.TLSMode, _ = ParseTLSMode(mode)
+		// ToDo: No need check whether it has to include in config file or default value to 3
+		f.ConfigTLSInfo.DelayInSeconds = 3
+		f.ConfigTLSInfo.EAAddress = f.LocalConfigV2.Configuration.EnterpriseAssistant.URL
+		f.ConfigTLSInfo.EAUsername = f.LocalConfigV2.Configuration.EnterpriseAssistant.Username
+		f.ConfigTLSInfo.EAPassword = f.LocalConfigV2.Configuration.EnterpriseAssistant.Password
+
+	}
+
 	if f.configContent != "" {
 		err := f.handleLocalConfig()
 		if err != nil {
@@ -344,10 +432,31 @@ func (f *Flags) handleConfigureTLS() error {
 	return nil
 }
 
+func (f *Flags) DetermineTLSMode(mutualAuth, enabled, allowNonTLS bool) string {
+	switch {
+	case enabled && !allowNonTLS && !mutualAuth:
+		return "Server"
+	case enabled && allowNonTLS && !mutualAuth:
+		return "ServerAndNonTLS"
+	case enabled && !allowNonTLS && mutualAuth:
+		return "Mutual"
+	case enabled && allowNonTLS && mutualAuth:
+		return "MutualAndNonTLS"
+	case !enabled:
+		return "None"
+	default:
+		return "Unknown"
+	}
+}
+
 func (f *Flags) handleAddEthernetSettings() error {
 	var configJson string
 	var secretsFilePath string
 	var secretConfig config.SecretConfig
+
+	// V2 features
+	f.flagSetAddEthernetSettings.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	f.flagSetAddEthernetSettings.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
 
 	f.flagSetAddEthernetSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
 	f.flagSetAddEthernetSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
@@ -395,6 +504,42 @@ func (f *Flags) handleAddEthernetSettings() error {
 	f.LocalConfig.WiredConfig = wiredSettings
 	f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xCfg)
 	f.LocalConfig.EnterpriseAssistant = eaSettings
+
+	if f.configContentV2 != "" && f.configV2Key != "" {
+		err := f.handleLocalConfigV2()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+
+		f.LocalConfig.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+		f.LocalConfig.WiredConfig.DHCP = f.LocalConfigV2.Configuration.Network.Wired.DHCPEnabled
+		f.LocalConfig.WiredConfig.Static = f.LocalConfigV2.Configuration.Network.Wired.SharedStaticIP
+		f.LocalConfig.WiredConfig.IpSync = f.LocalConfigV2.Configuration.Network.Wired.IPSyncEnabled
+		f.LocalConfig.WiredConfig.IpAddress = f.LocalConfigV2.Configuration.Network.Wired.IPAddress
+		f.LocalConfig.WiredConfig.Subnetmask = f.LocalConfigV2.Configuration.Network.Wired.SubnetMask
+		f.LocalConfig.WiredConfig.Gateway = f.LocalConfigV2.Configuration.Network.Wired.DefaultGateway
+		f.LocalConfig.WiredConfig.PrimaryDNS = f.LocalConfigV2.Configuration.Network.Wired.PrimaryDNS
+		f.LocalConfig.WiredConfig.SecondaryDNS = f.LocalConfigV2.Configuration.Network.Wired.SecondaryDNS
+
+		if f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x != nil {
+			f.LocalConfig.WiredConfig.Ieee8021xProfileName = "wiredIEEE8021x"
+			f.LocalConfig.Ieee8021xConfigs[0].ProfileName = "wiredIEEE8021x"
+			f.LocalConfig.Ieee8021xConfigs[0].Username = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.Username
+			f.LocalConfig.Ieee8021xConfigs[0].Password = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.Password
+			f.LocalConfig.Ieee8021xConfigs[0].AuthenticationProtocol = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.AuthenticationProtocol
+			f.LocalConfig.Ieee8021xConfigs[0].ClientCert = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.ClientCert
+			f.LocalConfig.Ieee8021xConfigs[0].CACert = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.CACert
+			f.LocalConfig.Ieee8021xConfigs[0].PrivateKey = f.LocalConfigV2.Configuration.Network.Wired.IEEE8021x.PrivateKey
+
+			if !f.LocalConfig.EnterpriseAssistant.EAConfigured {
+				f.LocalConfig.EnterpriseAssistant.EAAddress = f.LocalConfigV2.Configuration.EnterpriseAssistant.URL
+				f.LocalConfig.EnterpriseAssistant.EAUsername = f.LocalConfigV2.Configuration.EnterpriseAssistant.Username
+				f.LocalConfig.EnterpriseAssistant.EAPassword = f.LocalConfigV2.Configuration.EnterpriseAssistant.Password
+				f.LocalConfig.EnterpriseAssistant.EAConfigured = true
+			}
+		}
+
+	}
 
 	if f.configContent != "" || configJson != "" {
 		err := f.handleLocalConfig()
@@ -526,6 +671,11 @@ func (f *Flags) handleAddWifiSettings() error {
 	var secretsFilePath string
 	var wifiSecretConfig config.SecretConfig
 	var configJson string
+
+	// V2 features
+	f.flagSetAddWifiSettings.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	f.flagSetAddWifiSettings.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
+
 	f.flagSetAddWifiSettings.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
 	f.flagSetAddWifiSettings.StringVar(&configJson, "configJson", "", "configuration as a JSON string")
 	f.flagSetAddWifiSettings.StringVar(&secretsFilePath, "secrets", "", "specify a secrets file ")
@@ -582,15 +732,76 @@ func (f *Flags) handleAddWifiSettings() error {
 	f.LocalConfig.EnterpriseAssistant = eaSettings
 	eaSettings.EAConfigured = false
 
-	err = f.handleLocalConfig()
-	if err != nil {
-		return utils.FailedReadingConfiguration
-	}
-	if configJson != "" {
-		err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
+	if f.configContentV2 != "" && f.configV2Key != "" {
+		f.LocalConfig.WifiConfigs = []config.WifiConfig{}
+		f.LocalConfig.Ieee8021xConfigs = []config.Ieee8021xConfig{}
+		f.LocalConfig.EnterpriseAssistant = config.EnterpriseAssistant{EAConfigured: false}
+		err := f.handleLocalConfigV2()
 		if err != nil {
-			log.Error(err)
-			return utils.IncorrectCommandLineParameters
+			return utils.FailedReadingConfiguration
+		}
+
+		f.LocalConfig.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+
+		for _, wifiCfg := range f.LocalConfigV2.Configuration.Network.Wireless.Profiles {
+			authMethod, err := f.getAuthenticationCode(wifiCfg.AuthenticationMethod)
+			if err != nil {
+				log.Error("Failed to get authentication code", err)
+				return err
+			}
+
+			encryptionMethod, err := f.getEncrytionCode(wifiCfg.EncryptionMethod)
+			if err != nil {
+				log.Error("Failed to get encryption code", err)
+				return err
+			}
+
+			newWifiConfig := config.WifiConfig{
+				ProfileName:          wifiCfg.ProfileName,
+				SSID:                 wifiCfg.SSID,
+				Priority:             wifiCfg.Priority,
+				AuthenticationMethod: authMethod,
+				EncryptionMethod:     encryptionMethod,
+				PskPassphrase:        wifiCfg.Password,
+			}
+
+			// Handle 802.1x configurations
+			if newWifiConfig.AuthenticationMethod == int(wifi.AuthenticationMethodWPAIEEE8021x) || newWifiConfig.AuthenticationMethod == int(wifi.AuthenticationMethodWPA2IEEE8021x) {
+				// Add corresponding 802.1x config
+				ieee8021xConfig := config.Ieee8021xConfig{
+					ProfileName:            newWifiConfig.ProfileName,
+					Username:               wifiCfg.IEEE8021x.Username,
+					Password:               wifiCfg.IEEE8021x.Password,
+					AuthenticationProtocol: wifiCfg.IEEE8021x.AuthenticationProtocol,
+					ClientCert:             wifiCfg.IEEE8021x.ClientCert,
+					CACert:                 wifiCfg.IEEE8021x.CACert,
+					PrivateKey:             wifiCfg.IEEE8021x.PrivateKey,
+				}
+				newWifiConfig.Ieee8021xProfileName = newWifiConfig.ProfileName
+				f.LocalConfig.Ieee8021xConfigs = append(f.LocalConfig.Ieee8021xConfigs, ieee8021xConfig)
+
+				if !f.LocalConfig.EnterpriseAssistant.EAConfigured {
+					f.LocalConfig.EnterpriseAssistant.EAAddress = f.LocalConfigV2.Configuration.EnterpriseAssistant.URL
+					f.LocalConfig.EnterpriseAssistant.EAUsername = f.LocalConfigV2.Configuration.EnterpriseAssistant.Username
+					f.LocalConfig.EnterpriseAssistant.EAPassword = f.LocalConfigV2.Configuration.EnterpriseAssistant.Password
+					f.LocalConfig.EnterpriseAssistant.EAConfigured = true
+				}
+			}
+
+			f.LocalConfig.WifiConfigs = append(f.LocalConfig.WifiConfigs, newWifiConfig)
+		}
+
+	} else {
+		err = f.handleLocalConfig()
+		if err != nil {
+			return utils.FailedReadingConfiguration
+		}
+		if configJson != "" {
+			err := json.Unmarshal([]byte(configJson), &f.LocalConfig)
+			if err != nil {
+				log.Error(err)
+				return utils.IncorrectCommandLineParameters
+			}
 		}
 	}
 
@@ -624,6 +835,24 @@ func (f *Flags) handleAddWifiSettings() error {
 		return err
 	}
 	return nil
+}
+
+func (f *Flags) getAuthenticationCode(s string) (int, error) {
+	for methodType, code := range authenticationMethod {
+		if strings.EqualFold(s, methodType) {
+			return int(code), nil
+		}
+	}
+	return 0, utils.MissingOrInvalidConfiguration
+}
+
+func (f *Flags) getEncrytionCode(s string) (int, error) {
+	for methodType, code := range encryptionMethod {
+		if strings.EqualFold(s, methodType) {
+			return int(code), nil
+		}
+	}
+	return 0, utils.MissingOrInvalidConfiguration
 }
 
 func (f *Flags) mergeWifiSecrets(wifiSecretConfig config.SecretConfig) error {
@@ -807,7 +1036,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) error {
 			continue
 		}
 		if foundOne {
-			log.Error("duplicate IEEE802x Profile names: ", ieee802xCfg.ProfileName)
+			log.Error("duplicate IEEE8021x Profile names: ", ieee802xCfg.ProfileName)
 
 			return utils.MissingOrInvalidConfiguration
 		}
@@ -818,7 +1047,7 @@ func (f *Flags) verifyMatchingIeee8021xConfig(profileName string) error {
 		}
 	}
 	if !foundOne {
-		log.Error("missing IEEE802x Profile: ", profileName)
+		log.Error("missing IEEE8021x Profile: ", profileName)
 		return utils.MissingOrInvalidConfiguration
 	}
 	return nil

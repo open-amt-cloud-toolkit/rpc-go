@@ -23,18 +23,21 @@ const LocalTLSInstanceId = `Intel(r) AMT LMS TLS Settings`
 
 func (service *ProvisioningService) ConfigureTLS() error {
 	var err error
-	if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
-		err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
-		if err != nil {
-			log.Error("url validation failed: ", err)
-			return utils.TLSConfigurationFailed
+	if service.flags.ConfigTLSInfo.TLSMode != flags.TLSModeDisabled {
+		if service.flags.ConfigTLSInfo.EAAddress != "" && service.flags.ConfigTLSInfo.EAUsername != "" && service.flags.ConfigTLSInfo.EAPassword != "" {
+			err = service.ValidateURL(service.flags.ConfigTLSInfo.EAAddress)
+			if err != nil {
+				log.Error("url validation failed: ", err)
+				return utils.TLSConfigurationFailed
+			}
+			err = service.ConfigureTLSWithEA()
+		} else {
+			err = service.ConfigureTLSWithSelfSignedCert()
 		}
-		err = service.ConfigureTLSWithEA()
-	} else {
-		err = service.ConfigureTLSWithSelfSignedCert()
-	}
-	if err != nil {
-		return err
+
+		if err != nil {
+			return err
+		}
 	}
 
 	err = service.SynchronizeTime()
@@ -252,7 +255,7 @@ func (service *ProvisioningService) CreateTLSCredentialContext(certHandle string
 }
 
 func (service *ProvisioningService) EnableTLS() error {
-	log.Info("enabling tls")
+	log.Info("Start TLS configuration : ", service.flags.ConfigTLSInfo.TLSMode.String())
 
 	enumerateRsp, err := service.interfacedWsmanMessage.EnumerateTLSSettingData()
 	if err != nil {
@@ -284,8 +287,11 @@ func (service *ProvisioningService) EnableTLS() error {
 }
 
 func (service *ProvisioningService) ConfigureTLSSettings(setting tls.SettingDataResponse) error {
-	data := getTLSSettings(setting, service.flags.ConfigTLSInfo.TLSMode)
-	_, err := service.interfacedWsmanMessage.PUTTLSSettings(data.InstanceID, data)
+	data, err := getTLSSettings(setting, service.flags.ConfigTLSInfo.TLSMode)
+	if err != nil {
+		return err
+	}
+	_, err = service.interfacedWsmanMessage.PUTTLSSettings(data.InstanceID, data)
 	if err != nil {
 		log.Errorf("failed to configure remote TLS Settings (%s)\n", data.InstanceID)
 		return utils.WSMANMessageError
@@ -293,7 +299,7 @@ func (service *ProvisioningService) ConfigureTLSSettings(setting tls.SettingData
 	return nil
 }
 
-func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) tls.SettingDataRequest {
+func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) (tls.SettingDataRequest, error) {
 	data := tls.SettingDataRequest{
 		AcceptNonSecureConnections: setting.AcceptNonSecureConnections,
 		ElementName:                setting.ElementName,
@@ -301,16 +307,22 @@ func getTLSSettings(setting tls.SettingDataResponse, tlsMode flags.TLSMode) tls.
 		InstanceID:                 setting.InstanceID,
 		MutualAuthentication:       setting.MutualAuthentication,
 	}
-	if setting.InstanceID == RemoteTLSInstanceId {
-		log.Infof("configuring remote TLS settings mode: %s", tlsMode)
-		if setting.NonSecureConnectionsSupported == nil || *setting.NonSecureConnectionsSupported {
-			data.AcceptNonSecureConnections = tlsMode == flags.TLSModeServerAndNonTLS || tlsMode == flags.TLSModeMutualAndNonTLS
-		}
-		data.MutualAuthentication = tlsMode == flags.TLSModeMutual || tlsMode == flags.TLSModeMutualAndNonTLS
-	} else {
-		log.Info("configuring local TLS settings")
+
+	log.Infof("configuring TLS settings: %s", setting.InstanceID)
+	if setting.NonSecureConnectionsSupported == nil || *setting.NonSecureConnectionsSupported {
+		data.AcceptNonSecureConnections = tlsMode == flags.TLSModeServerAndNonTLS || tlsMode == flags.TLSModeMutualAndNonTLS
 	}
-	return data
+
+	if setting.NonSecureConnectionsSupported != nil {
+		if tlsMode == flags.TLSModeDisabled && !*setting.NonSecureConnectionsSupported {
+			log.Errorf("TLS cannot be disabled on this device")
+			return tls.SettingDataRequest{}, utils.TLSConfigurationFailed
+		}
+	}
+	data.MutualAuthentication = tlsMode == flags.TLSModeMutual || tlsMode == flags.TLSModeMutualAndNonTLS
+	data.Enabled = tlsMode != flags.TLSModeDisabled
+
+	return data, nil
 }
 
 func (service *ProvisioningService) updateTLSCredentialContext(handles Handles) error {

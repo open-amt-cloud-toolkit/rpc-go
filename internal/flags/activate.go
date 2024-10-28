@@ -29,6 +29,8 @@ func (f *Flags) handleActivateCommand() error {
 	f.amtActivateCommand.BoolVar(&f.SkipIPRenew, "skipIPRenew", false, "skip DHCP renewal of the IP address if AMT becomes enabled")
 	// for local activation in ACM mode need a few more items
 	f.amtActivateCommand.StringVar(&f.configContent, "config", "", "specify a config file or smb: file share URL")
+	f.amtActivateCommand.StringVar(&f.configContentV2, "configv2", "", "specify a config file or smb: file share URL")
+	f.amtActivateCommand.StringVar(&f.configV2Key, "configencryptionkey", f.lookupEnvOrString("CONFIG_ENCRYPTION_KEY", ""), "provide the 32 byte key to decrypt the config file")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.AMTPassword, "amtPassword", f.lookupEnvOrString("AMT_PASSWORD", ""), "amt password")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCert, "provisioningCert", f.lookupEnvOrString("PROVISIONING_CERT", ""), "provisioning certificate")
 	f.amtActivateCommand.StringVar(&f.LocalConfig.ACMSettings.ProvisioningCertPwd, "provisioningCertPwd", f.lookupEnvOrString("PROVISIONING_CERT_PASSWORD", ""), "provisioning certificate password")
@@ -78,47 +80,108 @@ func (f *Flags) handleActivateCommand() error {
 			fmt.Println("Warning: Overriding UUID prevents device from connecting to MPS")
 		}
 	} else {
-		if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
-			fmt.Println("must specify -ccm or -acm, but not both")
-			return utils.InvalidParameterCombination
-		}
-
-		err := f.handleLocalConfig()
-		if err != nil {
-			return utils.FailedReadingConfiguration
-		}
-
-		// Gets optimized in rpc-go version 3
-		if f.LocalConfig.CCMSettings.AMTPassword != "" {
-			f.LocalConfig.Password = f.LocalConfig.CCMSettings.AMTPassword
-		}
-
-		if (f.LocalConfig.ACMSettings.AMTPassword == "" || f.LocalConfig.CCMSettings.AMTPassword == "") && f.Password == "" {
-			if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
-				return rc
+		if f.configContentV2 != "" {
+			err := f.handleLocalConfigV2()
+			if err != nil {
+				return utils.FailedReadingConfiguration
 			}
-		}
 
-		if f.Password != "" {
-			f.LocalConfig.ACMSettings.AMTPassword = f.Password
-			f.LocalConfig.Password = f.Password
-		}
-
-		if f.UseACM {
-			v := reflect.ValueOf(f.LocalConfig.ACMSettings)
-			for i := 0; i < v.NumField(); i++ {
-				if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
-					log.Error("Missing value for field: ", v.Type().Field(i).Name)
-					return utils.IncorrectCommandLineParameters
-				}
+			err = f.ValidateConfigV2()
+			if err != nil {
+				return err
 			}
-		}
 
-		if f.UUID != "" {
-			fmt.Println("-uuid cannot be use in local activation")
-			f.amtActivateCommand.Usage()
-			return utils.InvalidParameterCombination
+		} else {
+			err := f.handleLocalConfigV1()
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
+}
+
+func (f *Flags) handleLocalConfigV1() error {
+	if !f.UseCCM && !f.UseACM || f.UseCCM && f.UseACM {
+		fmt.Println("must specify -ccm or -acm, but not both")
+		return utils.InvalidParameterCombination
+	}
+
+	err := f.handleLocalConfig()
+	if err != nil {
+		return utils.FailedReadingConfiguration
+	}
+
+	// Gets optimized in rpc-go version 3
+	if f.LocalConfig.CCMSettings.AMTPassword != "" {
+		f.LocalConfig.Password = f.LocalConfig.CCMSettings.AMTPassword
+	}
+
+	if (f.LocalConfig.ACMSettings.AMTPassword == "" || f.LocalConfig.CCMSettings.AMTPassword == "") && f.Password == "" {
+		if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
+			return rc
+		}
+	}
+
+	if f.Password != "" {
+		f.LocalConfig.ACMSettings.AMTPassword = f.Password
+		f.LocalConfig.Password = f.Password
+	}
+
+	if f.UseACM {
+		v := reflect.ValueOf(f.LocalConfig.ACMSettings)
+		for i := 0; i < v.NumField(); i++ {
+			if v.Field(i).Interface() == "" { // not checking 0 since authenticantProtocol can and needs to be 0 for EAP-TLS
+				log.Error("Missing value for field: ", v.Type().Field(i).Name)
+				return utils.IncorrectCommandLineParameters
+			}
+		}
+	}
+
+	if f.UUID != "" {
+		fmt.Println("-uuid cannot be use in local activation")
+		f.amtActivateCommand.Usage()
+		return utils.InvalidParameterCombination
+	}
+
+	return nil
+}
+
+func (f *Flags) ValidateConfigV2() error {
+	// Check if the Control Mode is set
+	switch f.LocalConfigV2.Configuration.AMTSpecific.ControlMode {
+	case "acmactivate":
+		f.UseACM = true
+	case "ccmactivate":
+		f.UseCCM = true
+	default:
+		log.Error("Invalid Control Mode")
+		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
+	}
+
+	// Check if the AMT Password is set
+	if f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword == "" {
+		log.Warn("AMT Password is not set")
+		if rc := f.ReadNewPasswordTo(&f.Password, "New AMT Password"); rc != nil {
+			return rc
+		}
+	}
+	f.LocalConfig.ACMSettings.AMTPassword = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+	f.LocalConfig.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
+
+	// Check if the Provisioning Certificate is set
+	if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert == "" {
+		log.Error("Provisioning Certificate is not set")
+		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
+	}
+	f.LocalConfig.ACMSettings.ProvisioningCert = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert
+
+	// Check if the Provisioning Certificate Password is set
+	if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd == "" {
+		log.Error("Provisioning Certificate Password is not set")
+		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
+	}
+	f.LocalConfig.ACMSettings.ProvisioningCertPwd = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd
+
 	return nil
 }
