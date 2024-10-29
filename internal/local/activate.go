@@ -33,7 +33,15 @@ func (service *ProvisioningService) Activate() error {
 		return utils.UnableToActivate
 	}
 
-	service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	tlsEnforced, err := service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	if err != nil {
+		return err
+	}
+
+	if tlsEnforced {
+		log.Error("TLS is enforced on local ports, unable to activate")
+		return utils.UnsupportedAMTVersion
+	}
 
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
