@@ -74,39 +74,44 @@ func (service *ProvisioningService) Activate() error {
 	useTLS := major > 15
 	tlsConfig := &tls.Config{}
 	if useTLS {
-		config := service.config.ACMSettings
-		certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
-		if err != nil {
-			return err
-		}
+		// config := service.config.ACMSettings
+		// certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
+		// if err != nil {
+		// 	return err
+		// }
 
-		tlsCert := tls.Certificate{}
+		// tlsCert := tls.Certificate{}
 
-		for i := range certsAndKeys.certs {
-			certPEM := pem.EncodeToMemory(&pem.Block{
-				Type:  "CERTIFICATE",
-				Bytes: certsAndKeys.certs[i].Raw,
-			})
-			tlsCert.Certificate = append(tlsCert.Certificate, certPEM)
-		}
+		// for i := range certsAndKeys.certs {
+		// 	certPEM := pem.EncodeToMemory(&pem.Block{
+		// 		Type:  "CERTIFICATE",
+		// 		Bytes: certsAndKeys.certs[i].Raw,
+		// 	})
+		// 	tlsCert.Certificate = append(tlsCert.Certificate, certPEM)
+		// }
 
-		keyPEMBlock, err := marshalPrivateKeyToPEM(certsAndKeys.keys[0])
-		if err != nil {
-			return err
-		}
+		// keyPEMBlock, err := marshalPrivateKeyToPEM(certsAndKeys.keys[0])
+		// if err != nil {
+		// 	return err
+		// }
 
-		tlsCert.PrivateKey = keyPEMBlock[0]
-		tlsCert.Leaf = certsAndKeys.certs[0]
+		// tlsCert.PrivateKey = keyPEMBlock[0]
+		// tlsCert.Leaf = certsAndKeys.certs[0]
 
-		tlsConfig.Certificates = append(tlsConfig.Certificates, tlsCert)
+		// tlsConfig.Certificates = append(tlsConfig.Certificates, tlsCert)
 
-		// Use the AMT Certificate response to verify AMT device
-		_, err = service.StartSecureHostBasedConfiguration()
-		if err != nil {
-			return err
-		}
+		// // Use the AMT Certificate response to verify AMT device
+		// _, err = service.StartSecureHostBasedConfiguration()
+		// if err != nil {
+		// 	return err
+		// }
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.MinVersion = tls.VersionTLS12
+		tlsConfig.CipherSuites = []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		}
 	}
 
 	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, useTLS, log.GetLevel() == log.TraceLevel, tlsConfig)

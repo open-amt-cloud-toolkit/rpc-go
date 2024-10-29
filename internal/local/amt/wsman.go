@@ -110,18 +110,18 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, use
 	logrus.Info("Attempting to connect to LMS...")
 	port := utils.LMSPort
 	if clientParams.UseTLS {
-		port = client.TLSPort
-		con, err := goTLS.Dial("tcp4", utils.LMSAddress+":"+port, tlsConfig)
+		clientParams.SelfSignedAllowed = tlsConfig.InsecureSkipVerify
+		conn, err := goTLS.Dial("tcp4", "localhost:16993", tlsConfig)
 		if err != nil {
 			logrus.Info("Failed to connect to LMS.  We're probably going to fail now. Sorry!")
 			// Local transport is not implemented yet
 			// clientParams.Transport = NewLocalTransport()
 		} else {
 			logrus.Info("Successfully connected to LMS.")
-			state := con.ConnectionState()
+			state := conn.ConnectionState()
 			cert := state.PeerCertificates[0]
 			logrus.Trace("Server certificate: ", cert)
-			con.Close()
+			defer conn.Close()
 		}
 	} else {
 		con, err := net.Dial("tcp4", utils.LMSAddress+":"+port)
