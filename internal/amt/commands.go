@@ -80,6 +80,9 @@ func (r ChangeEnabledResponse) IsAMTEnabled() bool {
 func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
 	return ((r >> 7) & 1) == 1
 }
+func (r ChangeEnabledResponse) IsTlsEnforcedOnLocalPorts() bool {
+	return ((r >> 6) & 1) == 1
+}
 
 type Interface interface {
 	Initialize() error

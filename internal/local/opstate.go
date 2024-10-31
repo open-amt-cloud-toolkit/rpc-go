@@ -22,29 +22,34 @@ func (service *ProvisioningService) EnableAMT() error {
 	return nil
 }
 
-func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) error {
-	rsp, err := service.amtCommand.GetChangeEnabled()
+func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) (bool, error) {
+	resp, err := service.amtCommand.GetChangeEnabled()
+	tlsIsEnforced := false
 	if err != nil {
 		log.Error(err)
-		return utils.AMTConnectionFailed
+		return tlsIsEnforced, utils.AMTConnectionFailed
 	}
-	if !rsp.IsNewInterfaceVersion() {
+	if !resp.IsNewInterfaceVersion() {
 		log.Debug("this AMT version does not support SetAmtOperationalState")
-		return nil
+		return tlsIsEnforced, nil
 	}
-	if rsp.IsAMTEnabled() {
+	if resp.IsTlsEnforcedOnLocalPorts() {
+		tlsIsEnforced = true
+		log.Debug("TLS is enforced on local ports")
+	}
+	if resp.IsAMTEnabled() {
 		log.Debug("AMT is already enabled")
-		return nil
+		return tlsIsEnforced, nil
 	}
 	err = service.EnableAMT()
 	if err != nil {
-		return err
+		return tlsIsEnforced, err
 	}
 	if !skipIPRenewal {
 		err := service.RenewIP()
-		return err
+		return tlsIsEnforced, err
 	}
-	return nil
+	return tlsIsEnforced, nil
 }
 
 func (service *ProvisioningService) RenewIP() error {
