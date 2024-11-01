@@ -21,6 +21,7 @@ func TestCheckAndEnableAMT(t *testing.T) {
 		name             string
 		skipIPRenewal    bool
 		expectedRC       error
+		expectedTLS      bool
 		rsp              amt.ChangeEnabledResponse
 		errChangeEnabled error
 		errEnableAMT     error
@@ -41,6 +42,12 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			name:       "expect noop if already enabled",
 			expectedRC: nil,
 			rsp:        ChangeEnabledResponseNewEnabled,
+		},
+		{
+			name:        "expect 1 if TLS is enforced",
+			expectedRC:  nil,
+			expectedTLS: true,
+			rsp:         ChangeEnabledResponseNewTLSEnforcedEnabled,
 		},
 		{
 			name:         "expect AmtNotReady for enable if error occurs",
@@ -76,7 +83,8 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			mockRenewDHCPLeaseerr = tc.renewDHCPLeaseRC
 			f := &flags.Flags{}
 			lps := setupService(f)
-			err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
+			tlsForced, err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
+			assert.Equal(t, tc.expectedTLS, tlsForced)
 			assert.Equal(t, tc.expectedRC, err)
 			mockChangeEnabledResponse = origRsp
 			errMockChangeEnabled = origChangeEnabledErr

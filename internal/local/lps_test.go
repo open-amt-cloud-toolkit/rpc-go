@@ -641,6 +641,8 @@ type MockAMT struct{}
 const ChangeEnabledResponseNewEnabled = 0x82
 const ChangeEnabledResponseNewDisabled = 0x80
 const ChangeEnabledResponseNotNew = 0x00
+const ChangeEnabledResponseNewTLSEnforcedEnabled = 0xC2
+const ChangeEnabledResponseNewTLSEnforcedDisabled = 0xC0
 
 var mockChangeEnabledResponse = amt2.ChangeEnabledResponse(ChangeEnabledResponseNewEnabled)
 var errMockChangeEnabled error = nil
