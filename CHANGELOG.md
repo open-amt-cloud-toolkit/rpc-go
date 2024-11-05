@@ -1,3 +1,10 @@
+# [2.41.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.40.1...v2.41.0) (2024-11-05)
+
+
+### Features
+
+* enable config v2 from console ([a765f4c](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/a765f4c2c279f6fcb511d48cbca8be02e2762758))
+
 ## [2.40.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.40.0...v2.40.1) (2024-10-31)
 
 
