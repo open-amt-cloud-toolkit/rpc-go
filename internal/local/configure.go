@@ -32,7 +32,7 @@ func (service *ProvisioningService) Configure() (err error) {
 	case utils.SubCommandAddWifiSettings, utils.SubCommandWireless:
 		return service.AddWifiSettings()
 	case utils.SubCommandEnableWifiPort:
-		return service.EnableWifiPort()
+		return service.EnableWifiPort(true)
 	case utils.SubCommandSetMEBx:
 		if controlMode != 2 {
 			log.Error("Device needs to be in admin control mode to set MEBx password.")
@@ -56,8 +56,8 @@ func (service *ProvisioningService) Configure() (err error) {
 	return utils.IncorrectCommandLineParameters
 }
 
-func (service *ProvisioningService) EnableWifiPort() (err error) {
-	err = service.interfacedWsmanMessage.EnableWiFi()
+func (service *ProvisioningService) EnableWifiPort(enableSync bool) (err error) {
+	err = service.interfacedWsmanMessage.EnableWiFi(enableSync)
 	if err != nil {
 		log.Error("Failed to enable wifi port and local profile synchronization.")
 		return

@@ -685,6 +685,7 @@ func (f *Flags) handleAddWifiSettings() error {
 	ieee8021xCfg := config.Ieee8021xConfig{}
 	eaSettings := config.EnterpriseAssistant{}
 
+	f.flagSetAddWifiSettings.BoolVar(&f.LocalConfig.WiFiSyncEnabled, "wifiSyncEnabled", false, "Enable WiFi synchronization")
 	f.flagSetAddWifiSettings.StringVar(&wifiCfg.ProfileName, "profileName", "", "specify wifi profile name name")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.AuthenticationMethod, "authenticationMethod", 0, "specify authentication method")
 	f.flagSetAddWifiSettings.IntVar(&wifiCfg.EncryptionMethod, "encryptionMethod", 0, "specify encryption method")
@@ -733,6 +734,7 @@ func (f *Flags) handleAddWifiSettings() error {
 	eaSettings.EAConfigured = false
 
 	if f.configContentV2 != "" && f.configV2Key != "" {
+		f.LocalConfig.WiFiSyncEnabled = f.LocalConfigV2.Configuration.Network.Wireless.WiFiSyncEnabled
 		f.LocalConfig.WifiConfigs = []config.WifiConfig{}
 		f.LocalConfig.Ieee8021xConfigs = []config.Ieee8021xConfig{}
 		f.LocalConfig.EnterpriseAssistant = config.EnterpriseAssistant{EAConfigured: false}
