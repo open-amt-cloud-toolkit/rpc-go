@@ -59,7 +59,7 @@ type WSMANer interface {
 	// WiFi
 	GetWiFiSettings() ([]wifi.WiFiEndpointSettingsResponse, error)
 	DeleteWiFiSetting(instanceId string) error
-	EnableWiFi() error
+	EnableWiFi(enableSync bool) error
 	AddWiFiSettings(wifiEndpointSettings wifi.WiFiEndpointSettingsRequest, ieee8021xSettings models.IEEE8021xSettings, wifiEndpoint, clientCredential, caCredential string) (wifiportconfiguration.Response, error)
 	// Wired
 	GetEthernetSettings() ([]ethernetport.SettingsResponse, error)
@@ -289,14 +289,20 @@ func (g *GoWSMANMessages) DeleteKeyPair(instanceID string) error {
 	_, err := g.wsmanMessages.AMT.PublicKeyManagementService.Delete(instanceID)
 	return err
 }
-func (g *GoWSMANMessages) EnableWiFi() error {
+func (g *GoWSMANMessages) EnableWiFi(enableSync bool) error {
 	response, err := g.wsmanMessages.AMT.WiFiPortConfigurationService.Get()
 	if err != nil {
 		return err
 	}
 
+	// Determine the sync state based on input parameter
+	syncState := wifiportconfiguration.LocalSyncDisabled
+	if enableSync {
+		syncState = wifiportconfiguration.UnrestrictedSync
+	}
+
 	// if local sync not enable, enable it
-	if response.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled == wifiportconfiguration.LocalSyncDisabled {
+	if response.Body.WiFiPortConfigurationService.LocalProfileSynchronizationEnabled != syncState {
 		putRequest := wifiportconfiguration.WiFiPortConfigurationServiceRequest{
 			RequestedState:                     response.Body.WiFiPortConfigurationService.RequestedState,
 			EnabledState:                       response.Body.WiFiPortConfigurationService.EnabledState,
@@ -306,7 +312,7 @@ func (g *GoWSMANMessages) EnableWiFi() error {
 			SystemName:                         response.Body.WiFiPortConfigurationService.SystemName,
 			CreationClassName:                  response.Body.WiFiPortConfigurationService.CreationClassName,
 			Name:                               response.Body.WiFiPortConfigurationService.Name,
-			LocalProfileSynchronizationEnabled: wifiportconfiguration.UnrestrictedSync,
+			LocalProfileSynchronizationEnabled: syncState,
 			LastConnectedSsidUnderMeControl:    response.Body.WiFiPortConfigurationService.LastConnectedSsidUnderMeControl,
 			NoHostCsmeSoftwarePolicy:           response.Body.WiFiPortConfigurationService.NoHostCsmeSoftwarePolicy,
 			UEFIWiFiProfileShareEnabled:        response.Body.WiFiPortConfigurationService.UEFIWiFiProfileShareEnabled,

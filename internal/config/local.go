@@ -11,6 +11,7 @@ type (
 		TlsConfig           TlsConfig           `yaml:"tlsConfig"`
 		WiredConfig         EthernetConfig      `yaml:"wiredConfig"`
 		WifiConfigs         []WifiConfig        `yaml:"wifiConfigs"`
+		WiFiSyncEnabled     bool                `yaml:"wifiSyncEnabled"`
 		Ieee8021xConfigs    []Ieee8021xConfig   `yaml:"ieee8021xConfigs"`
 		ACMSettings         ACMSettings         `yaml:"acmactivate"`
 		EnterpriseAssistant EnterpriseAssistant `yaml:"enterpriseAssistant"`

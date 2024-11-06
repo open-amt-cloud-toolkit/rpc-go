@@ -11,6 +11,7 @@ enterpriseAssistant:
   eaAddress: '' # Address of the EA server (example: https://<your EA Address>:8000)
   eaUsername: '' # Username for the EA server given in EA Settings
   eaPassword: '' # Password for the EA server given in EA Settings
+wifiSyncEnabled: true
 wifiConfigs:
   - profileName: 'exampleWifiWPA2' # friendly name, alphanumeric only
     ssid: 'exampleSSID'
