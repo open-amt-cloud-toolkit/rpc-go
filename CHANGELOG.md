@@ -5,7 +5,7 @@
 
 * IsWirelessSynchronized is optional in wireless configuration ([0847817](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/0847817d4bdb53751429a957d3b619a665a4fe01))
 
-# [2.41.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.40.1...v2.41.0) (2024-11-05)
+# [2.41.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.40.1...v2.41.0) (2024-11-05).
 
 
 ### Features
