@@ -156,7 +156,7 @@ func (f *Flags) ValidateConfigV2() error {
 		f.UseCCM = true
 	default:
 		log.Error("Invalid Control Mode")
-		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
+		return utils.IncorrectCommandLineParameters
 	}
 
 	// Check if the AMT Password is set
@@ -169,19 +169,20 @@ func (f *Flags) ValidateConfigV2() error {
 	f.LocalConfig.ACMSettings.AMTPassword = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
 	f.LocalConfig.Password = f.LocalConfigV2.Configuration.AMTSpecific.AdminPassword
 
-	// Check if the Provisioning Certificate is set
-	if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert == "" {
-		log.Error("Provisioning Certificate is not set")
-		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
-	}
-	f.LocalConfig.ACMSettings.ProvisioningCert = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert
+	if f.UseACM {
+		// Check if the Provisioning Certificate is set
+		if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert == "" {
+			log.Error("Provisioning Certificate is not set")
+			return utils.IncorrectCommandLineParameters
+		}
+		f.LocalConfig.ACMSettings.ProvisioningCert = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCert
 
-	// Check if the Provisioning Certificate Password is set
-	if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd == "" {
-		log.Error("Provisioning Certificate Password is not set")
-		return utils.IncorrectCommandLineParameters //ToDo: Add a new error type
+		// Check if the Provisioning Certificate Password is set
+		if f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd == "" {
+			log.Error("Provisioning Certificate Password is not set")
+			return utils.IncorrectCommandLineParameters
+		}
+		f.LocalConfig.ACMSettings.ProvisioningCertPwd = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd
 	}
-	f.LocalConfig.ACMSettings.ProvisioningCertPwd = f.LocalConfigV2.Configuration.AMTSpecific.ProvisioningCertPwd
-
 	return nil
 }
