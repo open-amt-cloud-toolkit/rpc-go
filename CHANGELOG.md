@@ -1,3 +1,5 @@
+## [2.42.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.0...v2.42.1) (2024-11-14)
+
 # [2.42.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.41.0...v2.42.0) (2024-11-06)
 
 
