@@ -1,7 +1,8 @@
 # Get version from the first argument
 version=$1
 
-docker build -t vprodemo.azurecr.io/rpc-go:v$version . 
+docker build -t vprodemo.azurecr.io/rpc-go:v$version vprodemo.azurecr.io/rpc-go:latest -t docker.io/intel/oact-rpc-go:v$version docker.io/intel/oact-rpc-go:latest . 
+
 
 # Build for Linux
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'rpc/pkg/utils.ProjectVersion=$version'" -trimpath -o rpc_linux_x64 ./cmd/main.go
