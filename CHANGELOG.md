@@ -1,3 +1,10 @@
+## [2.42.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.1...v2.42.2) (2024-11-14)
+
+
+### Bug Fixes
+
+* activates in ccm mode now ([a50f3a0](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/a50f3a0a4aef76bec2dbe949daabf16c02a7cbb8))
+
 ## [2.42.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.0...v2.42.1) (2024-11-14)
 
 # [2.42.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.41.0...v2.42.0) (2024-11-06)
