@@ -22,7 +22,6 @@ chmod +x rpc_linux_x86
 # Add them to tar files respectively
 tar cvfpz rpc_linux_x64.tar.gz rpc_linux_x64
 tar cvfpz rpc_linux_x86.tar.gz rpc_linux_x86
-tar cvfpz rpc_linux_x86.tar.gz rpc_linux_x86
 tar cvfpz rpc_so_x64.tar.gz rpc.so.$version
 
 # Add Windows build to a zip file
