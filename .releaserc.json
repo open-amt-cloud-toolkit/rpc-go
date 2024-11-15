@@ -52,7 +52,7 @@
       "@semantic-release/exec",
       {
         "prepareCmd": "./build.sh ${nextRelease.version}",
-        "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version} && docker push vprodemo.azurecr.io/rpc-go:latest && docker push docker.io/oact-rpc-go:v${nextRelease.version} && docker push docker.io/oact-rpc-go:latest",
+        "publishCmd": "docker push vprodemo.azurecr.io/rpc-go:v${nextRelease.version} && docker push vprodemo.azurecr.io/rpc-go:latest && docker push docker.io/intel/oact-rpc-go:v${nextRelease.version} && docker push docker.io/intel/oact-rpc-go:latest",
         "verifyReleaseCmd": "echo v${nextRelease.version} > .nextVersion"
       }
     ],
