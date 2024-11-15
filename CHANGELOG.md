@@ -30,7 +30,7 @@
 
 * add error handling when TLS activation is enforced ([#678](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/678)) ([f538952](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/f538952de54239ba092e281a40e7dbbdb5c3029f))
 
-# [2.40.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.39.0...v2.40.0) (2024-10-15)
+# [2.40.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.39.0...v2.40.0) (2024-10-15).
 
 
 ### Features
