@@ -1,0 +1,5 @@
+rpc-go (1.0-1) UNRELEASED; urgency=medium
+
+  * Initial release. Closes: #123456
+
+ -- Code <michael.johanson@intel.com>  Mon, 18 Nov 2024 13:38:45 -0700

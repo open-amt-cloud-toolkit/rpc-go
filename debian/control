@@ -1,0 +1,15 @@
+Source: rpc-go
+Section: devel
+Priority: optional
+Maintainer: Michael Johanson <michael.johanson@intel.com>
+Standards-Version: 4.6.0
+Rules-Requires-Root: no
+Build-Depends: debhelper (>= 11)
+
+Package: rpc-go
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: RPC - Remote Provisioning Client
+  The Remote Provisioning Client (RPC) communicates with the 
+  Manageability Engine Interface (MEI) and 
+  Remote Provisioning Service (RPS) interfaces.

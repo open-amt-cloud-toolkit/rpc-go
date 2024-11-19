@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Skip building since the binary is prebuilt
+	echo "Skipping build step since binary is prebuilt."
+
+override_dh_auto_install:
+	# Install the prebuilt binary into the package
+	install -D -m 0755 rpc debian/rpc-go/usr/bin/rpc
