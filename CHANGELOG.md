@@ -1,3 +1,9 @@
+## [2.42.5](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.4...v2.42.5) (2024-11-15)
+
+## [2.42.4](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.3...v2.42.4) (2024-11-15)
+
+## [2.42.3](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.2...v2.42.3) (2024-11-15)
+
 ## [2.42.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.1...v2.42.2) (2024-11-14)
 
 
@@ -28,7 +34,7 @@
 
 * add error handling when TLS activation is enforced ([#678](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/678)) ([f538952](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/f538952de54239ba092e281a40e7dbbdb5c3029f))
 
-# [2.40.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.39.0...v2.40.0) (2024-10-15)
+# [2.40.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.39.0...v2.40.0) (2024-10-15).
 
 
 ### Features
