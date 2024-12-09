@@ -53,7 +53,7 @@ jobs:
       - name: run the tests with coverage
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
       
-      - uses: codecov/codecov-action@968872560f81e7bdde9272853e65f2507c0eca7c # v5.0.0
+      - uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
         if: ${{ matrix.os == 'ubuntu-20.04' }}
         name: Upload Coverage Results
         
