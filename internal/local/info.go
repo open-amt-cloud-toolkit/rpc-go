@@ -162,18 +162,28 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		service.PrintOutput("Control Mode		: " + string(utils.InterpretControlMode(result)))
 	}
 	if service.flags.AmtInfo.OpState {
-		result, err := cmd.GetChangeEnabled()
+		majorVersion, err := GetMajorVersion(dataStruct["amt"].(string))
 		if err != nil {
 			log.Error(err)
 		}
-		if result.IsNewInterfaceVersion() {
-			opStateValue := "disabled"
-			if result.IsAMTEnabled() {
-				opStateValue = "enabled"
+		const minimumAMTVersion = 11
+		// Check if the AMT major version is greater than 11
+		if majorVersion > minimumAMTVersion {
+			result, err := cmd.GetChangeEnabled()
+			if err != nil {
+				log.Error(err)
 			}
+			if result.IsNewInterfaceVersion() {
+				opStateValue := "disabled"
+				if result.IsAMTEnabled() {
+					opStateValue = "enabled"
+				}
 
-			dataStruct["operationalState"] = opStateValue
-			service.PrintOutput("Operational State	: " + opStateValue)
+				dataStruct["operationalState"] = opStateValue
+				service.PrintOutput("Operational State	: " + opStateValue)
+			}
+		} else {
+			log.Debug("OpState will not work on AMT versions 11 and below.")
 		}
 	}
 	if service.flags.AmtInfo.DNS {
@@ -418,4 +428,17 @@ func DecodeAMT(version, SKU string) string {
 		}
 	}
 	return result
+}
+func GetMajorVersion(version string) (int, error) {
+	amtParts := strings.Split(version, ".")
+	if len(amtParts) <= 1 {
+		return 0, fmt.Errorf("invalid AMT version format")
+	}
+
+	majorVersion, err := strconv.Atoi(amtParts[0])
+	if err != nil {
+		return 0, fmt.Errorf("invalid AMT version")
+	}
+
+	return majorVersion, nil
 }
