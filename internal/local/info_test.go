@@ -183,6 +183,37 @@ func TestDecodeAMT(t *testing.T) {
 	}
 }
 
+func TestGetMajorVersion(t *testing.T) {
+	testCases := []struct {
+		version string
+		want    int
+		wantErr bool
+	}{
+		{"1.2.3", 1, false},
+		{"11.8.55", 11, false},
+		{"12.5.2", 12, false},
+		{"16.1.25", 16, false},
+		{"18.2.10", 18, false},
+		{"", 0, true},
+		{"abc", 0, true},
+		{"1", 0, true},
+		{"1.2.3.4.5", 1, false},
+	}
+
+	for _, tc := range testCases {
+		got, err := GetMajorVersion(tc.version)
+
+		if (err != nil) != tc.wantErr {
+			t.Errorf("GetMajorVersion(%q) error = %v, wantErr %v", tc.version, err, tc.wantErr)
+			continue
+		}
+
+		if !tc.wantErr && got != tc.want {
+			t.Errorf("GetMajorVersion(%q) = %v; want %v", tc.version, got, tc.want)
+		}
+	}
+}
+
 var testNetEnumerator1 = flags.NetEnumerator{
 	Interfaces: func() ([]net.Interface, error) {
 		return []net.Interface{

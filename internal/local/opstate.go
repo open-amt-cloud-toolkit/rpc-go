@@ -26,6 +26,10 @@ func (service *ProvisioningService) CheckAndEnableAMT(skipIPRenewal bool) (bool,
 	resp, err := service.amtCommand.GetChangeEnabled()
 	tlsIsEnforced := false
 	if err != nil {
+		if err.Error() == "wait timeout while sending data" {
+			log.Debug("Operation timed out while sending data. This may occur on systems with AMT version 11 and below.")
+			return tlsIsEnforced, nil
+		}
 		log.Error(err)
 		return tlsIsEnforced, utils.AMTConnectionFailed
 	}

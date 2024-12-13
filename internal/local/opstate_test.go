@@ -6,6 +6,7 @@
 package local
 
 import (
+	"errors"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestCheckAndEnableAMT(t *testing.T) {
-
+	var errMockTimeout = errors.New("wait timeout while sending data")
 	tests := []struct {
 		name             string
 		skipIPRenewal    bool
@@ -67,6 +68,12 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			skipIPRenewal:    true,
 			renewDHCPLeaseRC: utils.WiredConfigurationFailed,
 		},
+		{
+			name:             "expect tlsIsEnforced false when operation times out",
+			expectedRC:       nil,
+			expectedTLS:      false,
+			errChangeEnabled: errMockTimeout,
+		},
 	}
 
 	for _, tc := range tests {
@@ -86,6 +93,11 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			tlsForced, err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
 			assert.Equal(t, tc.expectedTLS, tlsForced)
 			assert.Equal(t, tc.expectedRC, err)
+			if tc.name == "expect tlsIsEnforced false when operation times out" {
+				assert.False(t, tlsForced)
+				assert.Nil(t, err)
+			}
+			// Reset mocks
 			mockChangeEnabledResponse = origRsp
 			errMockChangeEnabled = origChangeEnabledErr
 			mockEnableAMTErr = origEnableAMTErr
