@@ -1,3 +1,10 @@
+## [2.42.6](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.5...v2.42.6) (2024-12-16)
+
+
+### Bug Fixes
+
+* opstate on amt 11 and below ([954f3d3](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/954f3d36bdd2fa076293536758772c492034aeba))
+
 ## [2.42.5](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.4...v2.42.5) (2024-11-15)
 
 ## [2.42.4](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.3...v2.42.4) (2024-11-15)
