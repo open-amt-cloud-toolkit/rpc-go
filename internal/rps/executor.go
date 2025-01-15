@@ -5,6 +5,7 @@
 package rps
 
 import (
+	"crypto/tls"
 	"os"
 	"os/signal"
 	"rpc/internal/flags"
@@ -31,9 +32,16 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 
+	port := utils.LMSPort
+	tlsConfig := &tls.Config{}
+	if flags.LocalTlsEnforced {
+		port = utils.LMSTLSPort
+		tlsConfig = utils.CreateTLSConfig(flags.CurrentActivationMode)
+	}
+
 	client := Executor{
 		server:          NewAMTActivationServer(&flags),
-		localManagement: lm.NewLMSConnection(utils.LMSAddress, utils.LMSPort, lmDataChannel, lmErrorChannel),
+		localManagement: lm.NewLMSConnection(utils.LMSAddress, port, flags.LocalTlsEnforced, tlsConfig, lmDataChannel, lmErrorChannel),
 		data:            lmDataChannel,
 		errors:          lmErrorChannel,
 		waitGroup:       &sync.WaitGroup{},

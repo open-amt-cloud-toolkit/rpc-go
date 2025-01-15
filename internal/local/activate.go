@@ -10,6 +10,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -38,9 +39,9 @@ func (service *ProvisioningService) Activate() error {
 		return err
 	}
 
+	tlsConfig := &tls.Config{}
 	if tlsEnforced {
-		log.Error("TLS is enforced on local ports, unable to activate")
-		return utils.UnsupportedAMTVersion
+		tlsConfig = utils.CreateTLSConfig(controlMode)
 	}
 
 	// for local activation, wsman client needs local system account credentials
@@ -49,7 +50,8 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
+
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, tlsEnforced, tlsConfig, log.GetLevel() == log.TraceLevel)
 
 	if service.flags.UseACM {
 		err = service.ActivateACM()

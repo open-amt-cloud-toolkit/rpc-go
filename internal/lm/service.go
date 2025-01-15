@@ -5,6 +5,7 @@
 package lm
 
 import (
+	"crypto/tls"
 	"errors"
 	"io"
 	"net"
@@ -19,17 +20,21 @@ type LMSConnection struct {
 	Connection net.Conn
 	address    string
 	port       string
+	useTls     bool
+	tlsConfig  *tls.Config
 	data       chan []byte
 	errors     chan error
 }
 
-func NewLMSConnection(address string, port string, data chan []byte, errors chan error) *LMSConnection {
+func NewLMSConnection(address string, port string, useTls bool, tlsConfig *tls.Config, data chan []byte, errors chan error) *LMSConnection {
 
 	lms := &LMSConnection{
-		address: address,
-		port:    port,
-		data:    data,
-		errors:  errors,
+		address:   address,
+		port:      port,
+		useTls:    useTls,
+		tlsConfig: tlsConfig,
+		data:      data,
+		errors:    errors,
 	}
 	return lms
 }
@@ -42,7 +47,11 @@ func (lms *LMSConnection) Connect() error {
 	log.Debug("connecting to lms")
 	var err error
 	if lms.Connection == nil {
-		lms.Connection, err = net.Dial("tcp4", lms.address+":"+lms.port)
+		if lms.useTls {
+			lms.Connection, err = tls.Dial("tcp4", lms.address+":"+lms.port, lms.tlsConfig)
+		} else {
+			lms.Connection, err = net.Dial("tcp4", lms.address+":"+lms.port)
+		}
 		if err != nil {
 			// handle error
 			return err
