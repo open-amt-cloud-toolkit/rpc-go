@@ -1,3 +1,11 @@
+## [2.42.8](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.7...v2.42.8) (2025-01-15)
+
+
+### Bug Fixes
+
+* test ci ([8c5b3dd](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8c5b3ddec5b3c8678fba93475675081aee99d8bb))
+* test ci ([db52045](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/db52045bc8c7de7f9c7496d88edeca5ec4491ee0))
+
 ## [2.42.7](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.6...v2.42.7) (2025-01-15)
 
 
