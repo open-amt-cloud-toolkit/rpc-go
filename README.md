@@ -11,11 +11,12 @@
 RPC is used for activation, deactivation, maintenance, and status of an AMT device
 The Remote Provisioning Client (RPC) is an application that assists with activation, configuration, and maintenance of for Intel® AMT devices. RPC provides source code that must be compiled into a binary to run or library for integration with other client applications.
 
-<br><br>
+---
 
 **For detailed documentation** about Getting Started or other features of the Open AMT Cloud Toolkit, see the [docs](https://open-amt-cloud-toolkit.github.io/docs/).
 
-<br>
+---
+
 
 ## Prerequisites 
 
