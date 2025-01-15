@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
@@ -17,6 +16,21 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+var MockPRSuccess = new(MockPasswordReaderSuccess)
+var MockPRFail = new(MockPasswordReaderFail)
+
+type MockPasswordReaderSuccess struct{}
+
+func (mpr *MockPasswordReaderSuccess) ReadPassword() (string, error) {
+	return utils.TestPassword, nil
+}
+
+type MockPasswordReaderFail struct{}
+
+func (mpr *MockPasswordReaderFail) ReadPassword() (string, error) {
+	return "", errors.New("Read password failed")
+}
 
 // Mock the AMT Hardware
 type MockAMT struct{}
@@ -27,12 +41,17 @@ var controlMode int = 0
 var err error = nil
 var mode int = 0
 
-func (c MockAMT) Initialize() (utils.ReturnCode, error) {
-	return utils.Success, nil
+func (c MockAMT) Initialize() error {
+	return nil
 }
 func (c MockAMT) GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error) {
 	return "Version", nil
 }
+func (c MockAMT) GetChangeEnabled() (amt.ChangeEnabledResponse, error) {
+	return amt.ChangeEnabledResponse(0x01), nil
+}
+func (c MockAMT) EnableAMT() error                { return nil }
+func (c MockAMT) DisableAMT() error               { return nil }
 func (c MockAMT) GetUUID() (string, error)        { return "123-456-789", nil }
 func (c MockAMT) GetUUIDV2() (string, error)      { return "", nil }
 func (c MockAMT) GetControlMode() (int, error)    { return controlMode, nil }
@@ -117,29 +136,9 @@ func TestCreateActivationRequestNoDNSSuffixProvided(t *testing.T) {
 }
 func TestCreateActivationRequestNoPasswordShouldPrompt(t *testing.T) {
 	controlMode = 1
-	flags := flags.Flags{
-		Command: "method",
-	}
-	input := []byte("password")
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = w.Write(input)
-	if err != nil {
-		t.Error(err)
-	}
-	w.Close()
-
-	stdin := os.Stdin
-	// Restore stdin right after the test.
-	defer func() {
-		os.Stdin = stdin
-		controlMode = 0
-	}()
-	os.Stdin = r
-	result, err := p.CreateMessageRequest(flags)
+	flags := flags.NewFlags(nil, MockPRSuccess)
+	flags.Command = "method"
+	result, err := p.CreateMessageRequest(*flags)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, result.Payload)
 }
@@ -209,6 +208,35 @@ func TestCreateMessageRequestIPConfiguration(t *testing.T) {
 	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
 	assert.NoError(t, jsonErr)
 	assert.Equal(t, flags.IpConfiguration, msgPayload.IPConfiguration)
+}
+
+func TestCreateMessageRequestCustomUUID(t *testing.T) {
+	flags := flags.Flags{
+		UUID: "12345678-1234-1234-1234-123456789012",
+	}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, flags.UUID, msgPayload.UUID)
+}
+
+func TestCreateMessageRequestNoUUID(t *testing.T) {
+	const expectedUUID = "123-456-789"
+	flags := flags.Flags{}
+	result, createErr := p.CreateMessageRequest(flags)
+	assert.NoError(t, createErr)
+	assert.NotEmpty(t, result.Payload)
+	decodedBytes, decodeErr := base64.StdEncoding.DecodeString(result.Payload)
+	assert.NoError(t, decodeErr)
+	msgPayload := MessagePayload{}
+	jsonErr := json.Unmarshal(decodedBytes, &msgPayload)
+	assert.NoError(t, jsonErr)
+	assert.Equal(t, expectedUUID, msgPayload.UUID)
 }
 
 func TestCreateMessageRequestHostnameInfo(t *testing.T) {

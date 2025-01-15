@@ -1,10 +1,10 @@
 # Remote Provisioning Client (RPC)
-
-![CodeQL](https://github.com/open-amt-cloud-toolkit/rpc-go/actions/workflows/codeql-analysis.yml/badge.svg?branch=main&event=push) 
-![codecov.io](https://codecov.io/github/open-amt-cloud-toolkit/rpc-go/coverage.svg?branch=main) 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go/badge)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go) 
-[![Discord Shield](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=shield)](https://discord.gg/yrcMp2kDWh)
-[![Docker Pulls](https://img.shields.io/docker/pulls/intel/oact-rpc-go)](https://hub.docker.com/r/intel/oact-rpc-go)
+![CodeQL](https://img.shields.io/github/actions/workflow/status/open-amt-cloud-toolkit/rpc-go/codeql-analysis.yml?style=for-the-badge&label=CodeQL&logo=github)
+![Build](https://img.shields.io/github/actions/workflow/status/open-amt-cloud-toolkit/rpc-go/main.yml?style=for-the-badge&logo=github)
+![Codecov](https://img.shields.io/codecov/c/github/open-amt-cloud-toolkit/rpc-go?style=for-the-badge&logo=codecov)
+[![OSSF-Scorecard Score](https://img.shields.io/ossf-scorecard/github.com/open-amt-cloud-toolkit/rpc-go?style=for-the-badge&label=OSSF%20Score)](https://api.securityscorecards.dev/projects/github.com/open-amt-cloud-toolkit/rpc-go)
+[![Discord](https://img.shields.io/discord/1063200098680582154?style=for-the-badge&label=Discord&logo=discord&logoColor=white&labelColor=%235865F2&link=https%3A%2F%2Fdiscord.gg%2FDKHeUNEWVH)](https://discord.gg/DKHeUNEWVH)
+[![Docker Pulls](https://img.shields.io/docker/pulls/intel/oact-rpc-go?style=for-the-badge&logo=docker)](https://hub.docker.com/r/intel/oact-rpc-go)
 
 > Disclaimer: Production viable releases are tagged and listed under 'Releases'. All other check-ins should be considered 'in-development' and should not be used in production
 
@@ -76,6 +76,12 @@ $ docker run --rm -it --device /dev/mei0 rpc-go:latest
 
 <br>
 
+# Dev tips for passing CI Checks
+
+- Ensure code is formatted correctly with `gofmt -s -w ./` 
+- Ensure all unit tests pass with `go test ./...`
+- Ensure code has been linted with `docker run --rm -v ${pwd}:/app -w /app golangci/golangci-lint:v1.52.2 golangci-lint run -v`
+
 ## Additional Resources
 
 - For detailed documentation and Getting Started, [visit the docs site](https://open-amt-cloud-toolkit.github.io/docs).
@@ -86,4 +92,4 @@ $ docker run --rm -it --device /dev/mei0 rpc-go:latest
 
 - Need additional support or want to get the latest news and events about Open AMT? Connect with the team directly through Discord.
 
-    [![Discord Banner 1](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=banner2)](https://discord.gg/yrcMp2kDWh)
+    [![Discord Banner 1](https://discordapp.com/api/guilds/1063200098680582154/widget.png?style=banner2)](https://discord.gg/DKHeUNEWVH)

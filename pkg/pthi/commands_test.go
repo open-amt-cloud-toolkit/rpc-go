@@ -7,9 +7,10 @@ package pthi
 import (
 	"bytes"
 	"encoding/binary"
-	"rpc/pkg/apf"
+	"errors"
 	"testing"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,17 +19,26 @@ type MockHECICommands struct{}
 var message []byte
 var numBytes uint32 = GET_REQUEST_SIZE
 
-func (c *MockHECICommands) Init(useLME bool) error { return nil }
-func (c *MockHECICommands) GetBufferSize() uint32  { return 5120 } // MaxMessageLength
+var mockInitErr error = nil
+var mockInitUseLMEResult bool
+var mockInitUseWDResult bool
+
+func (c *MockHECICommands) Init(useLME bool, useWD bool) error {
+	mockInitUseLMEResult = useLME
+	mockInitUseWDResult = useWD
+	return mockInitErr
+}
+func (c *MockHECICommands) GetBufferSize() uint32 { return 5120 } // MaxMessageLength
 
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	return numBytes, nil
 }
 func (c *MockHECICommands) ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error) {
-	for i := 0; i < len(message) && i < len(buffer); i++ {
+	i := 0
+	for i = 0; i < len(message) && i < len(buffer); i++ {
 		buffer[i] = message[i]
 	}
-	return 12, nil
+	return uint32(i), nil
 }
 func (c *MockHECICommands) Close() {}
 
@@ -39,6 +49,38 @@ func init() {
 	pthi.Heci = &MockHECICommands{}
 }
 
+func TestOpen(t *testing.T) {
+	t.Run("expect no error for Open with LME", func(t *testing.T) {
+		assert.Nil(t, pthi.Open(true))
+		assert.True(t, mockInitUseLMEResult)
+		assert.False(t, mockInitUseWDResult)
+	})
+	t.Run("expect no error for Open without LME", func(t *testing.T) {
+		assert.Nil(t, pthi.Open(false))
+		assert.False(t, mockInitUseLMEResult)
+		assert.False(t, mockInitUseWDResult)
+	})
+	t.Run("expect error for Open", func(t *testing.T) {
+		mockInitErr = errors.New("test error")
+		assert.NotNil(t, pthi.Open(true))
+		mockInitErr = nil
+	})
+	t.Run("expect no error for OpenWatchdog", func(t *testing.T) {
+		assert.Nil(t, pthi.OpenWatchdog())
+		assert.False(t, mockInitUseLMEResult)
+		assert.True(t, mockInitUseWDResult)
+	})
+	t.Run("expect error for OpenWatchdog", func(t *testing.T) {
+		mockInitErr = errors.New("test error")
+		assert.NotNil(t, pthi.OpenWatchdog())
+		mockInitErr = nil
+	})
+}
+func TestAMTOperationalState(t *testing.T) {
+	assert.Equal(t, "disabled", AmtDisabled.String())
+	assert.Equal(t, "enabled", AmtEnabled.String())
+}
+
 func TestSend(t *testing.T) {
 	numBytes = 54
 	bin_buf := apf.ChannelOpen(1)
@@ -47,6 +89,14 @@ func TestSend(t *testing.T) {
 }
 func TestReceive(t *testing.T) {
 	numBytes = 54
+	// Load byte array of response into message
+	prepareMessage := GetUUIDResponse{
+		Header: ResponseMessageHeader{},
+		UUID:   [16]uint8{1, 2, 3, 4},
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
+	message = bin_buf.Bytes()
 
 	result, n, err := pthi.Receive()
 	assert.NotNil(t, result)
@@ -256,5 +306,39 @@ func TestGetLocalSystemAccount(t *testing.T) {
 	assert.NotEmpty(t, result)
 	assert.Equal(t, result.Account.Username, [CFG_MAX_ACL_USER_LENGTH]uint8{1, 2, 3, 4})
 	assert.Equal(t, result.Account.Password, [CFG_MAX_ACL_USER_LENGTH]uint8{8, 7, 6, 5})
+}
 
+func TestGetIsAMTEnabled(t *testing.T) {
+	numBytes = 4
+	enabledValue := uint8(0x82)
+	prepareMessage := GetStateIndependenceIsChangeToAMTEnabledResponse{
+		Enabled: enabledValue,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
+	message = bin_buf.Bytes()
+
+	result, err := pthi.GetIsAMTEnabled()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result)
+	assert.Equal(t, enabledValue, result)
+}
+
+func TestSetAmtOperationalState(t *testing.T) {
+	numBytes = 5
+	prepareMessage := SetAmtOperationalStateResponse{
+		Command:       0x5,
+		ByteCount:     0x3,
+		SubCommand:    0x53,
+		VersionNumber: 0x10,
+		Status:        AMT_STATUS_INVALID_AMT_MODE,
+	}
+	var bin_buf bytes.Buffer
+	binary.Write(&bin_buf, binary.LittleEndian, prepareMessage)
+	message = bin_buf.Bytes()
+
+	result, err := pthi.SetAmtOperationalState(AmtDisabled)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, result)
+	assert.Equal(t, AMT_STATUS_INVALID_AMT_MODE, result)
 }

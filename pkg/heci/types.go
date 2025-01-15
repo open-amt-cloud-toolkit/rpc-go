@@ -1,7 +1,12 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package heci
 
 type Interface interface {
-	Init(useLME bool) error
+	Init(useLME bool, useWD bool) error
 	GetBufferSize() uint32
 	SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error)
 	ReceiveMessage(buffer []byte, done *uint32) (bytesRead uint32, err error)

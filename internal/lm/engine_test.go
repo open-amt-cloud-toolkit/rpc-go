@@ -6,10 +6,11 @@ package lm
 
 import (
 	"errors"
-	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
+	"sync"
 	"testing"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,8 +30,8 @@ func resetMock() {
 	bufferSize = 5120
 }
 
-func (c *MockHECICommands) Init(useLME bool) error { return initError }
-func (c *MockHECICommands) GetBufferSize() uint32  { return bufferSize } // MaxMessageLength
+func (c *MockHECICommands) Init(useLME bool, useWD bool) error { return initError }
+func (c *MockHECICommands) GetBufferSize() uint32              { return bufferSize } // MaxMessageLength
 func (c *MockHECICommands) SendMessage(buffer []byte, done *uint32) (bytesWritten uint32, err error) {
 	return sendBytesWritten, sendError
 }
@@ -52,11 +53,10 @@ func Test_NewLMEConnection(t *testing.T) {
 	resetMock()
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
-	lmStatusChannel := make(chan bool)
-	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, lmStatusChannel)
+	wg := &sync.WaitGroup{}
+	lme := NewLMEConnection(lmDataChannel, lmErrorChannel, wg)
 	assert.Equal(t, lmDataChannel, lme.Session.DataBuffer)
 	assert.Equal(t, lmErrorChannel, lme.Session.ErrorBuffer)
-	assert.Equal(t, lmStatusChannel, lme.Session.Status)
 }
 func TestLMEConnection_Initialize(t *testing.T) {
 	resetMock()
@@ -96,8 +96,10 @@ func TestLMEConnection_Initialize(t *testing.T) {
 			sendError = tt.sendErr
 			initError = tt.initErr
 			lme := &LMEConnection{
-				Command:    pthiVar,
-				Session:    &apf.LMESession{},
+				Command: pthiVar,
+				Session: &apf.Session{
+					WaitGroup: &sync.WaitGroup{},
+				},
 				ourChannel: 1,
 			}
 			if err := lme.Initialize(); (err != nil) != tt.wantErr {
@@ -112,9 +114,10 @@ func Test_Send(t *testing.T) {
 	sendBytesWritten = 14
 
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.LMESession{},
-		ourChannel: 1,
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		}, ourChannel: 1,
 	}
 	data := []byte("hello")
 	err := lme.Send(data)
@@ -124,8 +127,10 @@ func Test_Connect(t *testing.T) {
 	resetMock()
 	sendBytesWritten = 54
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -136,8 +141,10 @@ func Test_Connect_With_Error(t *testing.T) {
 	sendError = errors.New("no such device")
 	sendBytesWritten = 54
 	lme := &LMEConnection{
-		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Command: pthiVar,
+		Session: &apf.Session{
+			WaitGroup: &sync.WaitGroup{},
+		},
 		ourChannel: 1,
 	}
 	err := lme.Connect()
@@ -150,10 +157,11 @@ func Test_Listen(t *testing.T) {
 
 	lme := &LMEConnection{
 		Command: pthiVar,
-		Session: &apf.LMESession{
+		Session: &apf.Session{
 			DataBuffer:  lmDataChannel,
 			ErrorBuffer: lmErrorChannel,
 			Status:      make(chan bool),
+			WaitGroup:   &sync.WaitGroup{},
 		},
 		ourChannel: 1,
 	}
@@ -166,7 +174,7 @@ func Test_Close(t *testing.T) {
 	resetMock()
 	lme := &LMEConnection{
 		Command:    pthiVar,
-		Session:    &apf.LMESession{},
+		Session:    &apf.Session{},
 		ourChannel: 1,
 	}
 	err := lme.Close()
@@ -179,7 +187,7 @@ func Test_CloseWithChannel(t *testing.T) {
 
 	lme := &LMEConnection{
 		Command: pthiVar,
-		Session: &apf.LMESession{
+		Session: &apf.Session{
 			DataBuffer:  lmDataChannel,
 			ErrorBuffer: lmErrorChannel,
 			Status:      make(chan bool),

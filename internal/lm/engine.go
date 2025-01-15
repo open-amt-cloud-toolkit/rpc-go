@@ -7,31 +7,32 @@ package lm
 import (
 	"bytes"
 	"encoding/binary"
-	"rpc/pkg/apf"
 	"rpc/pkg/pthi"
+	"sync"
 	"time"
 
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/apf"
 	log "github.com/sirupsen/logrus"
 )
 
 // LMConnection is struct for managing connection to LMS
 type LMEConnection struct {
 	Command    pthi.Command
-	Session    *apf.LMESession
+	Session    *apf.Session
 	ourChannel int
 	retries    int
 }
 
-func NewLMEConnection(data chan []byte, errors chan error, status chan bool) *LMEConnection {
+func NewLMEConnection(data chan []byte, errors chan error, wg *sync.WaitGroup) *LMEConnection {
 	lme := &LMEConnection{
 		ourChannel: 1,
 	}
 	lme.Command = pthi.NewCommand()
-	lme.Session = &apf.LMESession{
+	lme.Session = &apf.Session{
 		DataBuffer:  data,
 		ErrorBuffer: errors,
 		Tempdata:    []byte{},
-		Status:      status,
+		WaitGroup:   wg,
 	}
 
 	return lme
@@ -65,7 +66,7 @@ func (lme *LMEConnection) Connect() error {
 	} else {
 		lme.ourChannel = channel
 	}
-
+	lme.Session.WaitGroup.Add(1)
 	bin_buf := apf.ChannelOpen(lme.ourChannel)
 	err := lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
 	if err != nil {
@@ -90,6 +91,7 @@ func (lme *LMEConnection) Connect() error {
 // Send writes data to LMS TCP Socket
 func (lme *LMEConnection) Send(data []byte) error {
 	log.Debug("sending message to LME")
+	log.Trace(string(data))
 	var bin_buf bytes.Buffer
 
 	channelData := apf.ChannelData(lme.Session.SenderChannel, data)
@@ -132,24 +134,13 @@ func (lme *LMEConnection) Listen() {
 		lme.Session.DataBuffer <- lme.Session.Tempdata
 		lme.Session.Tempdata = []byte{}
 		var bin_buf bytes.Buffer
-		// var windowAdjust apf.APF_CHANNEL_WINDOW_ADJUST_MESSAGE
-		// if lme.Session.RXWindow > 1024 { // TODO: Check this
-		// 	windowAdjust = apf.ChannelWindowAdjust(lme.Session.RecipientChannel, lme.Session.RXWindow)
-		// 	lme.Session.RXWindow = 0
-		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.MessageType)
-		// 	binary.Write(&bin_buf, binary.BigEndian, windowAdjust.RecipientChannel)
-		// 	lme.Command.Call(bin_buf.Bytes(), uint32(bin_buf.Len()))
-		// }
-
 		channelData := apf.ChannelClose(lme.Session.SenderChannel)
 		binary.Write(&bin_buf, binary.BigEndian, channelData.MessageType)
 		binary.Write(&bin_buf, binary.BigEndian, channelData.RecipientChannel)
 
 		lme.Command.Send(bin_buf.Bytes(), uint32(bin_buf.Len()))
-		lme.Session.Status <- true
 	}()
 	for {
-
 		result2, bytesRead, err2 := lme.Command.Receive()
 		if bytesRead == 0 || err2 != nil {
 			log.Trace("NO MORE DATA TO READ")
@@ -167,7 +158,7 @@ func (lme *LMEConnection) Listen() {
 	}
 }
 
-// Close closes the LMS socket connection
+// Close closes the LME connection
 func (lme *LMEConnection) Close() error {
 	log.Debug("closing connection to lme")
 	lme.Command.Close()

@@ -53,11 +53,27 @@
             "program": "${workspaceFolder}/cmd/main.go",
             "args": [
                 "maintenance",
-                "syncclock",
+                "deviceinfo",
                 "-u",
                 "wss://[server]/activate",
                 "-n",
                 "-v"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Configuration Task ",
+            "type": "go",
+            "asRoot": true,
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": [
+                "configure",
+                "mebx",
+                "-mebxpassword",
+                "P@ssw0rd",
+                "-password",
+                "P@ssw0rd"
             ],
             "console": "integratedTerminal"
         },

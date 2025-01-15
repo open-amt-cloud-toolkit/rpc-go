@@ -10,7 +10,10 @@ package main
 import "C"
 
 import (
+	"bytes"
 	"encoding/csv"
+	"io"
+	"os"
 	"rpc/pkg/utils"
 	"strings"
 
@@ -19,15 +22,20 @@ import (
 
 //export rpcCheckAccess
 func rpcCheckAccess() int {
-	rc, err := checkAccess()
+	err := checkAccess()
 	if err != nil {
-		log.Error(err.Error())
+		return handleError(err)
 	}
-	return int(rc)
+	return int(utils.Success)
 }
 
 //export rpcExec
 func rpcExec(Input *C.char, Output **C.char) int {
+	// Save the current stdout and redirect temporarly
+	oldStdout := os.Stdout
+	rd, w, _ := os.Pipe()
+	os.Stdout = w
+
 	if accessStatus := rpcCheckAccess(); accessStatus != int(utils.Success) {
 		*Output = C.CString(AccessErrMsg)
 		return accessStatus
@@ -41,12 +49,31 @@ func rpcExec(Input *C.char, Output **C.char) int {
 	args, err := r.Read()
 	if err != nil {
 		log.Error(err.Error())
-		return int(utils.InvalidParameterCombination)
+		return utils.InvalidParameterCombination.Code
 	}
 	args = append([]string{"rpc"}, args...)
-	rc := runRPC(args)
-	if rc != utils.Success {
+	err = runRPC(args)
+	if err != nil {
 		*Output = C.CString("rpcExec failed: " + inputString)
+		return handleError(err)
 	}
-	return int(rc)
+
+	// Save captured output to Output variable and restore stdout
+	w.Close()
+	var buf bytes.Buffer
+	io.Copy(&buf, rd)
+	os.Stdout = oldStdout
+	*Output = C.CString(buf.String())
+
+	return int(utils.Success)
+}
+
+func handleError(err error) int {
+	if customErr, ok := err.(utils.CustomError); ok {
+		log.Error(customErr.Error())
+		return customErr.Code
+	} else {
+		log.Error(err.Error())
+		return utils.GenericFailure.Code
+	}
 }

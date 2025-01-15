@@ -42,6 +42,7 @@ type InterfaceSettings struct {
 	DHCPEnabled bool   `json:"dhcpEnabled"`
 	DHCPMode    string `json:"dhcpMode"`
 	IPAddress   string `json:"ipAddress"` //net.IP
+	OsIPAddress string `json:"osIpAddress"`
 	MACAddress  string `json:"macAddress"`
 }
 
@@ -68,8 +69,26 @@ type LocalSystemAccount struct {
 	Password string
 }
 
+type ChangeEnabledResponse uint8
+
+func (r ChangeEnabledResponse) IsTransitionAllowed() bool {
+	return (r & 1) == 1
+}
+func (r ChangeEnabledResponse) IsAMTEnabled() bool {
+	return ((r >> 1) & 1) == 1
+}
+func (r ChangeEnabledResponse) IsNewInterfaceVersion() bool {
+	return ((r >> 7) & 1) == 1
+}
+func (r ChangeEnabledResponse) IsTlsEnforcedOnLocalPorts() bool {
+	return ((r >> 6) & 1) == 1
+}
+
 type Interface interface {
-	Initialize() (utils.ReturnCode, error)
+	Initialize() error
+	GetChangeEnabled() (ChangeEnabledResponse, error)
+	EnableAMT() error
+	DisableAMT() error
 	GetVersionDataFromME(key string, amtTimeout time.Duration) (string, error)
 	GetUUID() (string, error)
 	GetControlMode() (int, error)
@@ -102,20 +121,20 @@ func NewAMTCommand() AMTCommand {
 }
 
 // Initialize determines if rpc is able to initialize the heci driver
-func (amt AMTCommand) Initialize() (utils.ReturnCode, error) {
+func (amt AMTCommand) Initialize() error {
 	// initialize HECI interface
 	err := amt.PTHI.Open(false)
 
 	if err != nil {
 		if err.Error() == "The handle is invalid." {
-			return utils.HECIDriverNotDetected, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
+			return utils.HECIDriverNotDetected //, errors.New("AMT not found: MEI/driver is missing or the call to the HECI driver failed")
 		} else {
-			return utils.HECIDriverNotDetected, errors.New("unable to initialize")
+			return utils.HECIDriverNotDetected //, errors.New("unable to initialize")
 		}
 	}
 
 	defer amt.PTHI.Close()
-	return utils.Success, nil
+	return nil
 }
 
 // GetVersionDataFromME ...
@@ -153,6 +172,44 @@ func (amt AMTCommand) GetVersionDataFromME(key string, amtTimeout time.Duration)
 	}
 
 	return "", errors.New(key + " Not Found")
+}
+
+func (amt AMTCommand) GetChangeEnabled() (ChangeEnabledResponse, error) {
+	err := amt.PTHI.OpenWatchdog()
+	if err != nil {
+		return ChangeEnabledResponse(0), err
+	}
+	defer amt.PTHI.Close()
+	rawVal, err := amt.PTHI.GetIsAMTEnabled()
+	if err != nil {
+		return ChangeEnabledResponse(0), err
+	}
+	return ChangeEnabledResponse(rawVal), nil
+}
+
+func (amt AMTCommand) DisableAMT() error {
+	return setAmtOperationalState(pthi.AmtDisabled, amt)
+}
+
+func (amt AMTCommand) EnableAMT() error {
+	return setAmtOperationalState(pthi.AmtEnabled, amt)
+}
+
+func setAmtOperationalState(state pthi.AMTOperationalState, amt AMTCommand) error {
+	err := amt.PTHI.OpenWatchdog()
+	if err != nil {
+		return err
+	}
+	defer amt.PTHI.Close()
+	status, err := amt.PTHI.SetAmtOperationalState(state)
+	if err != nil {
+		return err
+	}
+	if status != pthi.AMT_STATUS_SUCCESS {
+		s := fmt.Sprintf("error setting AMT operational state %s: %s", state, status)
+		return errors.New(s)
+	}
+	return nil
 }
 
 // GetUUID ...
@@ -298,6 +355,7 @@ func (amt AMTCommand) GetLANInterfaceSettings(useWireless bool) (InterfaceSettin
 
 	settings := InterfaceSettings{
 		IPAddress:   "0.0.0.0",
+		OsIPAddress: "0.0.0.0",
 		IsEnabled:   result.Enabled == 1,
 		DHCPEnabled: result.DhcpEnabled == 1,
 		LinkStatus:  "down",

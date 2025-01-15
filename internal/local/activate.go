@@ -1,3 +1,8 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package local
 
 import (
@@ -9,27 +14,33 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
-	"encoding/xml"
 	"errors"
 	"rpc/pkg/utils"
 	"strings"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/general"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/ips/hostbasedsetup"
 	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-func (service *ProvisioningService) Activate() utils.ReturnCode {
+func (service *ProvisioningService) Activate() error {
 
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
-		log.Error(err)
-		return utils.AMTConnectionFailed
+		return utils.ActivationFailedGetControlMode
 	}
 	if controlMode != 0 {
 		log.Error("Device is already activated")
 		return utils.UnableToActivate
+	}
+
+	tlsEnforced, err := service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	if err != nil {
+		return err
+	}
+
+	if tlsEnforced {
+		log.Error("TLS is enforced on local ports, unable to activate")
+		return utils.UnsupportedAMTVersion
 	}
 
 	// for local activation, wsman client needs local system account credentials
@@ -38,132 +49,88 @@ func (service *ProvisioningService) Activate() utils.ReturnCode {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.setupWsmanClient(lsa.Username, lsa.Password)
-
-	rc := utils.Success
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
 
 	if service.flags.UseACM {
-		rc = service.ActivateACM()
+		err = service.ActivateACM()
+		if err == nil {
+			log.Info("Status: Device activated in Admin Control Mode")
+		}
 	} else if service.flags.UseCCM {
-		rc = service.ActivateCCM()
+		err = service.ActivateCCM()
 	}
 
-	return rc
+	return err
 }
 
-func (service *ProvisioningService) ActivateACM() utils.ReturnCode {
-	checkErrorAndLog := func(err error) bool {
-		if err != nil {
-			log.Error(err)
-			return true
-		}
-		return false
-	}
+func (service *ProvisioningService) ActivateACM() error {
+
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	if err != nil {
+		return err
 	}
 	// Check provisioning certificate is accepted by AMT
-	if checkErrorAndLog(service.CompareCertHashes(fingerPrint)) {
-		return utils.ActivationFailed
+	err = service.CompareCertHashes(fingerPrint)
+	if err != nil {
+		return err
 	}
 
-	generalSettings, err := service.GetGeneralSettings()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
+	if err != nil {
+		return utils.ActivationFailedGeneralSettings
 	}
 
-	getHostBasedSetupResponse, err := service.GetHostBasedSetupService()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	getHostBasedSetupResponse, err := service.interfacedWsmanMessage.GetHostBasedSetupService()
+	if err != nil {
+		return utils.ActivationFailedSetupService
 	}
-	decodedNonce := getHostBasedSetupResponse.Body.IPS_HostBasedSetupService.ConfigurationNonce
+	decodedNonce := getHostBasedSetupResponse.Body.GetResponse.ConfigurationNonce
 	fwNonce, err := base64.StdEncoding.DecodeString(decodedNonce)
-	if checkErrorAndLog(err) {
-		log.Error("Error decoding fwNonce:", err)
-		return utils.ActivationFailed
+	if err != nil {
+		return utils.ActivationFailedDecode64
 	}
 
-	if checkErrorAndLog(service.injectCertificate(certObject.certChain)) {
-		return utils.ActivationFailed
+	err = service.injectCertificate(certObject.certChain)
+	if err != nil {
+		return err
 	}
 
 	nonce, err := service.generateNonce()
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	if err != nil {
+		return err
 	}
 
 	signedSignature, err := service.createSignedString(nonce, fwNonce, certObject.privateKey)
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	if err != nil {
+		return err
 	}
 
-	_, err = service.sendAdminSetup(generalSettings.Body.AMTGeneralSettings.DigestRealm, nonce, signedSignature)
-	if checkErrorAndLog(err) {
-		return utils.ActivationFailed
+	_, err = service.interfacedWsmanMessage.HostBasedSetupServiceAdmin(service.config.ACMSettings.AMTPassword, generalSettings.Body.GetResponse.DigestRealm, nonce, signedSignature)
+	if err != nil {
+		controlMode, err := service.amtCommand.GetControlMode()
+		if err != nil {
+			return utils.ActivationFailedGetControlMode
+		}
+		if controlMode != 2 {
+			return utils.ActivationFailedControlMode
+		}
+		return nil
 	}
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) ActivateCCM() utils.ReturnCode {
-	generalSettings, err := service.GetGeneralSettings()
+func (service *ProvisioningService) ActivateCCM() error {
+	generalSettings, err := service.interfacedWsmanMessage.GetGeneralSettings()
 	if err != nil {
-		log.Error(err)
-		return utils.ActivationFailed
+		return utils.ActivationFailedGeneralSettings
 	}
-	_, err = service.HostBasedSetup(generalSettings.Body.AMTGeneralSettings.DigestRealm, service.config.Password)
+	_, err = service.interfacedWsmanMessage.HostBasedSetupService(generalSettings.Body.GetResponse.DigestRealm, service.config.Password)
 	if err != nil {
-		log.Error(err)
-		return utils.ActivationFailed
+		return utils.ActivationFailedSetupService
 	}
 	log.Info("Status: Device activated in Client Control Mode")
-	return utils.Success
-}
-
-func (service *ProvisioningService) GetGeneralSettings() (general.Response, error) {
-	message := service.amtMessages.GeneralSettings.Get()
-	response, err := service.client.Post(message)
-	if err != nil {
-		return general.Response{}, err
-	}
-	var generalSettings general.Response
-	err = xml.Unmarshal([]byte(response), &generalSettings)
-	if err != nil {
-		return general.Response{}, err
-	}
-	return generalSettings, nil
-}
-
-func (service *ProvisioningService) HostBasedSetup(digestRealm string, password string) (utils.ReturnCode, error) {
-	message := service.ipsMessages.HostBasedSetupService.Setup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password)
-	response, err := service.client.Post(message)
-	if err != nil {
-		return utils.AMTConnectionFailed, err
-	}
-	var hostBasedSetupResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &hostBasedSetupResponse)
-	if err != nil {
-		return utils.ActivationFailed, err
-	}
-	if hostBasedSetupResponse.Body.Setup_OUTPUT.ReturnValue != 0 {
-		return utils.ActivationFailed, errors.New("unable to activate CCM, check to make sure the device is not alreacy activated")
-	}
-	return utils.Success, nil
-}
-
-func (service *ProvisioningService) GetHostBasedSetupService() (hostbasedsetup.Response, error) {
-	message := service.ipsMessages.HostBasedSetupService.Get()
-	response, err := service.client.Post(message)
-	if err != nil {
-		return hostbasedsetup.Response{}, err
-	}
-	var getHostBasedSetupResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &getHostBasedSetupResponse)
-	if err != nil {
-		return hostbasedsetup.Response{}, err
-	}
-	return getHostBasedSetupResponse, nil
+	return nil
 }
 
 type CertsAndKeys struct {
@@ -188,63 +155,6 @@ func cleanPEM(pem string) string {
 	return strings.Replace(pem, "\n", "", -1)
 }
 
-func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
-	if len(pfxobj.certs) == 0 {
-		return ProvisioningCertObj{}, "", errors.New("no certificates found")
-	}
-	if len(pfxobj.keys) == 0 {
-		return ProvisioningCertObj{}, "", errors.New("no private keys found")
-	}
-	var provisioningCertificateObj ProvisioningCertObj
-	var interObj []CertificateObject
-	var leaf CertificateObject
-	var root CertificateObject
-	var fingerprint string
-
-	for i, cert := range pfxobj.certs {
-		pemBlock := &pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: cert.Raw,
-		}
-		pem := cleanPEM(string(pem.EncodeToMemory(pemBlock)))
-		certificateObject := CertificateObject{pem: pem, subject: cert.Subject.String(), issuer: cert.Issuer.String()}
-
-		if i == 0 {
-			leaf = certificateObject
-		} else if cert.Subject.String() == cert.Issuer.String() {
-			root = certificateObject
-			der := cert.Raw
-			hash := sha256.Sum256(der)
-			fingerprint = hex.EncodeToString(hash[:])
-		} else {
-			interObj = append(interObj, certificateObject)
-		}
-	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, leaf.pem)
-	for _, inter := range interObj {
-		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, inter.pem)
-	}
-	provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, root.pem)
-	provisioningCertificateObj.privateKey = pfxobj.keys[0]
-
-	return provisioningCertificateObj, fingerprint, nil
-}
-
-func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
-	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
-	if err != nil {
-		return CertsAndKeys{}, err
-	}
-	privateKey, certificate, extraCerts, err := pkcs12.DecodeChain(pfx, passphrase)
-	if err != nil {
-		return CertsAndKeys{}, errors.New("Decrypting provisioning certificate failed")
-	}
-	certs := append([]*x509.Certificate{certificate}, extraCerts...)
-	pfxOut := CertsAndKeys{certs: certs, keys: []interface{}{privateKey}}
-
-	return pfxOut, nil
-}
-
 func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertObj, string, error) {
 	config := service.config.ACMSettings
 	certsAndKeys, err := convertPfxToObject(config.ProvisioningCert, config.ProvisioningCertPwd)
@@ -258,17 +168,116 @@ func (service *ProvisioningService) GetProvisioningCertObj() (ProvisioningCertOb
 	return result, fingerprint, nil
 }
 
+func convertPfxToObject(pfxb64 string, passphrase string) (CertsAndKeys, error) {
+	pfx, err := base64.StdEncoding.DecodeString(pfxb64)
+	if err != nil {
+		return CertsAndKeys{}, utils.ActivationFailedDecode64
+	}
+	privateKey, certificate, extraCerts, err := pkcs12.DecodeChain(pfx, passphrase)
+	if err != nil {
+		if strings.Contains(err.Error(), "decryption password incorrect") {
+			return CertsAndKeys{}, utils.ActivationFailedWrongCertPass
+		}
+
+		return CertsAndKeys{}, utils.ActivationFailedInvalidProvCert
+	}
+	certs := append([]*x509.Certificate{certificate}, extraCerts...)
+	pfxOut := CertsAndKeys{certs: certs, keys: []interface{}{privateKey}}
+
+	return pfxOut, nil
+}
+
+func dumpPfx(pfxobj CertsAndKeys) (ProvisioningCertObj, string, error) {
+	if len(pfxobj.certs) == 0 {
+		return ProvisioningCertObj{}, "", utils.ActivationFailedNoCertFound
+	}
+	if len(pfxobj.keys) == 0 {
+		return ProvisioningCertObj{}, "", utils.ActivationFailedNoPrivKeys
+	}
+	var provisioningCertificateObj ProvisioningCertObj
+	var certificateList []*CertificateObject
+	var fingerprint string
+
+	for _, cert := range pfxobj.certs {
+		pemBlock := &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		}
+
+		pem := cleanPEM(string(pem.EncodeToMemory(pemBlock)))
+		certificateObject := CertificateObject{pem: pem, subject: cert.Subject.String(), issuer: cert.Issuer.String()}
+
+		// Get the fingerpint from the Root certificate
+		if cert.Subject.String() == cert.Issuer.String() {
+			der := cert.Raw
+			hash := sha256.Sum256(der)
+			fingerprint = hex.EncodeToString(hash[:])
+		}
+
+		// Put all the certificateObjects into a single un-ordered list
+		certificateList = append(certificateList, &certificateObject)
+	}
+
+	if fingerprint == "" {
+		return provisioningCertificateObj, "", utils.ActivationFailedNoRootCertFound
+	}
+
+	// Order the certificates from leaf to root
+	orderedCertificateList := orderCertificates(certificateList)
+
+	// Add them to the certChain in order
+	for _, cert := range orderedCertificateList {
+		provisioningCertificateObj.certChain = append(provisioningCertificateObj.certChain, cert.pem)
+	}
+
+	// Add the priviate key
+	provisioningCertificateObj.privateKey = pfxobj.keys[0]
+
+	return provisioningCertificateObj, fingerprint, nil
+}
+
+// orderCertificates orders the certificate list from leaf to root
+func orderCertificates(certificates []*CertificateObject) []*CertificateObject {
+
+	// create a map that we'll use to get the next certificate in chain
+	certificateMap := make(map[string]*CertificateObject)
+	for _, cert := range certificates {
+		certificateMap[cert.subject] = cert
+	}
+
+	// this slice will hold our ordered certificates
+	orderedCertificates := []*CertificateObject{}
+
+	// Set current to the leaf certificate since it is always first in our list
+	current := certificateMap[certificates[0].subject]
+
+	// Loop through certificate list until we get to root certificate
+	for current != nil && current.issuer != current.subject {
+		// Append current certificate to the ordered list
+		orderedCertificates = append(orderedCertificates, current)
+		// Move to the issuer of the current certificate
+		current = certificateMap[current.issuer]
+	}
+
+	// Append the root certificate
+	if current != nil {
+		orderedCertificates = append(orderedCertificates, current)
+	}
+
+	return orderedCertificates
+}
+
 func (service *ProvisioningService) CompareCertHashes(fingerPrint string) error {
 	result, err := service.amtCommand.GetCertificateHashes()
 	if err != nil {
-		log.Error(err)
+		return utils.ActivationFailedGetCertHash
 	}
 	for _, v := range result {
 		if v.Hash == fingerPrint {
 			return nil
 		}
 	}
-	return errors.New("The root of the provisioning certificate does not match any of the trusted roots in AMT.")
+	return utils.ActivationFailedProvCertNoMatch
 }
 
 func (service *ProvisioningService) injectCertificate(certChain []string) error {
@@ -278,38 +287,19 @@ func (service *ProvisioningService) injectCertificate(certChain []string) error 
 		isLeaf := i == firstIndex
 		isRoot := i == lastIndex
 
-		err := service.AddNextCertInChain(cert, isLeaf, isRoot)
+		_, err := service.interfacedWsmanMessage.AddNextCertInChain(cert, isLeaf, isRoot)
 		if err != nil {
-			log.Error(err)
-			return errors.New("Failed to add certificate to AMT.")
+			return utils.ActivationFailedAddCert
 		}
-	}
-	return nil
-}
-
-func (service *ProvisioningService) AddNextCertInChain(cert string, isLeaf bool, isRoot bool) error {
-	message := service.ipsMessages.HostBasedSetupService.AddNextCertInChain(cert, isLeaf, isRoot)
-	response, err := service.client.Post(message)
-	if err != nil {
-		return err
-	}
-	var addCertResponse hostbasedsetup.Response
-	err = xml.Unmarshal([]byte(response), &addCertResponse)
-	if err != nil {
-		return err
-	}
-	if addCertResponse.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
-		return errors.New("unable to activate ACM")
 	}
 	return nil
 }
 
 func (service *ProvisioningService) generateNonce() ([]byte, error) {
 	nonce := make([]byte, 20)
-	_, err := rand.Read(nonce)
-	if err != nil {
-		log.Error("Error generating nonce:", err)
-		return nil, err
+	// fills nonce with 20 random bytes
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, utils.ActivationFailedGenerateNonce
 	}
 	return nonce, nil
 }
@@ -350,41 +340,7 @@ func (service *ProvisioningService) createSignedString(nonce []byte, fwNonce []b
 	arr := append(fwNonce, nonce...)
 	signature, err := service.signString(arr, privateKey)
 	if err != nil {
-		log.Error("Error signing string:", err)
-		return "", err
+		return "", utils.ActivationFailedSignString
 	}
 	return signature, nil
-}
-
-func (service *ProvisioningService) sendAdminSetup(digestRealm string, nonce []byte, signature string) (utils.ReturnCode, error) {
-	password := service.config.ACMSettings.AMTPassword
-	message := service.ipsMessages.HostBasedSetupService.AdminSetup(hostbasedsetup.AdminPassEncryptionTypeHTTPDigestMD5A1, digestRealm, password, base64.StdEncoding.EncodeToString(nonce), hostbasedsetup.SigningAlgorithmRSASHA2256, signature)
-	response, err := service.client.Post(message)
-	if err != nil && err.Error() != "Post \"http://localhost:16992/wsman\": EOF" {
-		log.Error(err)
-		return utils.ActivationFailed, err
-	}
-	if response != nil {
-		var hostBasedSetupResponse hostbasedsetup.Response
-		err = xml.Unmarshal([]byte(response), &hostBasedSetupResponse)
-		if err != nil {
-			log.Error(err)
-			return utils.ActivationFailed, err
-		}
-		if hostBasedSetupResponse.Body.AdminSetup_OUTPUT.ReturnValue != 0 {
-			return utils.ActivationFailed, errors.New("unable to activate in ACM")
-		}
-	} else {
-		controlMode, err := service.amtCommand.GetControlMode()
-		if err != nil {
-			log.Error(err)
-			return utils.AMTConnectionFailed, err
-		}
-		if controlMode != 2 {
-			log.Error("unable to activate in ACM")
-			return utils.UnableToActivate, err
-		}
-	}
-	log.Info("Status: Device activated in Admin Control Mode")
-	return utils.Success, nil
 }

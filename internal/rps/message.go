@@ -7,11 +7,12 @@ package rps
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"rpc/internal/amt"
 	"rpc/internal/flags"
+	"rpc/internal/local"
 	"rpc/pkg/utils"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -47,6 +48,7 @@ type MessagePayload struct {
 	Version           string                `json:"ver"`
 	Build             string                `json:"build"`
 	SKU               string                `json:"sku"`
+	Features          string                `json:"features"`
 	UUID              string                `json:"uuid"`
 	Username          string                `json:"username"`
 	Password          string                `json:"password"`
@@ -70,7 +72,10 @@ func NewPayload() Payload {
 func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout time.Duration) (MessagePayload, error) {
 	payload := MessagePayload{}
 	var err error
-	wired, _ := p.AMT.GetLANInterfaceSettings(false)
+	wired, err := p.AMT.GetLANInterfaceSettings(false)
+	if err != nil {
+		return payload, err
+	}
 	if wired.LinkStatus != "up" {
 		log.Warn("link status is down, unable to activate AMT in Admin Control Mode (ACM)")
 	}
@@ -86,6 +91,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 	if err != nil {
 		return payload, err
 	}
+
+	payload.Features = local.DecodeAMT(payload.Version, payload.SKU)
+
 	payload.UUID, err = p.AMT.GetUUID()
 	if err != nil {
 		return payload, err
@@ -122,6 +130,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 		payload.FQDN = dnsSuffix
 	} else {
 		payload.FQDN, _ = p.AMT.GetDNSSuffix()
+		// Trim whitespace and a trailing . because MEBx may not allow
+		// unsetting the DNS suffix entry by setting it to an empty string
+		payload.FQDN = strings.TrimSuffix(strings.TrimSpace(payload.FQDN), ".")
 		if payload.FQDN == "" {
 			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
 		}
@@ -152,15 +163,16 @@ func (p Payload) CreateMessageRequest(flags flags.Flags) (Message, error) {
 	payload.IPConfiguration = flags.IpConfiguration
 	payload.HostnameInfo = flags.HostnameInfo
 
+	if flags.UUID != "" {
+		payload.UUID = flags.UUID
+	}
+
 	// Update with AMT password for activated devices
 	if payload.CurrentMode != 0 {
 		if flags.Password == "" {
 			for flags.Password == "" {
-				fmt.Println("Please enter AMT Password: ")
-				// Taking input from user
-				_, err = fmt.Scanln(&flags.Password)
-				if err != nil {
-					return message, err
+				if err := flags.ReadPasswordFromUser(); err != nil {
+					return message, utils.MissingOrIncorrectPassword
 				}
 			}
 		}

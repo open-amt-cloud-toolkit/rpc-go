@@ -1,13 +1,20 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package flags
 
 import (
-	"github.com/stretchr/testify/assert"
 	"rpc/pkg/utils"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseFlagsAmtInfo(t *testing.T) {
+
 	defaultFlags := AmtInfoFlags{
 		Ver:      true,
 		Bld:      true,
@@ -18,17 +25,17 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		Ras:      true,
 		Lan:      true,
 		Hostname: true,
+		OpState:  true,
 	}
 
 	tests := map[string]struct {
 		cmdLine    string
-		wantResult utils.ReturnCode
+		wantResult error
 		wantFlags  AmtInfoFlags
-		userInput  string
 	}{
 		"expect success for basic command": {
 			cmdLine:    "./rpc amtinfo -json",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags:  defaultFlags,
 		},
 		"expect IncorrectCommandLineParameters on Parse error": {
@@ -38,14 +45,14 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		},
 		"expect only cert flag with no password on command line": {
 			cmdLine:    "./rpc amtinfo -cert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				Cert: true,
 			},
 		},
 		"expect both cert flags with no password on command line": {
 			cmdLine:    "./rpc amtinfo -cert -password testPassword",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				Cert:     true,
 				UserCert: true,
@@ -53,35 +60,31 @@ func TestParseFlagsAmtInfo(t *testing.T) {
 		},
 		"expect success for userCert with no password": {
 			cmdLine:    "./rpc amtinfo -userCert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
 		},
 		"expect Success for userCert with password": {
 			cmdLine:    "./rpc amtinfo -userCert -password testPassword",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
 		},
 		"expect Success for userCert with password input": {
 			cmdLine:    "./rpc amtinfo -userCert",
-			wantResult: utils.Success,
+			wantResult: nil,
 			wantFlags: AmtInfoFlags{
 				UserCert: true,
 			},
-			userInput: "testPassword",
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			args := strings.Fields(tc.cmdLine)
-			if tc.userInput != "" {
-				defer userInput(t, tc.userInput)()
-			}
-			flags := NewFlags(args)
+			flags := NewFlags(args, MockPRSuccess)
 			gotResult := flags.ParseFlags()
 			assert.Equal(t, tc.wantResult, gotResult)
 			assert.Equal(t, true, flags.Local)

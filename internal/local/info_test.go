@@ -1,16 +1,37 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package local
 
 import (
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/publickey"
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/common"
-	"github.com/stretchr/testify/assert"
+	"errors"
+	"net"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"testing"
+
+	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
+	"github.com/stretchr/testify/assert"
 )
 
+var MockPRSuccess = new(MockPasswordReaderSuccess)
+var MockPRFail = new(MockPasswordReaderFail)
+
+type MockPasswordReaderSuccess struct{}
+
+func (mpr *MockPasswordReaderSuccess) ReadPassword() (string, error) {
+	return utils.TestPassword, nil
+}
+
+type MockPasswordReaderFail struct{}
+
+func (mpr *MockPasswordReaderFail) ReadPassword() (string, error) {
+	return "", errors.New("Read password failed")
+}
+
 func TestDisplayAMTInfo(t *testing.T) {
-	//f := &flags.Flags{}
 	defaultFlags := flags.AmtInfoFlags{
 		Ver:      true,
 		Bld:      true,
@@ -21,63 +42,64 @@ func TestDisplayAMTInfo(t *testing.T) {
 		Ras:      true,
 		Lan:      true,
 		Hostname: true,
+		OpState:  true,
 	}
 
 	t.Run("returns Success on happy path", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		lps := setupService(f)
-		rc := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success with json output", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 		lps := setupService(f)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success with certs", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.Cert = true
 		f.AmtInfo.UserCert = true
 		f.Password = "testPassword"
 		mockCertHashes = mockCertHashesDefault
-		pullEnvelope := publickey.PullResponseEnvelope{}
-		pullEnvelope.Body.PullResponse.Items = []publickey.PublicKeyCertificate{
+		pullEnvelope := publickey.PullResponse{}
+		pullEnvelope.PublicKeyCertificateItems = []publickey.PublicKeyCertificateResponse{
 			mpsCert,
 			clientCert,
 			caCert,
 		}
-		rfa := ResponseFuncArray{
-			respondMsgFunc(t, common.EnumerationResponse{}),
-			respondMsgFunc(t, pullEnvelope),
-		}
-		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		lps := setupService(f)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 	})
 
 	t.Run("returns Success but logs errors on error conditions", func(t *testing.T) {
-		mockUUIDErr = mockStandardErr
-		mockVersionDataErr = mockStandardErr
-		mockControlModeErr = mockStandardErr
-		mockDNSSuffixErr = mockStandardErr
-		mockOSDNSSuffixErr = mockStandardErr
-		mockRemoteAcessConnectionStatusErr = mockStandardErr
-		mockLANInterfaceSettingsErr = mockStandardErr
-		mockCertHashesErr = mockStandardErr
+		mockUUIDErr = errMockStandard
+		mockVersionDataErr = errMockStandard
+		mockControlModeErr = errMockStandard
+		mockDNSSuffixErr = errMockStandard
+		mockOSDNSSuffixErr = errMockStandard
+		mockRemoteAcessConnectionStatusErr = errMockStandard
+		mockLANInterfaceSettingsErr = errMockStandard
+		mockCertHashesErr = errMockStandard
 
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo = defaultFlags
 		f.JsonOutput = true
 
 		lps := setupService(f)
-		rc := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, rc)
+		err := lps.DisplayAMTInfo()
+		assert.NoError(t, err)
+		assert.Equal(t, nil, err)
 		f.JsonOutput = false
 
 		mockUUIDErr = nil
@@ -91,37 +113,34 @@ func TestDisplayAMTInfo(t *testing.T) {
 	})
 
 	t.Run("resets UserCert on GetControlMode failure", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.UserCert = true
-		mockControlModeErr = mockStandardErr
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		mockControlModeErr = errMockStandard
+		lps := setupService(f)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
 		mockControlModeErr = nil
 	})
 	t.Run("resets UserCert when control mode is preprovisioning", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRSuccess)
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 0
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.Success, resultCode)
+		lps := setupService(f)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, nil, err)
 		assert.False(t, f.AmtInfo.UserCert)
 		mockControlMode = orig
 	})
 	t.Run("returns MissingOrIncorrectPassword on no password input from user", func(t *testing.T) {
-		f := &flags.Flags{}
+		f := flags.NewFlags(nil, MockPRFail)
 		f.AmtInfo.UserCert = true
 		orig := mockControlMode
 		mockControlMode = 2
-		rfa := ResponseFuncArray{}
-		lps := setupWsmanResponses(t, f, rfa)
-		resultCode := lps.DisplayAMTInfo()
-		assert.Equal(t, utils.MissingOrIncorrectPassword, resultCode)
+		lps := setupService(f)
+		err := lps.DisplayAMTInfo()
+		assert.Equal(t, utils.MissingOrIncorrectPassword, err)
 		assert.True(t, f.AmtInfo.UserCert)
 		mockControlMode = orig
 	})
@@ -157,9 +176,122 @@ func TestDecodeAMT(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := decodeAMT(tc.version, tc.SKU)
+		got := DecodeAMT(tc.version, tc.SKU)
 		if got != tc.want {
-			t.Errorf("decodeAMT(%q, %q) = %v; want %v", tc.version, tc.SKU, got, tc.want)
+			t.Errorf("DecodeAMT(%q, %q) = %v; want %v", tc.version, tc.SKU, got, tc.want)
 		}
 	}
+}
+
+func TestGetMajorVersion(t *testing.T) {
+	testCases := []struct {
+		version string
+		want    int
+		wantErr bool
+	}{
+		{"1.2.3", 1, false},
+		{"11.8.55", 11, false},
+		{"12.5.2", 12, false},
+		{"16.1.25", 16, false},
+		{"18.2.10", 18, false},
+		{"", 0, true},
+		{"abc", 0, true},
+		{"1", 0, true},
+		{"1.2.3.4.5", 1, false},
+	}
+
+	for _, tc := range testCases {
+		got, err := GetMajorVersion(tc.version)
+
+		if (err != nil) != tc.wantErr {
+			t.Errorf("GetMajorVersion(%q) error = %v, wantErr %v", tc.version, err, tc.wantErr)
+			continue
+		}
+
+		if !tc.wantErr && got != tc.want {
+			t.Errorf("GetMajorVersion(%q) = %v; want %v", tc.version, got, tc.want)
+		}
+	}
+}
+
+var testNetEnumerator1 = flags.NetEnumerator{
+	Interfaces: func() ([]net.Interface, error) {
+		return []net.Interface{
+			{
+				Index: 0, MTU: 1200, Name: "ethTest01",
+				HardwareAddr: []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05},
+				Flags:        1,
+			},
+		}, nil
+	},
+	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
+		if i.Name == "errTest01" {
+			return nil, errors.New("test message")
+		} else {
+			return []net.Addr{
+				&net.IPNet{
+					IP:   net.ParseIP("127.0.0.1"),
+					Mask: net.CIDRMask(8, 32),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("192.168.1.1"),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}, nil
+		}
+	},
+}
+
+var testNetEnumerator2 = flags.NetEnumerator{
+	Interfaces: func() ([]net.Interface, error) {
+		return []net.Interface{
+			{
+				Index: 0, MTU: 1200, Name: "errTest01",
+				HardwareAddr: []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05},
+				Flags:        1,
+			},
+		}, nil
+	},
+	InterfaceAddrs: func(i *net.Interface) ([]net.Addr, error) {
+		if i.Name == "errTest01" {
+			return nil, errors.New("test message")
+		} else {
+			return []net.Addr{
+				&net.IPNet{
+					IP:   net.ParseIP("127.0.0.1"),
+					Mask: net.CIDRMask(8, 32),
+				},
+				&net.IPNet{
+					IP:   net.ParseIP("192.168.1.1"),
+					Mask: net.CIDRMask(24, 32),
+				},
+			}, nil
+		}
+	},
+}
+
+func TestGetOSIPAddress(t *testing.T) {
+	t.Run("Valid MAC address", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:01:02:03:04:05", testNetEnumerator1)
+		assert.NoError(t, err)
+		assert.Equal(t, "192.168.1.1", osIpAddress)
+	})
+
+	t.Run("Zero MAC address", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:00:00:00:00:00", testNetEnumerator1)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0", osIpAddress)
+	})
+
+	t.Run("net interface fail", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:01:02:03:04:05", testNetEnumerator2)
+		assert.Equal(t, "0.0.0.0", osIpAddress)
+		assert.Equal(t, errors.New("Failed to get interface addresses"), err)
+	})
+
+	t.Run("no matching mac address to map into os ipaddress", func(t *testing.T) {
+		osIpAddress, err := GetOSIPAddress("00:11:22:33:44:55", testNetEnumerator1)
+		assert.Equal(t, "Not Found", osIpAddress)
+		assert.NoError(t, err)
+	})
 }

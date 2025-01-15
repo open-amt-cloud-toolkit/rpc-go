@@ -1,3 +1,8 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package flags
 
 import (
@@ -17,9 +22,10 @@ type AmtInfoFlags struct {
 	Ras      bool
 	Lan      bool
 	Hostname bool
+	OpState  bool
 }
 
-func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
+func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) error {
 	// runs locally
 	f.Local = true
 
@@ -34,6 +40,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 	amtInfoCommand.BoolVar(&f.AmtInfo.Ras, "ras", false, "Remote Access Status")
 	amtInfoCommand.BoolVar(&f.AmtInfo.Lan, "lan", false, "LAN Settings")
 	amtInfoCommand.BoolVar(&f.AmtInfo.Hostname, "hostname", false, "OS Hostname")
+	amtInfoCommand.BoolVar(&f.AmtInfo.OpState, "operationalState", false, "AMT Operational State")
 	amtInfoCommand.StringVar(&f.Password, "password", f.lookupEnvOrString("AMT_PASSWORD", ""), "AMT Password")
 
 	if err := amtInfoCommand.Parse(f.commandLineArgs[2:]); err != nil {
@@ -54,6 +61,7 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 		f.AmtInfo.Ras = true
 		f.AmtInfo.Lan = true
 		f.AmtInfo.Hostname = true
+		f.AmtInfo.OpState = true
 	}
 
 	// no password - same behavior only cert hashes
@@ -65,5 +73,5 @@ func (f *Flags) handleAMTInfo(amtInfoCommand *flag.FlagSet) utils.ReturnCode {
 	// NOTE: UserCert and password check happen later
 	// when provisioning mode is available
 
-	return utils.Success
+	return nil
 }

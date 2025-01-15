@@ -45,7 +45,7 @@ func init() {
 	// Create test server with the echo handler.
 	testServer = httptest.NewServer(http.HandlerFunc(echo))
 	// Convert http to ws
-	testFlags = flags.NewFlags([]string{})
+	testFlags = flags.NewFlags([]string{}, MockPRSuccess)
 	testUrl = "ws" + strings.TrimPrefix(testServer.URL, "http")
 	testFlags.URL = testUrl
 }
@@ -54,8 +54,9 @@ func TestExecuteCommand(t *testing.T) {
 	f := &flags.Flags{}
 	f.Command = utils.CommandActivate
 	f.Profile = "profile01"
+	f.Password = "testPw"
 	rc := ExecuteCommand(f)
-	assert.NotEqual(t, utils.Success, rc)
+	assert.NotEqual(t, nil, rc)
 }
 
 func TestSetCommandMethodActivate(t *testing.T) {

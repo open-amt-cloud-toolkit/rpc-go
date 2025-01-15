@@ -1,57 +1,60 @@
+/*********************************************************************
+ * Copyright (c) Intel Corporation 2024
+ * SPDX-License-Identifier: Apache-2.0
+ **********************************************************************/
+
 package local
 
 import (
-	"encoding/xml"
 	"rpc/pkg/utils"
 
-	"github.com/open-amt-cloud-toolkit/go-wsman-messages/pkg/amt/setupandconfiguration"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
-func (service *ProvisioningService) Deactivate() utils.ReturnCode {
-
+func (service *ProvisioningService) Deactivate() (err error) {
 	controlMode, err := service.amtCommand.GetControlMode()
 	if err != nil {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	if controlMode == 1 {
-		return service.DeactivateCCM()
-	} else if controlMode == 2 {
-		return service.DeactivateACM()
+	// Deactivate based on the control mode
+	switch controlMode {
+	case 1: // CCMMode
+		err = service.DeactivateCCM()
+	case 2: // ACMMode
+		err = service.DeactivateACM()
+	default:
+		log.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
+		return utils.UnableToDeactivate
 	}
-	log.Error("Deactivation failed. Device control mode: " + utils.InterpretControlMode(controlMode))
-	return utils.UnableToDeactivate
+
+	if err != nil {
+		log.Error("Deactivation failed.", err)
+		return utils.UnableToDeactivate
+	}
+
+	log.Info("Status: Device deactivated")
+	return nil
 }
 
-func (service *ProvisioningService) DeactivateACM() utils.ReturnCode {
+func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.Password == "" {
-		if _, rc := service.flags.ReadPasswordFromUser(); rc != utils.Success {
-			return rc
+		err := service.flags.ReadPasswordFromUser()
+		if err != nil {
+			return utils.MissingOrIncorrectPassword
 		}
 	}
-	service.setupWsmanClient("admin", service.flags.Password)
-	msg := service.amtMessages.SetupAndConfigurationService.Unprovision(1)
-	response, err := service.client.Post(msg)
+	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)
 		return utils.UnableToDeactivate
 	}
-	var setupResponse setupandconfiguration.UnprovisionResponse
-	err = xml.Unmarshal([]byte(response), &setupResponse)
-	if err != nil {
-		log.Error("Status: Failed to deactivate ", err)
-		return utils.DeactivationFailed
-	}
-	if setupResponse.Body.Unprovision_OUTPUT.ReturnValue != 0 {
-		log.Error("Status: Failed to deactivate. ReturnValue: ", setupResponse.Body.Unprovision_OUTPUT.ReturnValue)
-		return utils.DeactivationFailed
-	}
-	log.Info("Status: Device deactivated in ACM.")
-	return utils.Success
+	return nil
 }
 
-func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
+func (service *ProvisioningService) DeactivateCCM() (err error) {
 	if service.flags.Password != "" {
 		log.Warn("Password not required for CCM deactivation")
 	}
@@ -60,6 +63,5 @@ func (service *ProvisioningService) DeactivateCCM() utils.ReturnCode {
 		log.Error("Status: Failed to deactivate ", err)
 		return utils.DeactivationFailed
 	}
-	log.Info("Status: Device deactivated.")
-	return utils.Success
+	return nil
 }
