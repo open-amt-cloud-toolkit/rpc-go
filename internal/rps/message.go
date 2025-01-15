@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/amt"
@@ -130,6 +131,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 		payload.FQDN = dnsSuffix
 	} else {
 		payload.FQDN, _ = p.AMT.GetDNSSuffix()
+		// Trim whitespace and a trailing . because MEBx may not allow
+		// unsetting the DNS suffix entry by setting it to an empty string
+		payload.FQDN = strings.TrimSuffix(strings.TrimSpace(payload.FQDN), ".")
 		if payload.FQDN == "" {
 			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
 		}
