@@ -6,7 +6,7 @@
 package local
 
 import (
-	"rpc/pkg/utils"
+	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
 
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"

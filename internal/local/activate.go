@@ -15,8 +15,9 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
-	"rpc/pkg/utils"
 	"strings"
+
+	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 	pkcs12 "software.sslmate.com/src/go-pkcs12"
