@@ -12,6 +12,7 @@ import (
 	"rpc/internal/flags"
 	"rpc/internal/local"
 	"rpc/pkg/utils"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -129,6 +130,9 @@ func (p Payload) createPayload(dnsSuffix string, hostname string, amtTimeout tim
 		payload.FQDN = dnsSuffix
 	} else {
 		payload.FQDN, _ = p.AMT.GetDNSSuffix()
+		// Trim whitespace and a trailing . because MEBx may not allow
+		// unsetting the DNS suffix entry by setting it to an empty string
+		payload.FQDN = strings.TrimSuffix(strings.TrimSpace(payload.FQDN), ".")
 		if payload.FQDN == "" {
 			payload.FQDN, _ = p.AMT.GetOSDNSSuffix()
 		}
