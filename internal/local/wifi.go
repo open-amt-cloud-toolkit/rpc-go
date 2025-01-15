@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/config"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
+	"github.com/rsdmike/rpc-go/v2/internal/config"
+	"github.com/rsdmike/rpc-go/v2/pkg/utils"
 
 	log "github.com/sirupsen/logrus"
 

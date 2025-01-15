@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/amt"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/config"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/smb"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
+	"github.com/rsdmike/rpc-go/v2/internal/amt"
+	"github.com/rsdmike/rpc-go/v2/internal/config"
+	"github.com/rsdmike/rpc-go/v2/internal/smb"
+	"github.com/rsdmike/rpc-go/v2/pkg/utils"
 
 	configv2 "github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/config"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/security"

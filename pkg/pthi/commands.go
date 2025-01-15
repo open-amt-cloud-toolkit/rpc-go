@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/heci"
+	"github.com/rsdmike/rpc-go/v2/pkg/heci"
 )
 
 type Command struct {

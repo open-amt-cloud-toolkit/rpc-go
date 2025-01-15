@@ -9,7 +9,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/pthi"
+	"github.com/rsdmike/rpc-go/v2/pkg/pthi"
 
 	"github.com/stretchr/testify/assert"
 

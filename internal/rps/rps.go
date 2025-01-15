@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/flags"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
+	"github.com/rsdmike/rpc-go/v2/internal/flags"
+	"github.com/rsdmike/rpc-go/v2/pkg/utils"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"

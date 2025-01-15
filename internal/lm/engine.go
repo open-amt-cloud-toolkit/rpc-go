@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/pthi"
+	"github.com/rsdmike/rpc-go/v2/pkg/pthi"
 
 	log "github.com/sirupsen/logrus"
 

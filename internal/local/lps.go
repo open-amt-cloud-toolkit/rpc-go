@@ -8,11 +8,11 @@ package local
 import (
 	"net/url"
 
-	internalAMT "github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/amt"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/config"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/flags"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/internal/local/amt"
-	"github.com/open-amt-cloud-toolkit/rpc-go/v2/pkg/utils"
+	internalAMT "github.com/rsdmike/rpc-go/v2/internal/amt"
+	"github.com/rsdmike/rpc-go/v2/internal/config"
+	"github.com/rsdmike/rpc-go/v2/internal/flags"
+	"github.com/rsdmike/rpc-go/v2/internal/local/amt"
+	"github.com/rsdmike/rpc-go/v2/pkg/utils"
 )
 
 type OSNetworker interface {
