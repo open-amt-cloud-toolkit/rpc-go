@@ -1,3 +1,18 @@
+## [2.42.8](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.7...v2.42.8) (2025-01-15)
+
+
+### Bug Fixes
+
+* test ci ([8c5b3dd](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/8c5b3ddec5b3c8678fba93475675081aee99d8bb))
+* test ci ([db52045](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/db52045bc8c7de7f9c7496d88edeca5ec4491ee0))
+
+## [2.42.7](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.6...v2.42.7) (2025-01-15)
+
+
+### Bug Fixes
+
+* Use OS DNS suffix when DNS suffix set in MEBx is empty-like ([e89fd98](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/e89fd984915f998d5dd824bea04d84999b27a847))
+
 ## [2.42.6](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.5...v2.42.6) (2024-12-16)
 
 
