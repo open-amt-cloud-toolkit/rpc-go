@@ -19,7 +19,8 @@ const (
 	// LMSAddress is used for determing what address to connect to LMS on
 	LMSAddress = "localhost"
 	// LMSPort is used for determining what port to connect to LMS on
-	LMSPort = "16992"
+	LMSPort    = "16992"
+	LMSTLSPort = "16993"
 
 	AMTUserName = "admin"
 

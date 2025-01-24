@@ -10,11 +10,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"rpc/internal/config"
 	"rpc/pkg/utils"
 	"strings"
 
@@ -23,12 +25,8 @@ import (
 )
 
 func (service *ProvisioningService) Activate() error {
-
-	controlMode, err := service.amtCommand.GetControlMode()
-	if err != nil {
-		return utils.ActivationFailedGetControlMode
-	}
-	if controlMode != 0 {
+	// Check if the device is already activated
+	if service.flags.ControlMode != 0 {
 		log.Error("Device is already activated")
 		return utils.UnableToActivate
 	}
@@ -38,9 +36,9 @@ func (service *ProvisioningService) Activate() error {
 		return err
 	}
 
+	tlsConfig := &tls.Config{}
 	if tlsEnforced {
-		log.Error("TLS is enforced on local ports, unable to activate")
-		return utils.UnsupportedAMTVersion
+		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
 	}
 
 	// for local activation, wsman client needs local system account credentials
@@ -49,7 +47,8 @@ func (service *ProvisioningService) Activate() error {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, log.GetLevel() == log.TraceLevel)
+
+	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, tlsEnforced, tlsConfig, log.GetLevel() == log.TraceLevel)
 
 	if service.flags.UseACM {
 		err = service.ActivateACM()

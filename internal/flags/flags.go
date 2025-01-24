@@ -99,7 +99,7 @@ type Flags struct {
 	flagSetEnableWifiPort               *flag.FlagSet
 	flagSetMEBx                         *flag.FlagSet
 	flagSetAMTFeatures                  *flag.FlagSet
-	amtCommand                          amt.AMTCommand
+	AmtCommand                          amt.AMTCommand
 	netEnumerator                       NetEnumerator
 	IpConfiguration                     IPConfiguration
 	HostnameInfo                        HostnameInfo
@@ -115,6 +115,8 @@ type Flags struct {
 	KVM                                 bool
 	SOL                                 bool
 	IDER                                bool
+	LocalTlsEnforced                    bool
+	ControlMode                         int
 }
 
 func NewFlags(args []string, pr utils.PasswordReader) *Flags {
@@ -142,7 +144,7 @@ func NewFlags(args []string, pr utils.PasswordReader) *Flags {
 	flags.flagSetMEBx = flag.NewFlagSet(utils.SubCommandSetMEBx, flag.ContinueOnError)
 	flags.flagSetAMTFeatures = flag.NewFlagSet(utils.SubCommandSetAMTFeatures, flag.ContinueOnError)
 
-	flags.amtCommand = amt.NewAMTCommand()
+	flags.AmtCommand = amt.NewAMTCommand()
 	flags.netEnumerator = NetEnumerator{}
 	flags.netEnumerator.Interfaces = net.Interfaces
 	flags.netEnumerator.InterfaceAddrs = (*net.Interface).Addrs

@@ -13,6 +13,7 @@ import (
 	"net"
 	"os"
 	"rpc/internal/amt"
+	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strconv"
@@ -310,7 +311,7 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, config.GetTLSConfig(&service.flags.ControlMode), logrus.GetLevel() == logrus.TraceLevel)
 		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.RefinedPublicKeyCertificateResponse{}
 		for i := range userCerts {
