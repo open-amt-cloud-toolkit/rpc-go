@@ -103,12 +103,10 @@ func updateConnectionSettings(flags *flags.Flags) error {
 			return err
 		}
 	}
-
 	if resp.IsTlsEnforcedOnLocalPorts() {
 		flags.LocalTlsEnforced = true
 		log.Trace("TLS is enforced on local ports")
 	}
-
 	// Check the current provisioning mode
 	flags.ControlMode, err = flags.AmtCommand.GetControlMode()
 	if err != nil {

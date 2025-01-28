@@ -35,7 +35,7 @@ import (
 )
 
 type WSMANer interface {
-	SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool)
+	SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool) error
 	Unprovision(int) (setupandconfiguration.Response, error)
 	GetGeneralSettings() (general.Response, error)
 	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
@@ -97,7 +97,7 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 	}
 }
 
-func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool) {
+func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool) error {
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
@@ -107,26 +107,32 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, use
 		TlsConfig:      tlsConfig,
 		LogAMTMessages: logAMTMessages,
 	}
-	logrus.Info("Attempting to connect to LMS...")
 
 	var (
 		con net.Conn // Declared to hold the connection object
 		err error
 	)
 	if clientParams.UseTLS {
+		logrus.Info("Attempting to connect to LMS over TLS...")
 		con, err = cryptotls.Dial("tcp", utils.LMSAddress+":"+client.TLSPort, clientParams.TlsConfig)
 	} else {
+		logrus.Info("Attempting to connect to LMS...")
 		con, err = net.Dial("tcp", utils.LMSAddress+":"+client.NonTLSPort)
 	}
 
 	if err != nil {
-		logrus.Info("Failed to connect to LMS, using local transport instead.")
+		logrus.Trace("Failed to connect to LMS: ", err)
+		if clientParams.UseTLS {
+			return utils.LMSConnectionFailed
+		}
+		logrus.Info("using local transport instead...")
 		clientParams.Transport = NewLocalTransport()
 	} else {
 		logrus.Info("Successfully connected to LMS.")
 		con.Close()
 	}
 	g.wsmanMessages = wsman.NewMessages(clientParams)
+	return nil
 }
 
 func (g *GoWSMANMessages) GetGeneralSettings() (general.Response, error) {

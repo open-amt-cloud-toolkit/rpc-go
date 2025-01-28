@@ -31,25 +31,25 @@ func (service *ProvisioningService) Activate() error {
 		return utils.UnableToActivate
 	}
 
-	tlsEnforced, err := service.CheckAndEnableAMT(service.flags.SkipIPRenew)
+	err := service.CheckAndEnableAMT(service.flags.SkipIPRenew)
 	if err != nil {
 		return err
 	}
-
-	tlsConfig := &tls.Config{}
-	if tlsEnforced {
-		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
-	}
-
 	// for local activation, wsman client needs local system account credentials
 	lsa, err := service.amtCommand.GetLocalSystemAccount()
 	if err != nil {
 		log.Error(err)
 		return utils.AMTConnectionFailed
 	}
-
-	service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, tlsEnforced, tlsConfig, log.GetLevel() == log.TraceLevel)
-
+	tlsConfig := &tls.Config{}
+	if service.flags.LocalTlsEnforced {
+		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+	}
+	// Setup WSMan Client
+	err = service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, service.flags.LocalTlsEnforced, tlsConfig, log.GetLevel() == log.TraceLevel)
+	if err != nil {
+		return err
+	}
 	if service.flags.UseACM {
 		err = service.ActivateACM()
 		if err == nil {
@@ -63,7 +63,6 @@ func (service *ProvisioningService) Activate() error {
 }
 
 func (service *ProvisioningService) ActivateACM() error {
-
 	// Extract the provisioning certificate
 	certObject, fingerPrint, err := service.GetProvisioningCertObj()
 	if err != nil {

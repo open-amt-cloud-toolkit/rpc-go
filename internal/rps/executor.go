@@ -48,7 +48,9 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	err := client.localManagement.Connect()
 
 	if err != nil {
-		log.Error("error connecting to LMS: ", err)
+		if flags.LocalTlsEnforced {
+			return client, utils.LMSConnectionFailed
+		}
 		// client.localManagement.Close()
 		log.Trace("LMS not running.  Using LME Connection\n")
 		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.waitGroup)

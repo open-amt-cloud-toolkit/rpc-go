@@ -6,6 +6,7 @@
 package local
 
 import (
+	"crypto/tls"
 	"errors"
 	"net/url"
 	"rpc/internal/config"
@@ -21,8 +22,14 @@ func (service *ProvisioningService) Configure() (err error) {
 		log.Error("Device is not activated to configure. Please activate the device first.")
 		return utils.UnableToConfigure
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, config.GetTLSConfig(&service.flags.ControlMode), logrus.GetLevel() == logrus.TraceLevel)
-
+	tlsConfig := &tls.Config{}
+	if service.flags.LocalTlsEnforced {
+		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+	}
+	err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, tlsConfig, logrus.GetLevel() == logrus.TraceLevel)
+	if err != nil {
+		return err
+	}
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
 		return service.AddEthernetSettings()

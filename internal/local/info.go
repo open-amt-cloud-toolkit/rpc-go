@@ -7,6 +7,7 @@ package local
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -311,7 +312,14 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, config.GetTLSConfig(&service.flags.ControlMode), logrus.GetLevel() == logrus.TraceLevel)
+		tlsConfig := &tls.Config{}
+		if service.flags.LocalTlsEnforced {
+			tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+		}
+		err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, tlsConfig, logrus.GetLevel() == logrus.TraceLevel)
+		if err != nil {
+			return err
+		}
 		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.RefinedPublicKeyCertificateResponse{}
 		for i := range userCerts {
