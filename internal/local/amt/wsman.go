@@ -35,7 +35,7 @@ import (
 )
 
 type WSMANer interface {
-	SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool) error
+	SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *cryptotls.Config) error
 	Unprovision(int) (setupandconfiguration.Response, error)
 	GetGeneralSettings() (general.Response, error)
 	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
@@ -97,7 +97,7 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 	}
 }
 
-func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, tlsConfig *cryptotls.Config, logAMTMessages bool) error {
+func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *cryptotls.Config) error {
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
@@ -131,6 +131,7 @@ func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, use
 		logrus.Info("Successfully connected to LMS.")
 		con.Close()
 	}
+
 	g.wsmanMessages = wsman.NewMessages(clientParams)
 	return nil
 }

@@ -112,7 +112,6 @@ func updateConnectionSettings(flags *flags.Flags) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

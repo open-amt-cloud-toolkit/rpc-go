@@ -46,7 +46,7 @@ func (service *ProvisioningService) Activate() error {
 		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
 	}
 	// Setup WSMan Client
-	err = service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, service.flags.LocalTlsEnforced, tlsConfig, log.GetLevel() == log.TraceLevel)
+	err = service.interfacedWsmanMessage.SetupWsmanClient(lsa.Username, lsa.Password, service.flags.LocalTlsEnforced, log.GetLevel() == log.TraceLevel, tlsConfig)
 	if err != nil {
 		return err
 	}

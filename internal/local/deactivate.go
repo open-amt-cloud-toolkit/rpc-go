@@ -10,7 +10,6 @@ import (
 	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,7 +50,7 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 	if service.flags.LocalTlsEnforced {
 		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
 	}
-	err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, tlsConfig, logrus.GetLevel() == logrus.TraceLevel)
+	err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, log.GetLevel() == log.TraceLevel, tlsConfig)
 	if err != nil {
 		return err
 	}

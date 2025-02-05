@@ -15,7 +15,7 @@ import (
 func TestHandleDeactivateCommandNoFlags(t *testing.T) {
 	args := []string{"./rpc", "deactivate"}
 	flags := NewFlags(args, MockPRSuccess)
-	flags.amtCommand.PTHI = MockPTHICommands{}
+	flags.AmtCommand.PTHI = MockPTHICommands{}
 	success := flags.handleDeactivateCommand()
 	assert.EqualValues(t, success, utils.IncorrectCommandLineParameters)
 }
