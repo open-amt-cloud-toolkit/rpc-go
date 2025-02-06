@@ -8,11 +8,11 @@ package config
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"errors"
 	"strconv"
 
 	"rpc/internal/amt"
+	"rpc/internal/certs"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -112,18 +112,10 @@ func verifyROMODCACertificate(cn string, issuerOU []string) error {
 
 // check if the last intermediate cert is signed by trusted root certificate
 func verifyLastIntermediateCert(cert *x509.Certificate) error {
-	// Base64 encoded DER certificate without line breaks ttps://tsci.intel.com/content/OnDieCA/certs/OnDie_CA_RootCA_Certificate.cer
-	const certBase64 = `MIICujCCAj6gAwIBAgIUPLLiHTrwySRtWxR4lxKLlu7MJ7wwDAYIKoZIzj0EAwMFADCBiTELMAkGA1UEBgwCVVMxCzAJBgNVBAgMAkNBMRQwEgYDVQQHDAtTYW50YSBDbGFyYTEaMBgGA1UECgwRSW50ZWwgQ29ycG9yYXRpb24xIzAhBgNVBAsMGk9uRGllIENBIFJvb3QgQ2VydCBTaWduaW5nMRYwFAYDVQQDDA13d3cuaW50ZWwuY29tMB4XDTE5MDQwMzAwMDAwMFoXDTQ5MTIzMTIzNTk1OVowgYkxCzAJBgNVBAYMAlVTMQswCQYDVQQIDAJDQTEUMBIGA1UEBwwLU2FudGEgQ2xhcmExGjAYBgNVBAoMEUludGVsIENvcnBvcmF0aW9uMSMwIQYDVQQLDBpPbkRpZSBDQSBSb290IENlcnQgU2lnbmluZzEWMBQGA1UEAwwNd3d3LmludGVsLmNvbTB2MBAGByqGSM49AgEGBSuBBAAiA2IABK8SfB2UflvXZqb5Kc3+lokrABHWazvNER2axPURP64HILkXChPB0OEX5hLB7Okw7Dy6oFqB5tQVDupgfvUX/SgYBEaDdG5rCVFrGAis6HX5TA2ewQmj14r2ncHBgnppB6NjMGEwHwYDVR0jBBgwFoAUtFjJ9uQIQKPyWMg5eG6ujgqNnDgwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAQYwHQYDVR0OBBYEFLRYyfbkCECj8ljIOXhuro4KjZw4MAwGCCqGSM49BAMDBQADaAAwZQIxAP9B4lFF86uvpHmkcp61cWaU565ayE3p7ezu9haLE/lPLh5hFQfmTi1nm/sG3JEXMQIwNpKfHoDmUTrUyezhhfv3GG+1CqBXstmCYH40buj9jKW3pHWc71s9arEmPWli7I8U`
-	// Decode the Base64 certificate string
-	certBytes, err := base64.StdEncoding.DecodeString(certBase64)
-	if err != nil {
-		log.Error("Failed to decode base64 certificate: ", err)
-		return err
-	}
 	// Parse the DER certificate into an x509.Certificate
-	prodRootCert, err := x509.ParseCertificate(certBytes)
+	prodRootCert, err := x509.ParseCertificate(certs.OnDie_CA_RootCA_Certificate)
 	if err != nil {
-		log.Error("Failed to parse root certificate: ", err)
+		log.Error("Failed to OnDie ROOT CA Certificate: ", err)
 		return err
 	}
 	err = cert.CheckSignatureFrom(prodRootCert)
