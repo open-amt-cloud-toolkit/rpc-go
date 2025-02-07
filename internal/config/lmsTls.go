@@ -2,7 +2,6 @@
  * Copyright (c) Intel Corporation 2025
  * SPDX-License-Identifier: Apache-2.0
  **********************************************************************/
-
 package config
 
 import (
@@ -24,7 +23,7 @@ func GetTLSConfig(mode *int) *tls.Config {
 		return &tls.Config{
 			InsecureSkipVerify: true,
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-				return verifyCertificates(rawCerts, mode)
+				return VerifyCertificates(rawCerts, mode)
 			},
 		}
 	}
@@ -35,7 +34,7 @@ func GetTLSConfig(mode *int) *tls.Config {
 	}
 }
 
-func verifyCertificates(rawCerts [][]byte, mode *int) error {
+func VerifyCertificates(rawCerts [][]byte, mode *int) error {
 	numCerts := len(rawCerts)
 	const (
 		selfSignedChainLength = 1
@@ -53,28 +52,28 @@ func verifyCertificates(rawCerts [][]byte, mode *int) error {
 			}
 			switch i {
 			case leafLevel:
-				if err := verifyLeafCertificate(cert.Subject.CommonName); err != nil {
+				if err := VerifyLeafCertificate(cert.Subject.CommonName); err != nil {
 					return err
 				}
 			case odcaCertLevel:
-				if err := verifyROMODCACertificate(cert.Subject.CommonName, cert.Issuer.OrganizationalUnit); err != nil {
+				if err := VerifyROMODCACertificate(cert.Subject.CommonName, cert.Issuer.OrganizationalUnit); err != nil {
 					return err
 				}
 			case lastIntermediateCert:
-				if err := verifyLastIntermediateCert(cert); err != nil {
+				if err := VerifyLastIntermediateCert(cert); err != nil {
 					return err
 				}
 			}
 		}
 		return nil
 	} else if numCerts == selfSignedChainLength {
-		return handleAMTTransition(mode)
+		return HandleAMTTransition(mode)
 	}
 	return errors.New("unexpected number of certificates received from AMT: " + strconv.Itoa(numCerts))
 }
 
 // validate the leaf certificate
-func verifyLeafCertificate(cn string) error {
+func VerifyLeafCertificate(cn string) error {
 	allowedLeafCNs := []string{
 		"iAMT CSME IDevID RCFG", "AMT RCFG",
 	}
@@ -88,7 +87,7 @@ func verifyLeafCertificate(cn string) error {
 }
 
 // validate CSME ROM ODCA certificate
-func verifyROMODCACertificate(cn string, issuerOU []string) error {
+func VerifyROMODCACertificate(cn string, issuerOU []string) error {
 	allowedOUPrefixes := []string{
 		"ODCA 2 CSME P", "On Die CSME P", "ODCA 2 CSME", "On Die CSME",
 	}
@@ -111,7 +110,7 @@ func verifyROMODCACertificate(cn string, issuerOU []string) error {
 }
 
 // check if the last intermediate cert is signed by trusted root certificate
-func verifyLastIntermediateCert(cert *x509.Certificate) error {
+func VerifyLastIntermediateCert(cert *x509.Certificate) error {
 	// Parse the DER certificate into an x509.Certificate
 	prodRootCert, err := x509.ParseCertificate(certs.OnDie_CA_RootCA_Certificate)
 	if err != nil {
@@ -127,7 +126,7 @@ func verifyLastIntermediateCert(cert *x509.Certificate) error {
 }
 
 // handleAMTTransition checks if AMT has moved from Pre-Provisioning mode.
-func handleAMTTransition(mode *int) error {
+func HandleAMTTransition(mode *int) error {
 	controlMode, err := amt.NewAMTCommand().GetControlMode()
 	if err != nil {
 		log.Error("Failed to get control mode: ", err)
