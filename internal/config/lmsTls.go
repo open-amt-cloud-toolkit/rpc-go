@@ -17,9 +17,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CreateTLSConfig generates a TLS configuration based on the provided mode.
+// generates a TLS configuration based on the provided mode.
 func GetTLSConfig(mode *int) *tls.Config {
-	if *mode == 0 { // Pre-provisioning mode
+	if *mode == 0 { // pre-provisioning mode
 		return &tls.Config{
 			InsecureSkipVerify: true,
 			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
@@ -97,7 +97,7 @@ func VerifyROMODCACertificate(cn string, issuerOU []string) error {
 		return errors.New("invalid ROM ODCA Certificate")
 	}
 
-	// Check that OU of odcaCertLevel must have a prefix equal to either ODCA 2 CSME P or On Die CSME P
+	// check that OU of odcaCertLevel must have a prefix equal to either ODCA 2 CSME P or On Die CSME P
 	for _, ou := range issuerOU {
 		for _, prefix := range allowedOUPrefixes {
 			if strings.HasPrefix(ou, prefix) {
@@ -111,10 +111,10 @@ func VerifyROMODCACertificate(cn string, issuerOU []string) error {
 
 // check if the last intermediate cert is signed by trusted root certificate
 func VerifyLastIntermediateCert(cert *x509.Certificate) error {
-	// Parse the DER certificate into an x509.Certificate
+	// parse the DER certificate into an x509.Certificate
 	prodRootCert, err := x509.ParseCertificate(certs.OnDie_CA_RootCA_Certificate)
 	if err != nil {
-		log.Error("Failed to OnDie ROOT CA Certificate: ", err)
+		log.Error("failed to parse OnDie ROOT CA Certificate: ", err)
 		return err
 	}
 	err = cert.CheckSignatureFrom(prodRootCert)
@@ -125,11 +125,11 @@ func VerifyLastIntermediateCert(cert *x509.Certificate) error {
 	return nil
 }
 
-// handleAMTTransition checks if AMT has moved from Pre-Provisioning mode.
+// handleAMTTransition - checks if AMT has moved from Pre-Provisioning mode.
 func HandleAMTTransition(mode *int) error {
 	controlMode, err := amt.NewAMTCommand().GetControlMode()
 	if err != nil {
-		log.Error("Failed to get control mode: ", err)
+		log.Error("failed to get control mode: ", err)
 		return err
 	}
 	if controlMode != 0 {
