@@ -12,16 +12,9 @@ import (
 )
 
 func (service *ProvisioningService) SetMebx() (err error) {
-	// Retrieve the current control mode from the AMT command interface.
-	controlMode, err := service.amtCommand.GetControlMode()
-	if err != nil {
-		log.Error("Failed to get control mode:", err)
-		return utils.AMTConnectionFailed
-	}
 
-	// Check if the control mode is ACM (Admin Control Mode)
-	if controlMode != 2 { // If not in ACM, return an error.
-		errMsg := "MEBx password can only be configured in ACM. Current device control mode: " + utils.InterpretControlMode(controlMode)
+	if service.flags.ControlMode != 2 { // If not in ACM, return an error.
+		errMsg := "MEBx password can only be configured in ACM. Current device control mode: " + utils.InterpretControlMode(service.flags.ControlMode)
 		log.Error(errMsg)
 		return utils.SetMEBXPasswordFailed
 	}

@@ -90,13 +90,8 @@ func TestCheckAndEnableAMT(t *testing.T) {
 			mockRenewDHCPLeaseerr = tc.renewDHCPLeaseRC
 			f := &flags.Flags{}
 			lps := setupService(f)
-			tlsForced, err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
-			assert.Equal(t, tc.expectedTLS, tlsForced)
+			err := lps.CheckAndEnableAMT(tc.skipIPRenewal)
 			assert.Equal(t, tc.expectedRC, err)
-			if tc.name == "expect tlsIsEnforced false when operation times out" {
-				assert.False(t, tlsForced)
-				assert.Nil(t, err)
-			}
 			// Reset mocks
 			mockChangeEnabledResponse = origRsp
 			errMockChangeEnabled = origChangeEnabledErr

@@ -187,7 +187,7 @@ func (f *Flags) handleMaintenanceSyncIP() error {
 		return nil
 	}
 
-	amtLanIfc, err := f.amtCommand.GetLANInterfaceSettings(false)
+	amtLanIfc, err := f.AmtCommand.GetLANInterfaceSettings(false)
 	if err != nil {
 		log.Error(err)
 		return utils.AMTConnectionFailed

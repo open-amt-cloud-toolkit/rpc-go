@@ -6,6 +6,7 @@
 package amt
 
 import (
+	cryptotls "crypto/tls"
 	"encoding/base64"
 	"net"
 	"rpc/pkg/utils"
@@ -34,7 +35,7 @@ import (
 )
 
 type WSMANer interface {
-	SetupWsmanClient(username string, password string, logAMTMessages bool)
+	SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *cryptotls.Config) error
 	Unprovision(int) (setupandconfiguration.Response, error)
 	GetGeneralSettings() (general.Response, error)
 	HostBasedSetupService(digestRealm string, password string) (hostbasedsetup.Response, error)
@@ -96,29 +97,43 @@ func NewGoWSMANMessages(lmsAddress string) *GoWSMANMessages {
 	}
 }
 
-func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, logAMTMessages bool) {
+func (g *GoWSMANMessages) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *cryptotls.Config) error {
 	clientParams := client.Parameters{
 		Target:         g.target,
 		Username:       username,
 		Password:       password,
 		UseDigest:      true,
-		UseTLS:         false,
+		UseTLS:         useTLS,
+		TlsConfig:      tlsConfig,
 		LogAMTMessages: logAMTMessages,
 	}
-	logrus.Info("Attempting to connect to LMS...")
-	port := utils.LMSPort
+
+	var (
+		con net.Conn // Declared to hold the connection object
+		err error
+	)
 	if clientParams.UseTLS {
-		port = client.TLSPort
+		logrus.Info("Attempting to connect to LMS over TLS...")
+		con, err = cryptotls.Dial("tcp", utils.LMSAddress+":"+client.TLSPort, clientParams.TlsConfig)
+	} else {
+		logrus.Info("Attempting to connect to LMS...")
+		con, err = net.Dial("tcp", utils.LMSAddress+":"+client.NonTLSPort)
 	}
-	con, err := net.Dial("tcp4", utils.LMSAddress+":"+port)
+
 	if err != nil {
-		logrus.Info("Failed to connect to LMS, using local transport instead.")
+		logrus.Trace("Failed to connect to LMS: ", err)
+		if clientParams.UseTLS {
+			return utils.LMSConnectionFailed
+		}
+		logrus.Info("using local transport instead...")
 		clientParams.Transport = NewLocalTransport()
 	} else {
 		logrus.Info("Successfully connected to LMS.")
 		con.Close()
 	}
+
 	g.wsmanMessages = wsman.NewMessages(clientParams)
+	return nil
 }
 
 func (g *GoWSMANMessages) GetGeneralSettings() (general.Response, error) {

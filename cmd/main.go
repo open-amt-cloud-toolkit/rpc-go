@@ -34,6 +34,11 @@ func runRPC(args []string) error {
 	if err != nil {
 		return err
 	}
+	// Update TLS enforcement and Current Activation Mode, helps decide how to connect to LMS
+	err = updateConnectionSettings(flags)
+	if err != nil {
+		return err
+	}
 	if flags.Local {
 		err = local.ExecuteCommand(flags)
 	} else {
@@ -83,6 +88,31 @@ func main() {
 	if err != nil {
 		handleErrorAndExit(err)
 	}
+}
+
+func updateConnectionSettings(flags *flags.Flags) error {
+	// Check if TLS is Mandatory for LMS connection
+	resp, err := flags.AmtCommand.GetChangeEnabled()
+	flags.LocalTlsEnforced = false
+	if err != nil {
+		if err.Error() == "wait timeout while sending data" {
+			log.Trace("Operation timed out while sending data. This may occur on systems with AMT version 11 and below.")
+			return nil
+		} else {
+			log.Error(err)
+			return err
+		}
+	}
+	if resp.IsTlsEnforcedOnLocalPorts() {
+		flags.LocalTlsEnforced = true
+		log.Trace("TLS is enforced on local ports")
+	}
+	// Check the current provisioning mode
+	flags.ControlMode, err = flags.AmtCommand.GetControlMode()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func handleErrorAndExit(err error) {

@@ -205,7 +205,7 @@ func TestParseFlagsMaintenance(t *testing.T) {
 			if tc.passwordFail {
 				flags = NewFlags(args, MockPRFail)
 			}
-			flags.amtCommand.PTHI = MockPTHICommands{}
+			flags.AmtCommand.PTHI = MockPTHICommands{}
 			flags.netEnumerator = testNetEnumerator
 			gotResult := flags.ParseFlags()
 			assert.Equal(t, tc.wantResult, gotResult)
