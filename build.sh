@@ -1,12 +1,7 @@
 # Get version from the first argument
 version=$1
 
-wget -f https://tsci.intel.com/content/OnDieCA/certs/OnDie_CA_RootCA_Certificate.cer -O ./internal/certs/trustedstore/OnDie_CA_RootCA_Certificate.cer
-
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to download OnDie_CA_RootCA_Certificate.cer"
-    exit 1
-fi
+wget https://tsci.intel.com/content/OnDieCA/certs/OnDie_CA_RootCA_Certificate.cer -o ./internal/certs/trustedstore/OnDie_CA_RootCA_Certificate.cer
 
 # Build for Linux
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'rpc/pkg/utils.ProjectVersion=$version'" -trimpath -o rpc_linux_x64 ./cmd/main.go
