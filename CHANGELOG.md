@@ -1,3 +1,18 @@
+# [2.43.0-ccmovertls.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.8...v2.43.0-ccmovertls.1) (2025-02-10)
+
+
+### Bug Fixes
+
+* embed the root ca ([cd37eb9](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/cd37eb986c7e1eaea8f8bbd07b8b8e43c164c2ad))
+* semantic release ([4153a15](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/4153a15e344c797e2252a409ab6aed6d1a3e817f))
+
+
+### Features
+
+* ccm activation on tlsonly platforms ([195445a](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/195445a67ceeb97f2bfe48e71b07bd9fd4c9472b))
+* ccm activation on tlsonly platforms ([7f01b81](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/7f01b81edfbc43f5fc8ee0baa05d101ce563122a))
+* ccm activation on tlsonly platforms ([3cf9053](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/3cf90534401c2ca20a1555f10eeedc00b2d53dba))
+
 ## [2.42.8](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.7...v2.42.8) (2025-01-15)
 
 
