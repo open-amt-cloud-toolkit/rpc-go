@@ -5,44 +5,57 @@
 package lm
 
 import (
+	"crypto/tls"
 	"errors"
 	"io"
 	"net"
+
 	"strings"
 	"time"
+
+	"rpc/internal/config"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// LMConnection is struct for managing connection to LMS
 type LMSConnection struct {
-	Connection net.Conn
-	address    string
-	port       string
-	data       chan []byte
-	errors     chan error
+	Connection  net.Conn
+	address     string
+	port        string
+	useTls      bool
+	data        chan []byte
+	errors      chan error
+	controlMode int
 }
 
-func NewLMSConnection(address string, port string, data chan []byte, errors chan error) *LMSConnection {
+func NewLMSConnection(address string, port string, useTls bool, data chan []byte, errors chan error, mode int) *LMSConnection {
 
 	lms := &LMSConnection{
-		address: address,
-		port:    port,
-		data:    data,
-		errors:  errors,
+		address:     address,
+		port:        port,
+		useTls:      useTls,
+		data:        data,
+		errors:      errors,
+		controlMode: mode,
 	}
 	return lms
 }
+
 func (lms *LMSConnection) Initialize() error {
 	return errors.New("not implemented")
 }
 
 // Connect initializes TCP connection to LMS
 func (lms *LMSConnection) Connect() error {
-	log.Debug("connecting to lms")
 	var err error
 	if lms.Connection == nil {
-		lms.Connection, err = net.Dial("tcp4", lms.address+":"+lms.port)
+		if lms.useTls {
+			log.Debug("connecting to lms over tls...")
+			lms.Connection, err = tls.Dial("tcp4", lms.address+":"+lms.port, config.GetTLSConfig(&lms.controlMode))
+		} else {
+			log.Debug("connecting to lms...")
+			lms.Connection, err = net.Dial("tcp4", lms.address+":"+lms.port)
+		}
 		if err != nil {
 			// handle error
 			return err

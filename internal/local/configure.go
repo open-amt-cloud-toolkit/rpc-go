@@ -6,26 +6,29 @@
 package local
 
 import (
+	"crypto/tls"
 	"errors"
 	"net/url"
+	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
 func (service *ProvisioningService) Configure() (err error) {
 	// Check if the device is already activated
-	controlMode, err := service.amtCommand.GetControlMode()
-	if err != nil {
-		return utils.AMTConnectionFailed
-	}
-	if controlMode == 0 {
+	if service.flags.ControlMode == 0 {
 		log.Error("Device is not activated to configure. Please activate the device first.")
 		return utils.UnableToConfigure
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
-
+	tlsConfig := &tls.Config{}
+	if service.flags.LocalTlsEnforced {
+		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+	}
+	err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, log.GetLevel() == log.TraceLevel, tlsConfig)
+	if err != nil {
+		return err
+	}
 	switch service.flags.SubCommand {
 	case utils.SubCommandAddEthernetSettings, utils.SubCommandWired:
 		return service.AddEthernetSettings()
@@ -34,7 +37,7 @@ func (service *ProvisioningService) Configure() (err error) {
 	case utils.SubCommandEnableWifiPort:
 		return service.EnableWifiPort(true)
 	case utils.SubCommandSetMEBx:
-		if controlMode != 2 {
+		if service.flags.ControlMode != 2 {
 			log.Error("Device needs to be in admin control mode to set MEBx password.")
 			return utils.UnableToConfigure
 		}
@@ -46,7 +49,7 @@ func (service *ProvisioningService) Configure() (err error) {
 	case utils.SubCommandChangeAMTPassword:
 		return service.ChangeAMTPassword()
 	case utils.SubCommandSetAMTFeatures:
-		if controlMode != 2 {
+		if service.flags.ControlMode != 2 {
 			log.Error("Device needs to be in admin control mode to configure AMT features.")
 			return utils.UnableToConfigure
 		}

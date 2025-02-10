@@ -35,18 +35,12 @@ func TestActivation(t *testing.T) {
 		err := lps.Activate()
 		assert.NoError(t, err)
 	})
-	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
-		mockControlModeErr = errTestError
-		err := lps.Activate()
-		assert.Error(t, err)
-		mockControlModeErr = nil
-	})
 
 	t.Run("returns UnableToActivate when already activated", func(t *testing.T) {
-		mockControlMode = 1
+		lps.flags.ControlMode = 1
 		err := lps.Activate()
 		assert.Error(t, err)
-		mockControlMode = 0
+		lps.flags.ControlMode = 0
 	})
 
 	t.Run("returns AMTConnectionFailed when GetLocalSystemAccount fails", func(t *testing.T) {

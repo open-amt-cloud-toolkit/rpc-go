@@ -6,9 +6,10 @@
 package local
 
 import (
+	"crypto/tls"
+	"rpc/internal/config"
 	"rpc/pkg/utils"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,7 +46,14 @@ func (service *ProvisioningService) DeactivateACM() (err error) {
 			return utils.MissingOrIncorrectPassword
 		}
 	}
-	service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+	tlsConfig := &tls.Config{}
+	if service.flags.LocalTlsEnforced {
+		tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+	}
+	err = service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, log.GetLevel() == log.TraceLevel, tlsConfig)
+	if err != nil {
+		return err
+	}
 	_, err = service.interfacedWsmanMessage.Unprovision(1)
 	if err != nil {
 		log.Error("Status: Unable to deactivate ", err)

@@ -19,7 +19,8 @@ const (
 	// LMSAddress is used for determing what address to connect to LMS on
 	LMSAddress = "localhost"
 	// LMSPort is used for determining what port to connect to LMS on
-	LMSPort = "16992"
+	LMSPort    = "16992"
+	LMSTLSPort = "16993"
 
 	AMTUserName = "admin"
 
@@ -127,6 +128,7 @@ var ActivationFailedControlMode = CustomError{Code: 135, Message: "ActivationFai
 var DuplicateKey = CustomError{Code: 136, Message: "DuplicateKey", Details: "Key pair already exists"}
 var WiredConfigurationFailed = CustomError{Code: 137, Message: "WiredConfigurationFailed"}
 var UnsupportedAMTVersion = CustomError{Code: 138, Message: "UnsupportedAMTVersion"}
+var LMSConnectionFailed = CustomError{Code: 139, Message: "LMSConnectionFailed", Details: "Failed to connect to LMS. Please install LMS for activation."}
 
 // (150-199) Maintenance Errors
 var SyncClockFailed = CustomError{Code: 150, Message: "SyncClockFailed"}

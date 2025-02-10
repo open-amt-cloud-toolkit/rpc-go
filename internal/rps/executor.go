@@ -31,9 +31,14 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	lmDataChannel := make(chan []byte)
 	lmErrorChannel := make(chan error)
 
+	port := utils.LMSPort
+	if flags.LocalTlsEnforced {
+		port = utils.LMSTLSPort
+	}
+
 	client := Executor{
 		server:          NewAMTActivationServer(&flags),
-		localManagement: lm.NewLMSConnection(utils.LMSAddress, utils.LMSPort, lmDataChannel, lmErrorChannel),
+		localManagement: lm.NewLMSConnection(utils.LMSAddress, port, flags.LocalTlsEnforced, lmDataChannel, lmErrorChannel, flags.ControlMode),
 		data:            lmDataChannel,
 		errors:          lmErrorChannel,
 		waitGroup:       &sync.WaitGroup{},
@@ -43,6 +48,9 @@ func NewExecutor(flags flags.Flags) (Executor, error) {
 	err := client.localManagement.Connect()
 
 	if err != nil {
+		if flags.LocalTlsEnforced {
+			return client, utils.LMSConnectionFailed
+		}
 		// client.localManagement.Close()
 		log.Trace("LMS not running.  Using LME Connection\n")
 		client.localManagement = lm.NewLMEConnection(lmDataChannel, lmErrorChannel, client.waitGroup)

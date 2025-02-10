@@ -19,7 +19,7 @@ func TestChangeAMTPassword(t *testing.T) {
 	f.SubCommand = utils.SubCommandChangeAMTPassword
 
 	t.Run("should return Success", func(t *testing.T) {
-		mockControlMode = 1
+		f.ControlMode = 1
 		lps := setupService(f)
 		err := lps.Configure()
 		assert.NoError(t, err)
