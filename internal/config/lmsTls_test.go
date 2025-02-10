@@ -9,11 +9,15 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
+	"io/fs"
 	"math/big"
+	"os"
 	"rpc/internal/certs"
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -116,13 +120,81 @@ func TestVerifyROMODCACertificate(t *testing.T) {
 	}
 }
 
-func TestVerifyLastIntermediateCert(t *testing.T) {
-	mockCert := &x509.Certificate{}
-	err := VerifyLastIntermediateCert(mockCert)
-	assert.Error(t, err) // Expecting error as mock cert won't be signed by a trusted root
+// mockFileSystem is a mock implementation of the FileSystem interface
+type mockFileSystem struct {
+	certFiles []string
+	certData  map[string][]byte
 }
 
-func TestVerifyCertificates(t *testing.T) {
+// mockDirEntry is a mock implementation of fs.DirEntry
+type mockDirEntry struct {
+	name string
+}
+
+func (m mockDirEntry) Name() string {
+	return m.name
+}
+
+func (m mockDirEntry) IsDir() bool {
+	return false // Return false because we are mocking files, not directories
+}
+
+func (m mockDirEntry) Info() (fs.FileInfo, error) {
+	// Mock a simple fs.FileInfo object
+	return mockFileInfo(m), nil
+}
+
+func (m mockDirEntry) Type() fs.FileMode {
+	// Mock file type (can be a regular file, directory, etc.)
+	return os.ModePerm // Assuming it's a regular file
+}
+
+type mockFileInfo struct {
+	name string
+}
+
+func (m mockFileInfo) Name() string {
+	return m.name
+}
+
+func (m mockFileInfo) Size() int64 {
+	return 0
+}
+
+func (m mockFileInfo) Mode() os.FileMode {
+	return 0
+}
+
+func (m mockFileInfo) ModTime() time.Time {
+	return time.Time{}
+}
+
+func (m mockFileInfo) IsDir() bool {
+	return false
+}
+
+func (m mockFileInfo) Sys() interface{} {
+	return nil
+}
+
+func (m *mockFileSystem) ReadDir(name string) ([]fs.DirEntry, error) {
+	var entries []fs.DirEntry
+	for _, file := range m.certFiles {
+		entries = append(entries, mockDirEntry{name: file})
+	}
+	return entries, nil
+}
+
+func (m *mockFileSystem) ReadFile(name string) ([]byte, error) {
+	// Return certificate data using the full path as the key
+	log.Info("mockFileSystem ReadFile: ", name)
+	if data, exists := m.certData[name]; exists {
+		return data, nil
+	}
+	return nil, errors.New("file not found: " + name)
+}
+
+func TestVerifyFullChain(t *testing.T) {
 	// Create the root certificate (7th certificate, used for verification)
 	rootTemplate := createCertTemplate("Intel Root CA", true, []string{"Intel Root OU"})
 	rootCert, rootKey := createTestCert(t, rootTemplate, nil, nil)
@@ -151,42 +223,75 @@ func TestVerifyCertificates(t *testing.T) {
 	leafTemplate := createCertTemplate("iAMT CSME IDevID RCFG", false, []string{"Leaf OU"})
 	leafCert, _ := createTestCert(t, leafTemplate, interm2Cert, interm2Key)
 
-	tests := []struct {
-		name     string
-		rawCerts [][]byte
-		mode     int
-		wantErr  bool
-	}{
-		{
-			name: "Valid production chain",
-			rawCerts: [][]byte{
-				leafCert.Raw,       // 1st - Leaf certificate
-				interm2Cert.Raw,    // 2nd - Intermediate certificate
-				interm3Cert.Raw,    // 3rd - Intermediate certificate
-				odcaCert.Raw,       // 4th - ODCA certificate
-				interm5Cert.Raw,    // 5th - Intermediate certificate
-				lastIntermCert.Raw, // 6th - Last intermediate certificate
-			},
-			mode:    0,
-			wantErr: false,
+	// Create another root certificate for negative tests
+	rootTemplatex := createCertTemplate("Intel Root CA2", true, []string{"Intel Root OU"})
+	rootCertx, rootKeyx := createTestCert(t, rootTemplatex, nil, nil)
+
+	// Create another last intermediate certificate (6th in chain) for negative tests
+	lastIntermTemplatex := createCertTemplate("Last Intermediate CA", true, []string{"Last Intermediate OU"})
+	lastIntermCertx, _ := createTestCert(t, lastIntermTemplatex, rootCertx, rootKeyx)
+
+	// Mock FileSystem implementation
+	mockFileSystem := &mockFileSystem{
+		certFiles: []string{
+			"root.cer",
 		},
-		{
-			name: "Invalid chain length",
-			rawCerts: [][]byte{
-				leafCert.Raw,
-				interm2Cert.Raw,
-			},
-			mode:    0,
-			wantErr: true,
+		certData: map[string][]byte{
+			"trustedstore/root.cer": rootCert.Raw,
 		},
 	}
-	// Mock the root certificate for verification
-	certs.OnDie_CA_RootCA_Certificate = rootCert.Raw
+
+	certs.LoadRootCAPool = func() (*x509.CertPool, error) {
+		return certs.LoadRootCAPoolwithFS(mockFileSystem)
+	}
+
+	tests := []struct {
+		name        string
+		certs       []*x509.Certificate
+		expectError bool
+	}{
+		{
+			name: "Valid full chain",
+			certs: []*x509.Certificate{
+				leafCert,
+				interm2Cert,
+				interm3Cert,
+				odcaCert,
+				interm5Cert,
+				lastIntermCert,
+			},
+			expectError: false,
+		},
+		{
+			name: "Missing intermediate certificates",
+			certs: []*x509.Certificate{
+				leafCert,
+				lastIntermCert,
+			},
+			expectError: true,
+		},
+		{
+			name: "Invalid Cert chain",
+			certs: []*x509.Certificate{
+				leafCert,
+				interm2Cert,
+				interm3Cert,
+				odcaCert,
+				interm5Cert,
+				lastIntermCertx,
+			},
+			expectError: true,
+		},
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := VerifyCertificates(tt.rawCerts, &tt.mode)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("VerifyCertificates() error = %v, wantErr %v", err, tt.wantErr)
+			err := VerifyFullChain(tt.certs)
+			if tt.expectError && err == nil {
+				t.Errorf("%s: Expected error but got none", tt.name)
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("%s: Unexpected error: %v", tt.name, err)
 			}
 		})
 	}

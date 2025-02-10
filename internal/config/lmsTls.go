@@ -39,17 +39,18 @@ func VerifyCertificates(rawCerts [][]byte, mode *int) error {
 	const (
 		selfSignedChainLength = 1
 		prodChainLength       = 6
-		lastIntermediateCert  = prodChainLength - 1
 		odcaCertLevel         = 3
 		leafLevel             = 0
 	)
+	var parsedCerts []*x509.Certificate
 	if numCerts == prodChainLength {
 		for i, rawCert := range rawCerts {
 			cert, err := x509.ParseCertificate(rawCert)
 			if err != nil {
-				log.Println("Failed to parse certificate", i, ":", err)
+				log.Error("Failed to parse certificate ", i, ": ", err)
 				return err
 			}
+			parsedCerts = append(parsedCerts, cert)
 			switch i {
 			case leafLevel:
 				if err := VerifyLeafCertificate(cert.Subject.CommonName); err != nil {
@@ -59,11 +60,12 @@ func VerifyCertificates(rawCerts [][]byte, mode *int) error {
 				if err := VerifyROMODCACertificate(cert.Subject.CommonName, cert.Issuer.OrganizationalUnit); err != nil {
 					return err
 				}
-			case lastIntermediateCert:
-				if err := VerifyLastIntermediateCert(cert); err != nil {
-					return err
-				}
 			}
+			// TODO: verify CRL for each cert
+		}
+		// verify the full chain
+		if err := VerifyFullChain(parsedCerts); err != nil {
+			return err
 		}
 		return nil
 	} else if numCerts == selfSignedChainLength {
@@ -109,17 +111,26 @@ func VerifyROMODCACertificate(cn string, issuerOU []string) error {
 	return errors.New("ROM ODCA Certificate OU does not have a valid prefix")
 }
 
-// check if the last intermediate cert is signed by trusted root certificate
-func VerifyLastIntermediateCert(cert *x509.Certificate) error {
-	// parse the DER certificate into an x509.Certificate
-	prodRootCert, err := x509.ParseCertificate(certs.OnDie_CA_RootCA_Certificate)
+// validate the full chain
+func VerifyFullChain(certificates []*x509.Certificate) error {
+	rootCAs, err := certs.LoadRootCAPool()
 	if err != nil {
-		log.Error("failed to parse OnDie ROOT CA Certificate: ", err)
+		log.Error("Failed to load root CA pool:", err)
 		return err
 	}
-	err = cert.CheckSignatureFrom(prodRootCert)
-	if err != nil {
-		log.Error("last certificate in the chain is not signed by a trusted root certificate: ", err)
+	// Create a pool for intermediate certificates
+	intermediates := x509.NewCertPool()
+	for _, cert := range certificates[1:] {
+		intermediates.AddCert(cert)
+	}
+	leafCert := certificates[0]
+	opts := x509.VerifyOptions{
+		Roots:         rootCAs,
+		Intermediates: intermediates,
+	}
+	// Validate the full chain (leaf → intermediates → trusted root)
+	if _, err := leafCert.Verify(opts); err != nil {
+		log.Error("Certificate chain validation failed:", err)
 		return err
 	}
 	return nil
