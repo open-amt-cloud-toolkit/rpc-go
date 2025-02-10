@@ -1,3 +1,10 @@
+# [2.43.0](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.8...v2.43.0) (2025-02-10)
+
+
+### Features
+
+* ccm on tls only platforms ([#745](https://github.com/open-amt-cloud-toolkit/rpc-go/issues/745)) ([80853ee](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/80853ee033e4370590e929ba2b6bd80cf092c6f0))
+
 ## [2.42.8](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.7...v2.42.8) (2025-01-15)
 
 
