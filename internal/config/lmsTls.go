@@ -127,6 +127,7 @@ func VerifyFullChain(certificates []*x509.Certificate) error {
 	opts := x509.VerifyOptions{
 		Roots:         rootCAs,
 		Intermediates: intermediates,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 	}
 	// Validate the full chain (leaf → intermediates → trusted root)
 	if _, err := leafCert.Verify(opts); err != nil {
