@@ -1,3 +1,10 @@
+# [2.43.0-ccmovertls.2](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.43.0-ccmovertls.1...v2.43.0-ccmovertls.2) (2025-02-10)
+
+
+### Bug Fixes
+
+* download root cert flow ([53e42af](https://github.com/open-amt-cloud-toolkit/rpc-go/commit/53e42afc03cf879c90092d5df6a6e2c36df6c47d))
+
 # [2.43.0-ccmovertls.1](https://github.com/open-amt-cloud-toolkit/rpc-go/compare/v2.42.8...v2.43.0-ccmovertls.1) (2025-02-10)
 
 
