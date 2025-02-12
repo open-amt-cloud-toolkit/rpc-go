@@ -1,6 +1,22 @@
 # Get version from the first argument
 version=$1
 
+# Download the certificate to the initial location
+wget -O ./internal/certs/OnDie_CA_RootCA_Certificate.cer \
+    https://tsci.intel.com/content/OnDieCA/certs/OnDie_CA_RootCA_Certificate.cer 
+
+# Check if the download was successful (non-zero file size)
+if [ -s ./internal/certs/OnDie_CA_RootCA_Certificate.cer ]; then
+    # Move the downloaded certificate to the trusted store
+    mv ./internal/certs/OnDie_CA_RootCA_Certificate.cer \
+        ./internal/certs/trustedstore/OnDie_CA_RootCA_Certificate.cer
+    echo "Certificate moved to trusted store."
+else
+    # Remove the file if the download failed
+    rm -f ./internal/certs/OnDie_CA_RootCA_Certificate.cer
+    echo "Download failed, file removed."
+fi
+
 # Build for Linux
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'rpc/pkg/utils.ProjectVersion=$version'" -trimpath -o rpc_linux_x64 ./cmd/main.go
 CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -ldflags "-s -w -X 'rpc/pkg/utils.ProjectVersion=$version'" -trimpath -o rpc_linux_x86 ./cmd/main.go

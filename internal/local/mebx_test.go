@@ -22,11 +22,6 @@ func TestSetMebx(t *testing.T) {
 		expectedErr    error
 	}{
 		{
-			name:           "GetControlModeError",
-			controlModeErr: assert.AnError,
-			expectedErr:    utils.AMTConnectionFailed,
-		},
-		{
 			name:        "NotACM",
 			controlMode: 1, // Not ACM
 			expectedErr: utils.SetMEBXPasswordFailed,
@@ -52,9 +47,7 @@ func TestSetMebx(t *testing.T) {
 			service.amtCommand = mockAMT
 			service.interfacedWsmanMessage = mockWsman
 
-			mockControlMode = tc.controlMode
-			mockControlModeErr = tc.controlModeErr
-
+			f.ControlMode = tc.controlMode
 			mockSetupAndConfigurationErr = tc.setupMEBXErr
 
 			err := service.SetMebx()

@@ -18,28 +18,22 @@ func TestConfigure(t *testing.T) {
 
 	t.Run("expect success for SubCommandChangeAMTPassword", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandChangeAMTPassword
-		mockControlMode = 1
+		f.ControlMode = 1
 		lps := setupService(f)
 		err := lps.Configure()
 		assert.Nil(t, err)
-		mockControlModeErr = nil
-	})
-	t.Run("returns AMTConnectionFailed when GetControlMode fails", func(t *testing.T) {
-		mockControlModeErr = errTestError
-		lps := setupService(f)
-		err := lps.Configure()
-		assert.Error(t, err)
-		mockControlModeErr = nil
 	})
 	t.Run("returns UnableToConfigure when device is not activated", func(t *testing.T) {
-		mockControlMode = 0
+		f.ControlMode = 0
 		lps := setupService(f)
 		err := lps.Configure()
 		assert.Error(t, utils.UnableToConfigure, err)
-		mockControlMode = 1
+		f.ControlMode = 1
 	})
 	t.Run("expect error for unhandled Subcommand", func(t *testing.T) {
-		lps := setupService(&flags.Flags{})
+		customFlag := &flags.Flags{}
+		customFlag.ControlMode = 1
+		lps := setupService(customFlag)
 		err := lps.Configure()
 		assert.Equal(t, utils.IncorrectCommandLineParameters, err)
 	})
@@ -97,7 +91,7 @@ func TestConfigure(t *testing.T) {
 		err := lps.Configure()
 		assert.Error(t, utils.UnableToConfigure, err)
 		mockSetupAndConfigurationErr = nil
-		mockControlMode = 2
+		f.ControlMode = 2
 	})
 	t.Run("expect error for SetMebx", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSetMEBx
@@ -110,7 +104,7 @@ func TestConfigure(t *testing.T) {
 	t.Run("expect success for SetMebx", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSetMEBx
 		lps := setupService(f)
-		mockControlMode = 2
+		f.ControlMode = 2
 		err := lps.Configure()
 		assert.NoError(t, err)
 	})
@@ -125,17 +119,17 @@ func TestConfigure(t *testing.T) {
 	t.Run("expect success for Syncclock", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSyncClock
 		lps := setupService(f)
-		mockControlMode = 2
+		f.ControlMode = 2
 		err := lps.Configure()
 		assert.NoError(t, err)
 	})
 	t.Run("expect error for AMT features if device is activated in client mode", func(t *testing.T) {
-		mockControlMode = 1
+		f.ControlMode = 1
 		f.SubCommand = utils.SubCommandSetAMTFeatures
 		lps := setupService(f)
 		err := lps.Configure()
 		assert.Error(t, utils.UnableToConfigure, err)
-		mockControlMode = 2
+		f.ControlMode = 2
 	})
 	t.Run("expect error for AMT features", func(t *testing.T) {
 		f.SubCommand = utils.SubCommandSetAMTFeatures

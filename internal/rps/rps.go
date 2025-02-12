@@ -29,13 +29,11 @@ func ExecuteCommand(flags *flags.Flags) error {
 
 	startMessage, err := PrepareInitialMessage(flags)
 	if err != nil {
-		log.Error(err)
 		return err
 	}
 
 	executor, err := NewExecutor(*flags)
 	if err != nil {
-		log.Error(err)
 		return err
 	}
 

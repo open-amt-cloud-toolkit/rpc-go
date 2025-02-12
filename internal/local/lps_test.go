@@ -6,6 +6,7 @@
 package local
 
 import (
+	cryptotls "crypto/tls"
 	"encoding/xml"
 	"errors"
 	"net/http"
@@ -276,7 +277,11 @@ func (m MockWSMAN) SetupMEBX(password string) (setupandconfiguration.Response, e
 	}, mockSetupAndConfigurationErr
 }
 
-func (m MockWSMAN) SetupWsmanClient(username string, password string, logAMTMessages bool) {}
+var mockSetupWsmanClientErr error = nil
+
+func (m MockWSMAN) SetupWsmanClient(username string, password string, useTLS bool, logAMTMessages bool, tlsConfig *cryptotls.Config) error {
+	return mockSetupWsmanClientErr
+}
 
 var mockGeneralSettings = general.Response{}
 var errMockGeneralSettings error = nil
@@ -771,6 +776,6 @@ func TestExecute(t *testing.T) {
 		f.Command = utils.CommandConfigure
 		mockControlMode = 1
 		rc := ExecuteCommand(f)
-		assert.Equal(t, utils.AMTConnectionFailed, rc)
+		assert.Equal(t, utils.UnableToConfigure, rc)
 	})
 }

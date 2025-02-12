@@ -7,12 +7,14 @@ package local
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"os"
 	"rpc/internal/amt"
+	"rpc/internal/config"
 	"rpc/internal/flags"
 	"rpc/pkg/utils"
 	"strconv"
@@ -20,7 +22,6 @@ import (
 
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publickey"
 	"github.com/open-amt-cloud-toolkit/go-wsman-messages/v2/pkg/wsman/amt/publicprivate"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -310,7 +311,11 @@ func (service *ProvisioningService) DisplayAMTInfo() (err error) {
 		}
 	}
 	if service.flags.AmtInfo.UserCert {
-		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, logrus.GetLevel() == logrus.TraceLevel)
+		tlsConfig := &tls.Config{}
+		if service.flags.LocalTlsEnforced {
+			tlsConfig = config.GetTLSConfig(&service.flags.ControlMode)
+		}
+		service.interfacedWsmanMessage.SetupWsmanClient("admin", service.flags.Password, service.flags.LocalTlsEnforced, log.GetLevel() == log.TraceLevel, tlsConfig)
 		userCerts, _ := service.interfacedWsmanMessage.GetPublicKeyCerts()
 		userCertMap := map[string]publickey.RefinedPublicKeyCertificateResponse{}
 		for i := range userCerts {
