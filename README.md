@@ -13,7 +13,7 @@ The Remote Provisioning Client (RPC) is an application that assists with activat
 
 ---
 
-**For detailed documentation** about Getting Started or other features of the Open AMT Cloud Toolkit, see the [docs](https://open-amt-cloud-toolkit.github.io/docs/).
+**For detailed documentation** about Getting Started or other features of the Device Management Toolkit, see the [docs](https://device-management-toolkit.github.io/docs/).
 
 ---
 
@@ -84,11 +84,11 @@ $ docker run --rm -it --device /dev/mei0 rpc-go:latest
 
 ## Additional Resources
 
-- For detailed documentation and Getting Started, [visit the docs site](https://open-amt-cloud-toolkit.github.io/docs).
+- For detailed documentation and Getting Started, [visit the docs site](https://device-management-toolkit.github.io/docs).
 
 - Looking to contribute? [Find more information here about contribution guidelines and practices](.\CONTRIBUTING.md).
 
-- Find a bug? Or have ideas for new features? [Open a new Issue](https://github.com/open-amt-cloud-toolkit/rpc-go/issues).
+- Find a bug? Or have ideas for new features? [Open a new Issue](https://github.com/device-management-toolkit/rpc-go/issues).
 
 - Need additional support or want to get the latest news and events about Open AMT? Connect with the team directly through Discord.
 
