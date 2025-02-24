@@ -55,7 +55,7 @@ const (
 
 // (1-99) General Errors
 
-// (1-19) Basic errors outside of Open AMT Cloud Toolkit
+// (1-19) Basic errors outside of Device Management Toolkit
 var IncorrectPermissions = CustomError{Code: 1, Message: "IncorrectPermissions"}
 var HECIDriverNotDetected = CustomError{Code: 2, Message: "HECIDriverNotDetected"}
 var AmtNotDetected = CustomError{Code: 3, Message: "AmtNotDetected"}
